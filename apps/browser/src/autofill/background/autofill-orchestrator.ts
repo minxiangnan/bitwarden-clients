@@ -203,9 +203,11 @@ export class DefaultAutofillOrchestrator implements AutofillOrchestrator {
         filter(([, autofillOnPageLoad]) => autofillOnPageLoad),
         map(([opportunity]) => opportunity),
       )
-      .subscribe(({ tab, tabId, frameId, frameUrl }) =>
-        this.fillRequest$.next({ kind: "pageLoad", tab, tabId, frameId, frameUrl }),
-      );
+      .subscribe(({ tab, tabId, frameId, frameUrl }) => {
+        void Promise.resolve(this.lifecycleService.ensureLiveTab(tabId)).then(() => {
+          this.fillRequest$.next({ kind: "pageLoad", tab, tabId, frameId, frameUrl });
+        });
+      });
 
     // The auto-submit-login workflow reports each step as a fact; interpret it as one
     // collect → fill → submit.
@@ -335,11 +337,16 @@ export class DefaultAutofillOrchestrator implements AutofillOrchestrator {
     // A user-initiated fill is tab-scoped: it fills the active tab across all frames in one pass,
     // so it carries no frame id and serializes per tab (see `orchestrator.design.md`, "Fills do not
     // race"). It deliberately does not share a per-frame lane with page-load fills.
-    this.fillRequest$.next(
-      kind === "command"
-        ? { kind, tab, tabId, frameId: undefined }
-        : { kind: "cipherType", tab, tabId, frameId: undefined, cipherType: cipherType! },
-    );
+    //
+    // Discarded tabs can come back under an id the live-tab set never observed. Confirm the
+    // tab with the browser before the gate sees the request; a missing tab is not added.
+    void Promise.resolve(this.lifecycleService.ensureLiveTab(tabId)).then(() => {
+      this.fillRequest$.next(
+        kind === "command"
+          ? { kind, tab, tabId, frameId: undefined }
+          : { kind: "cipherType", tab, tabId, frameId: undefined, cipherType: cipherType! },
+      );
+    });
   }
 
   /**

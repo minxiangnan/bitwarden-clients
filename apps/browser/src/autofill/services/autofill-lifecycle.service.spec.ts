@@ -87,6 +87,23 @@ describe("DefaultAutofillLifecycleService", () => {
         service["handleTabCreated"],
       );
     });
+
+    it("registers tabs onReplaced, onUpdated, and onActivated listeners", () => {
+      service.init();
+
+      expect(BrowserApi.addListener).toHaveBeenCalledWith(
+        chrome.tabs.onReplaced,
+        service["handleTabReplaced"],
+      );
+      expect(BrowserApi.addListener).toHaveBeenCalledWith(
+        chrome.tabs.onUpdated,
+        service["handleTabUpdated"],
+      );
+      expect(BrowserApi.addListener).toHaveBeenCalledWith(
+        chrome.tabs.onActivated,
+        service["handleTabActivated"],
+      );
+    });
   });
 
   describe("live-tab set", () => {
@@ -120,6 +137,61 @@ describe("DefaultAutofillLifecycleService", () => {
 
       service["handleTabRemoved"](5);
       expect((await firstValueFrom(service.liveTabs$)).has(5)).toBe(false);
+    });
+
+    it("replaces a live tab id when the browser fires onReplaced", async () => {
+      service.init();
+      service["handleTabCreated"](createChromeTabMock({ id: 5 }));
+
+      service["handleTabReplaced"](9, 5);
+
+      const live = await firstValueFrom(service.liveTabs$);
+      expect(live.has(5)).toBe(false);
+      expect(live.has(9)).toBe(true);
+    });
+
+    it("drops a discarded tab and records the id the browser reports once it is updated", async () => {
+      service.init();
+      service["handleTabCreated"](createChromeTabMock({ id: 5 }));
+
+      service["handleTabUpdated"](5, { discarded: true }, createChromeTabMock({ id: 5 }));
+      expect((await firstValueFrom(service.liveTabs$)).has(5)).toBe(false);
+
+      // Memory Saver can restore the tab under a new id without onCreated or onReplaced.
+      service["handleTabUpdated"](8, { status: "loading" }, createChromeTabMock({ id: 8 }));
+      const live = await firstValueFrom(service.liveTabs$);
+      expect(live.has(5)).toBe(false);
+      expect(live.has(8)).toBe(true);
+    });
+
+    it("records a tab id the first time it is activated", async () => {
+      service.init();
+
+      service["handleTabActivated"]({ tabId: 4, windowId: 1 });
+
+      expect((await firstValueFrom(service.liveTabs$)).has(4)).toBe(true);
+    });
+
+    it("admits an open tab missing from the set and rejects a tab the browser does not have", async () => {
+      service.init();
+      jest.spyOn(BrowserApi, "getTab").mockResolvedValue(createChromeTabMock({ id: 7 }));
+
+      await expect(service.ensureLiveTab(7)).resolves.toBe(true);
+      expect((await firstValueFrom(service.liveTabs$)).has(7)).toBe(true);
+
+      jest.spyOn(BrowserApi, "getTab").mockRejectedValue(new Error("no tab"));
+      await expect(service.ensureLiveTab(99)).resolves.toBe(false);
+      expect((await firstValueFrom(service.liveTabs$)).has(99)).toBe(false);
+    });
+
+    it("does not admit a tab that is still discarded", async () => {
+      service.init();
+      jest
+        .spyOn(BrowserApi, "getTab")
+        .mockResolvedValue(createChromeTabMock({ id: 7, discarded: true }));
+
+      await expect(service.ensureLiveTab(7)).resolves.toBe(false);
+      expect((await firstValueFrom(service.liveTabs$)).has(7)).toBe(false);
     });
 
     it("ignores a created tab that has no id", async () => {

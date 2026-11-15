@@ -64,6 +64,11 @@ export class NoopAutofillLifecycleService implements AutofillLifecycleService {
     this.warnInvoked("retireAllFrames");
   }
 
+  ensureLiveTab(): Promise<boolean> {
+    this.warnInvoked("ensureLiveTab");
+    return Promise.resolve(false);
+  }
+
   /**
    * Reports an unexpected foreground call. Only the method name is logged —
    * the `(tab, frameId)` arguments are withheld so a tab URL never reaches the

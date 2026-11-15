@@ -45,6 +45,7 @@ describe("NoopAutofillLifecycleService", () => {
     ["reportAutoSubmitInvalidated", () => service.reportAutoSubmitInvalidated(1, "example.test")],
     ["startMonitoringFrame", () => service.startMonitoringFrame(createChromeTabMock(), 0)],
     ["retireAllFrames", () => service.retireAllFrames()],
+    ["ensureLiveTab", () => service.ensureLiveTab(1)],
   ])("warns when %s is invoked", async (method, invoke) => {
     await invoke();
 

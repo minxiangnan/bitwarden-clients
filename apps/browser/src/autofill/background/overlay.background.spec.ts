@@ -2663,20 +2663,69 @@ describe("OverlayBackground", () => {
     });
 
     describe("checkIsFieldCurrentlyFilling message handler", () => {
-      it("returns true if autofill is currently running", async () => {
-        sendMockExtensionMessage({
-          command: "updateIsFieldCurrentlyFilling",
-          isFieldCurrentlyFilling: true,
-        });
+      const fillingSender = (tabId: number) =>
+        mock<chrome.runtime.MessageSender>({ tab: { id: tabId }, frameId: 0 });
+
+      it("returns true if autofill is currently running in the sender tab", async () => {
+        const sender = fillingSender(1);
+        sendMockExtensionMessage(
+          {
+            command: "updateIsFieldCurrentlyFilling",
+            isFieldCurrentlyFilling: true,
+          },
+          sender,
+        );
+
+        sendMockExtensionMessage({ command: "checkIsFieldCurrentlyFilling" }, sender, sendResponse);
+        await flushPromises();
+
+        expect(sendResponse).toHaveBeenCalledWith(true);
+      });
+
+      it("does not report filling for a different tab", async () => {
+        sendMockExtensionMessage(
+          {
+            command: "updateIsFieldCurrentlyFilling",
+            isFieldCurrentlyFilling: true,
+          },
+          fillingSender(1),
+        );
 
         sendMockExtensionMessage(
           { command: "checkIsFieldCurrentlyFilling" },
-          mock<chrome.runtime.MessageSender>(),
+          fillingSender(2),
           sendResponse,
         );
         await flushPromises();
 
-        expect(sendResponse).toHaveBeenCalledWith(true);
+        expect(sendResponse).toHaveBeenCalledWith(false);
+      });
+
+      it("clears a stuck filling latch for that tab after the timeout", async () => {
+        jest.useFakeTimers();
+        try {
+          const sender = fillingSender(1);
+          sendMockExtensionMessage(
+            {
+              command: "updateIsFieldCurrentlyFilling",
+              isFieldCurrentlyFilling: true,
+            },
+            sender,
+          );
+
+          await jest.advanceTimersByTimeAsync(overlayBackground["fieldFillingClearMs"]);
+
+          sendMockExtensionMessage(
+            { command: "checkIsFieldCurrentlyFilling" },
+            sender,
+            sendResponse,
+          );
+          await flushPromises();
+
+          expect(sendResponse).toHaveBeenCalledWith(false);
+        } finally {
+          jest.useRealTimers();
+        }
       });
     });
 
@@ -2949,10 +2998,13 @@ describe("OverlayBackground", () => {
       });
 
       it("sends a message to close the inline menu list only if the field is currently filling", async () => {
-        sendMockExtensionMessage({
-          command: "updateIsFieldCurrentlyFilling",
-          isFieldCurrentlyFilling: true,
-        });
+        sendMockExtensionMessage(
+          {
+            command: "updateIsFieldCurrentlyFilling",
+            isFieldCurrentlyFilling: true,
+          },
+          sender,
+        );
         await flushPromises();
 
         sendMockExtensionMessage({ command: "closeAutofillInlineMenu" }, sender);
