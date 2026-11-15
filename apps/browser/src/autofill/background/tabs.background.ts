@@ -1,4 +1,13 @@
-import { concatMap, debounceTime, distinctUntilChanged, EMPTY, map, switchMap } from "rxjs";
+import {
+  concatMap,
+  debounceTime,
+  distinctUntilChanged,
+  EMPTY,
+  filter,
+  map,
+  pairwise,
+  switchMap,
+} from "rxjs";
 
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 
@@ -27,6 +36,38 @@ export default class TabsBackground {
     void this.updateCurrentTabData();
     void this.setupTabEventListeners();
     this.refreshOnFillCiphersChanged();
+    this.refreshOnUnlock();
+  }
+
+  /**
+   * Refreshes the context menu and inline menu when the vault becomes unlocked,
+   * including a PIN unlock that does not emit a new cipher-list change.
+   */
+  private refreshOnUnlock() {
+    this.main.accountService.activeAccount$
+      .pipe(
+        switchMap((account) =>
+          account == null
+            ? EMPTY
+            : this.main.authService.authStatusFor$(account.id).pipe(distinctUntilChanged()),
+        ),
+        pairwise(),
+        filter(
+          ([previous, current]) =>
+            previous !== AuthenticationStatus.Unlocked && current === AuthenticationStatus.Unlocked,
+        ),
+        concatMap(async () => {
+          try {
+            await Promise.all([
+              this.main.refreshMenu(),
+              this.overlayBackground.updateOverlayCiphers(),
+            ]);
+          } catch (error) {
+            this.main.logService.error(error);
+          }
+        }),
+      )
+      .subscribe();
   }
 
   /**

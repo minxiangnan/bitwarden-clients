@@ -2976,6 +2976,71 @@ describe("CollectAutofillContentService", () => {
   });
 
   describe("startMonitoring / stopMonitoring", () => {
+    it("does not start the attribute observer or shadow walk when the page has no login field", () => {
+      document.body.innerHTML = "<div><p>Article</p></div>";
+      const observeSpy = jest.spyOn(collectAutofillContentService["mutationObserver"], "observe");
+      const suspendSpy = jest.spyOn(domQueryService, "suspendShadowProbe");
+
+      collectAutofillContentService.startMonitoring();
+
+      expect(suspendSpy).toHaveBeenCalled();
+      expect(observeSpy).toHaveBeenCalledWith(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+      expect(collectAutofillContentService["deferFullMonitoring"]).toBe(true);
+    });
+
+    it("starts full monitoring once a password field is inserted", () => {
+      document.body.innerHTML = "<div id='host'></div>";
+      collectAutofillContentService.startMonitoring();
+      const observeSpy = jest.spyOn(collectAutofillContentService["mutationObserver"], "observe");
+      const resumeSpy = jest.spyOn(domQueryService, "resumeShadowProbe");
+
+      document.getElementById("host")!.innerHTML = '<input type="password" />';
+      const password = document.querySelector('input[type="password"]')!;
+      collectAutofillContentService["handleMutationObserverMutation"]([
+        {
+          type: "childList",
+          addedNodes: [password] as unknown as NodeList,
+          removedNodes: [] as unknown as NodeList,
+          attributeName: null,
+          attributeNamespace: null,
+          nextSibling: null,
+          oldValue: null,
+          previousSibling: null,
+          target: document.getElementById("host")!,
+        },
+      ]);
+
+      expect(resumeSpy).toHaveBeenCalled();
+      expect(collectAutofillContentService["deferFullMonitoring"]).toBe(false);
+      expect(observeSpy).toHaveBeenCalledWith(
+        document.documentElement,
+        expect.objectContaining({ attributes: true, childList: true, subtree: true }),
+      );
+    });
+
+    it("defers page rescans until typing goes quiet", () => {
+      jest.useFakeTimers();
+      try {
+        collectAutofillContentService.startMonitoring();
+        const idle = jest.spyOn(autofillUtils, "requestIdleCallbackPolyfill");
+        idle.mockClear();
+
+        document.documentElement.dispatchEvent(new Event("input", { bubbles: true }));
+        collectAutofillContentService["updateAutofillElementsAfterMutation"]();
+
+        expect(idle).not.toHaveBeenCalled();
+
+        jest.advanceTimersByTime(collectAutofillContentService["typingQuietMs"]);
+
+        expect(idle).toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it("observes the document element on start", () => {
       const observeSpy = jest.spyOn(collectAutofillContentService["mutationObserver"], "observe");
 
