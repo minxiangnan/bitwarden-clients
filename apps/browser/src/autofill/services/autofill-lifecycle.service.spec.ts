@@ -280,9 +280,8 @@ describe("DefaultAutofillLifecycleService", () => {
       tabSendMessageSpy.mockClear();
     });
 
-    // Only the LoggedOut boundary broadcasts: crossing into a logged-in state
-    // starts monitors, crossing out stops them and disables the autofiller.
-    // Lock/unlock and repeats are silent.
+    // The LoggedOut boundary starts or stops monitors. Locking is silent.
+    // Unlocking re-sends start so collection resumes after a PIN unlock.
     it.each([
       { transition: "LoggedOut → Locked", from: "LoggedOut", to: "Locked", commands: ["start"] },
       {
@@ -304,7 +303,7 @@ describe("DefaultAutofillLifecycleService", () => {
         commands: ["stop", "disable"],
       },
       { transition: "Unlocked → Locked", from: "Unlocked", to: "Locked", commands: [] },
-      { transition: "Locked → Unlocked", from: "Locked", to: "Unlocked", commands: [] },
+      { transition: "Locked → Unlocked", from: "Locked", to: "Unlocked", commands: ["start"] },
       {
         transition: "Unlocked → Unlocked (repeat)",
         from: "Unlocked",

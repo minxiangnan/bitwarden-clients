@@ -2390,6 +2390,7 @@ export default class MainBackground {
       this.fillCipherPolicy,
       this.badgeSettingsService,
       this.logService,
+      this.authService,
     );
 
     this.clipboardNotificationBadgeUpdaterService = new ClipboardNotificationBadgeUpdaterService(

@@ -427,8 +427,9 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
    * content script when the active account's authentication status crosses the
    * `LoggedOut` boundary. On `LoggedOut → logged-in`, sends `startAutofillMonitors`.
    * On `logged-in → LoggedOut`, sends both `stopAutofillMonitors` and
-   * `disableAutofiller`. Lock and unlock transitions emit no broadcast — monitors
-   * run across the lock boundary, and a running autofiller survives a lock.
+   * `disableAutofiller`. Locking does not stop monitors. Unlocking, including PIN
+   * unlock, re-sends `startAutofillMonitors` so shortcut and inline-menu collection
+   * resume if a content script stopped while the vault was locked.
    */
   private handleAuthStatusTransition(
     previousStatus: AuthenticationStatus | undefined,
@@ -443,6 +444,14 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
     const wasLoggedOut = previousStatus === AuthenticationStatus.LoggedOut;
     const isLoggedOut = currentStatus === AuthenticationStatus.LoggedOut;
     if (wasLoggedOut && !isLoggedOut) {
+      this.broadcastToInjectedScripts({ command: AutofillLifecycleCommand.start });
+      this.markConnectedFramesMonitoring(true);
+      return;
+    }
+    if (
+      previousStatus === AuthenticationStatus.Locked &&
+      currentStatus === AuthenticationStatus.Unlocked
+    ) {
       this.broadcastToInjectedScripts({ command: AutofillLifecycleCommand.start });
       this.markConnectedFramesMonitoring(true);
       return;
