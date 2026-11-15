@@ -109,7 +109,9 @@ describe("Browser Utils Service", () => {
       expect(browserPlatformUtilsService.getDevice()).toBe(DeviceType.EdgeExtension);
     });
 
-    it("should detect safari", () => {
+    it("should detect the Safari app extension build without using the user agent", () => {
+      const previousBrowser = process.env.BROWSER;
+      process.env.BROWSER = "safari";
       Object.defineProperty(navigator, "userAgent", {
         configurable: true,
         value:
@@ -117,6 +119,32 @@ describe("Browser Utils Service", () => {
       });
 
       expect(browserPlatformUtilsService.getDevice()).toBe(DeviceType.SafariExtension);
+      process.env.BROWSER = previousBrowser;
+    });
+
+    it("should not treat a Safari user agent as Safari outside the Safari app extension build", () => {
+      const previousBrowser = process.env.BROWSER;
+      delete process.env.BROWSER;
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        value:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/602.4.8 (KHTML, like Gecko) Version/10.0.3 Safari/602.4.8",
+      });
+
+      expect(browserPlatformUtilsService.getDevice()).toBe(DeviceType.ChromeExtension);
+      expect(browserPlatformUtilsService.isSafari()).toBe(false);
+      process.env.BROWSER = previousBrowser;
+    });
+
+    it("should detect headless Chrome whose user agent has no Chrome token", () => {
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        value:
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/120.0.0.0 Safari/537.36",
+      });
+
+      expect(browserPlatformUtilsService.getDevice()).toBe(DeviceType.ChromeExtension);
+      expect(browserPlatformUtilsService.isSafari()).toBe(false);
     });
 
     it("should detect vivaldi", () => {
@@ -521,10 +549,19 @@ describe("Safari Height Fix", () => {
       false,
     ],
   ])("Apply fix for %s", (name, userAgent, expected) => {
+    (BrowserPlatformUtilsService as any).deviceCache = null;
+    const previousBrowser = process.env.BROWSER;
+    if (String(name).startsWith("safari")) {
+      process.env.BROWSER = "safari";
+    } else {
+      delete process.env.BROWSER;
+    }
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
       value: userAgent,
     });
     expect(BrowserPlatformUtilsService.shouldApplySafariHeightFix(window)).toBe(expected);
+    process.env.BROWSER = previousBrowser;
+    (BrowserPlatformUtilsService as any).deviceCache = null;
   });
 });
