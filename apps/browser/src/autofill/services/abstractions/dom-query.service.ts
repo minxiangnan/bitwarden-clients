@@ -14,6 +14,10 @@ export interface DomQueryService {
     mutationObserver?: MutationObserver,
   ): { elements: T[]; unresolvedHosts: Set<Element> };
   updatePageContainsShadowDom(): boolean;
+  /** Skips the document-wide closed-shadow walk until {@link resumeShadowProbe}. */
+  suspendShadowProbe(): void;
+  /** Runs the shadow walk that {@link suspendShadowProbe} held back. */
+  resumeShadowProbe(): void;
   refreshShadowDomStateForUserRequest(): void;
   checkMutationsInShadowRoots(mutations: MutationRecord[]): boolean;
   checkForNewShadowRoots(
