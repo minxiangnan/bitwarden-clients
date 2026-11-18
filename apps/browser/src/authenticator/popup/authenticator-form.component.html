@@ -1,0 +1,73 @@
+<popup-page [loading]="loading()">
+  <popup-header slot="header" [pageTitle]="titleKey() | i18n" showBackButton>
+    <ng-container slot="end">
+      <app-pop-out />
+    </ng-container>
+  </popup-header>
+
+  @if (errorKey()) {
+    <p class="tw-mb-3 tw-text-sm tw-text-danger">{{ errorKey()! | i18n }}</p>
+  }
+
+  <form class="tw-flex tw-flex-col tw-gap-3" [formGroup]="form" (ngSubmit)="submit()">
+    <bit-form-field>
+      <bit-label>{{ "name" | i18n }}</bit-label>
+      <input bitInput type="text" formControlName="name" />
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
+      <input bitInput type="text" formControlName="issuer" />
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "authenticatorSecret" | i18n }}</bit-label>
+      <textarea bitInput rows="3" formControlName="secret"></textarea>
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "authenticatorAlgorithm" | i18n }}</bit-label>
+      <select bitInput formControlName="algorithm">
+        @for (algorithm of algorithms; track algorithm) {
+          <option [value]="algorithm">{{ algorithm }}</option>
+        }
+      </select>
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "authenticatorDigits" | i18n }}</bit-label>
+      <input bitInput type="number" min="6" max="8" formControlName="digits" />
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "authenticatorPeriod" | i18n }}</bit-label>
+      <input bitInput type="number" min="1" formControlName="period" />
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "notes" | i18n }}</bit-label>
+      <textarea bitInput rows="2" formControlName="notes"></textarea>
+    </bit-form-field>
+    <label class="tw-flex tw-items-center tw-gap-2 tw-text-sm">
+      <input type="checkbox" formControlName="favorite" />
+      {{ "favorite" | i18n }}
+    </label>
+
+    <div class="tw-flex tw-flex-wrap tw-gap-2">
+      <button type="button" bitButton buttonType="secondary" size="small" (click)="pasteUri()">
+        {{ "authenticatorPasteUri" | i18n }}
+      </button>
+      <button
+        type="button"
+        bitButton
+        buttonType="secondary"
+        size="small"
+        [disabled]="scanning() || !canScan"
+        (click)="scan()"
+      >
+        {{ "authenticatorScanTab" | i18n }}
+      </button>
+    </div>
+    @if (!canScan) {
+      <p class="tw-text-xs tw-text-muted">{{ "authenticatorScanUnsupported" | i18n }}</p>
+    }
+
+    <button type="submit" bitButton [disabled]="form.invalid || saving()">
+      {{ "save" | i18n }}
+    </button>
+  </form>
+</popup-page>

@@ -64,6 +64,8 @@ import { platformPopoutGuard } from "../auth/popup/guards/platform-popout.guard"
 import { AccountSecurityComponent } from "../auth/popup/settings/account-security.component";
 import { ChangePasswordPageComponent } from "../auth/popup/settings/change-password-page.component";
 import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/extension-device-management.component";
+import { AuthenticatorFormComponent } from "../authenticator/popup/authenticator-form.component";
+import { AuthenticatorListComponent } from "../authenticator/popup/authenticator-list.component";
 import { AutofillToolsComponent } from "../autofill/popup/autofill-tools/autofill-tools.component";
 import { autofillToolsDevFlagGuard } from "../autofill/popup/autofill-tools/autofill-tools.guard";
 import { DefaultPasswordManagerPromptComponent } from "../autofill/popup/default-password-manager/default-password-manager-prompt.component";
@@ -871,6 +873,24 @@ const routes: Routes = [
         component: SendV2Component,
         canActivate: [authGuard],
         data: { elevation: 0 } satisfies RouteDataProperties,
+      },
+      {
+        path: "authenticator",
+        component: AuthenticatorListComponent,
+        canActivate: [authGuard],
+        data: { elevation: 0 } satisfies RouteDataProperties,
+      },
+      {
+        path: "authenticator/new",
+        component: AuthenticatorFormComponent,
+        canActivate: [authGuard],
+        data: { elevation: 1 } satisfies RouteDataProperties,
+      },
+      {
+        path: "authenticator/:id",
+        component: AuthenticatorFormComponent,
+        canActivate: [authGuard],
+        data: { elevation: 1 } satisfies RouteDataProperties,
       },
       {
         path: "health",
