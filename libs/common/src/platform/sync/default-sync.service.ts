@@ -51,6 +51,7 @@ import { CipherData } from "../../vault/models/data/cipher.data";
 import { FolderData } from "../../vault/models/data/folder.data";
 import { CipherResponse } from "../../vault/models/response/cipher.response";
 import { FolderResponse } from "../../vault/models/response/folder.response";
+import { AUTHENTICATOR_SYNC_SNAPSHOT } from "../../vault/services/key-state/authenticator.state";
 import { ConfigService } from "../abstractions/config/config.service";
 import { LogService } from "../abstractions/log.service";
 import { SdkService } from "../abstractions/sdk/sdk.service";
@@ -187,6 +188,7 @@ export class DefaultSyncService extends CoreSyncService {
       await this.retryPendingSendDeletions(response.profile.id);
       await this.syncSettings(response.domains, response.profile.id);
       await this.syncPolicies(response.policiesNew, response.policies, response.profile.id);
+      await this.syncAuthenticatorEntries(response, response.profile.id);
       processMeasurement.finish([["Ciphers", response.ciphers?.length ?? 0]]);
 
       await this.setLastSync(now, userId);
@@ -459,6 +461,21 @@ export class DefaultSyncService extends CoreSyncService {
       policies[p.id] = new PolicyData(p);
     });
     return await this.policyService.replace(policies, userId);
+  }
+
+  /**
+   * Stores authenticator ciphertext from sync so the popup can render without a separate GET.
+   * Servers that omit the field (official Bitwarden) leave the snapshot untouched; the popup
+   * then falls back to GET /authenticator.
+   */
+  private async syncAuthenticatorEntries(response: SyncResponse, userId: UserId): Promise<void> {
+    if (response.authenticatorEntries === undefined) {
+      return;
+    }
+    await this.stateProvider.getUser(userId, AUTHENTICATOR_SYNC_SNAPSHOT).update(() => ({
+      source: "sync",
+      entries: response.authenticatorEntries ?? [],
+    }));
   }
 
   /**

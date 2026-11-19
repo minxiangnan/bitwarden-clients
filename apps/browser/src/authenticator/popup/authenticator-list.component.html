@@ -1,0 +1,132 @@
+<popup-page [loading]="loading()">
+  <popup-header slot="header" [pageTitle]="'authenticator' | i18n">
+    <ng-container slot="end">
+      <app-pop-out />
+    </ng-container>
+  </popup-header>
+
+  @if (status() === "error") {
+    <p class="tw-mb-3 tw-text-sm tw-text-danger">{{ "authenticatorLoadError" | i18n }}</p>
+  }
+
+  <div class="tw-mb-3 tw-flex tw-flex-col tw-gap-2">
+    <input
+      bitInput
+      type="search"
+      class="tw-w-full"
+      [placeholder]="'search' | i18n"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+    />
+    <div class="tw-flex tw-flex-wrap tw-gap-2">
+      <button
+        type="button"
+        bitButton
+        [buttonType]="favoritesOnly() ? 'primary' : 'secondary'"
+        size="small"
+        (click)="favoritesOnly.set(!favoritesOnly())"
+      >
+        {{ "authenticatorFavorites" | i18n }}
+      </button>
+      <button type="button" bitButton buttonType="secondary" size="small" (click)="add()">
+        {{ "authenticatorAdd" | i18n }}
+      </button>
+      <button
+        type="button"
+        bitButton
+        buttonType="secondary"
+        size="small"
+        [disabled]="importing()"
+        (click)="toggleImport()"
+      >
+        {{ "authenticatorImport" | i18n }}
+      </button>
+    </div>
+  </div>
+
+  @if (importing()) {
+    <section class="tw-mb-3 tw-rounded tw-border tw-border-solid tw-border-border-base tw-p-2">
+      <p class="tw-mb-2 tw-text-sm">{{ "authenticatorImportHelp" | i18n }}</p>
+      @if (vaultImports().length === 0) {
+        <p class="tw-text-sm tw-text-muted">{{ "authenticatorImportNone" | i18n }}</p>
+      } @else {
+        <ul class="tw-m-0 tw-list-none tw-p-0">
+          @for (item of vaultImports(); track item.cipherId) {
+            <li class="tw-mb-2 tw-flex tw-items-center tw-justify-between tw-gap-2">
+              <span class="tw-min-w-0 tw-truncate tw-text-sm">
+                {{ item.name }}
+                @if (item.username) {
+                  <span class="tw-text-muted"> · {{ item.username }}</span>
+                }
+              </span>
+              <button type="button" bitButton size="small" (click)="importOne(item.draft)">
+                {{ "authenticatorImportOne" | i18n }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  @if (visible().length === 0 && status() === "ready") {
+    <p class="tw-text-sm tw-text-muted">{{ "authenticatorEmpty" | i18n }}</p>
+  }
+
+  <ul class="tw-m-0 tw-list-none tw-p-0">
+    @for (entry of visible(); track entry.id) {
+      <li class="tw-mb-2 tw-rounded tw-border tw-border-solid tw-border-border-base tw-p-2">
+        <button
+          type="button"
+          class="tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
+          (click)="copy(entry)"
+        >
+          <span class="tw-min-w-0">
+            <span class="tw-block tw-truncate tw-text-sm tw-font-semibold">
+              @if (entry.favorite) {
+                <span aria-hidden="true">★ </span>
+              }
+              {{ entry.issuer ? entry.issuer + " · " + entry.name : entry.name }}
+            </span>
+            <app-authenticator-code [entry]="entry" (codeChange)="rememberCode(entry.id, $event)" />
+          </span>
+        </button>
+        <div class="tw-mt-2 tw-flex tw-flex-wrap tw-gap-2">
+          <button type="button" bitButton buttonType="secondary" size="small" (click)="edit(entry)">
+            {{ "edit" | i18n }}
+          </button>
+          <button
+            type="button"
+            bitButton
+            buttonType="secondary"
+            size="small"
+            (click)="toggleFavorite(entry)"
+          >
+            {{ (entry.favorite ? "authenticatorUnfavorite" : "authenticatorFavorite") | i18n }}
+          </button>
+          @if (pendingDelete() === entry.id) {
+            <button
+              type="button"
+              bitButton
+              buttonType="danger"
+              size="small"
+              (click)="remove(entry)"
+            >
+              {{ "authenticatorDeleteConfirm" | i18n }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              bitButton
+              buttonType="danger"
+              size="small"
+              (click)="pendingDelete.set(entry.id)"
+            >
+              {{ "delete" | i18n }}
+            </button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+</popup-page>

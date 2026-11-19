@@ -5,6 +5,7 @@ import { BaseResponse } from "../../models/response/base.response";
 import { DomainsResponse } from "../../models/response/domains.response";
 import { ProfileResponse } from "../../models/response/profile.response";
 import { SendResponse } from "../../tools/send/models/response/send.response";
+import { AuthenticatorEntryResponse } from "../../vault/models/response/authenticator-entry.response";
 import { CipherResponse } from "../../vault/models/response/cipher.response";
 import { FolderResponse } from "../../vault/models/response/folder.response";
 
@@ -18,6 +19,11 @@ export class SyncResponse extends BaseResponse {
   policiesNew?: PolicyResponse[];
   sends: SendResponse[] = [];
   userDecryption?: UserDecryptionResponse;
+  /**
+   * Present only when the server included `authenticatorEntries` (vaultwarden).
+   * Official Bitwarden omits the field; an empty array means the user has no entries.
+   */
+  authenticatorEntries?: AuthenticatorEntryResponse[];
 
   constructor(response: any) {
     super(response);
@@ -65,6 +71,13 @@ export class SyncResponse extends BaseResponse {
     const userDecryption = this.getResponseProperty("UserDecryption");
     if (userDecryption != null && typeof userDecryption === "object") {
       this.userDecryption = new UserDecryptionResponse(userDecryption);
+    }
+
+    const authenticatorEntries = this.getResponseProperty("AuthenticatorEntries");
+    if (Array.isArray(authenticatorEntries)) {
+      this.authenticatorEntries = authenticatorEntries.map(
+        (entry: unknown) => new AuthenticatorEntryResponse(entry),
+      );
     }
   }
 }
