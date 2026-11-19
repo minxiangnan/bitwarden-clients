@@ -41,4 +41,10 @@ export enum NotificationType {
 
   RefreshApproverInbox = 28,
   RefreshAccessRequest = 29,
+  /** Vaultwarden authenticator entry created. */
+  SyncAuthenticatorCreate = 30,
+  /** Vaultwarden authenticator entry updated. */
+  SyncAuthenticatorUpdate = 31,
+  /** Vaultwarden authenticator entry deleted. */
+  SyncAuthenticatorDelete = 32,
 }

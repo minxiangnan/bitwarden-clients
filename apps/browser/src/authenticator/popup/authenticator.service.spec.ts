@@ -1,12 +1,12 @@
 import { mock } from "jest-mock-extended";
-import { BehaviorSubject, of } from "rxjs";
+import { BehaviorSubject, filter, firstValueFrom, of } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
-import { SyncService } from "@bitwarden/common/platform/sync";
+import { StateProvider } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { KeyService } from "@bitwarden/key-management";
@@ -23,15 +23,19 @@ describe("AuthenticatorService", () => {
   const authService = mock<AuthService>();
   const keyService = mock<KeyService>();
   const encryptService = mock<EncryptService>();
-  const syncService = mock<SyncService>();
   const cipherService = mock<CipherService>();
   const logService = mock<LogService>();
+  const stateProvider = mock<StateProvider>();
   const status$ = new BehaviorSubject(AuthenticationStatus.LoggedOut);
+  const snapshot$ = new BehaviorSubject<unknown>(null);
 
   function createService() {
     accountService.activeAccount$ = of({ id: userId } as never);
     authService.activeAccountStatus$ = status$;
-    syncService.activeUserLastSync$.mockReturnValue(of(null));
+    stateProvider.getUser.mockReturnValue({
+      state$: snapshot$,
+      update: jest.fn(async (updater: (current: unknown) => unknown) => updater(snapshot$.value)),
+    } as never);
     keyService.userKey$.mockReturnValue(of("user-key" as never));
     encryptService.encryptString.mockImplementation(async (value: string) => {
       return { toJSON: () => `enc:${value}` } as EncString;
@@ -45,15 +49,16 @@ describe("AuthenticatorService", () => {
       authService,
       keyService,
       encryptService,
-      syncService,
       cipherService,
       logService,
+      stateProvider,
     );
   }
 
   beforeEach(() => {
     jest.resetAllMocks();
     status$.next(AuthenticationStatus.LoggedOut);
+    snapshot$.next(null);
   });
 
   it("hides the feature when the server returns 404", async () => {
@@ -64,6 +69,39 @@ describe("AuthenticatorService", () => {
 
     expect(service["stateSubject"].value.status).toBe("unsupported");
     expect(service["stateSubject"].value.entries).toEqual([]);
+    expect(stateProvider.getUser).toHaveBeenCalled();
+  });
+
+  it("decrypts the sync snapshot on unlock without GET /authenticator", async () => {
+    snapshot$.next({
+      source: "sync",
+      entries: [
+        {
+          id: "1",
+          name: "enc:Ada",
+          issuer: null,
+          secret: "enc:WQIQ25BRKZYCJVYP",
+          notes: null,
+          algorithm: "SHA1",
+          digits: 6,
+          period: 30,
+          favorite: false,
+          sortOrder: 0,
+          revisionDate: "",
+          creationDate: "",
+          object: "authenticatorEntry",
+        },
+      ],
+    });
+    status$.next(AuthenticationStatus.Unlocked);
+    const service = createService();
+
+    const state = await firstValueFrom(service.state$.pipe(filter((value) => value.status === "ready")));
+
+    expect(api.list).not.toHaveBeenCalled();
+    expect(state.entries[0]).toEqual(
+      expect.objectContaining({ id: "1", name: "Ada", secret: "WQIQ25BRKZYCJVYP" }),
+    );
   });
 
   it("encrypts name, issuer, secret, and notes before saving", async () => {

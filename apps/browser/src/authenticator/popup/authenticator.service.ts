@@ -5,9 +5,8 @@ import {
   EMPTY,
   filter,
   firstValueFrom,
+  from,
   map,
-  merge,
-  of,
   switchMap,
 } from "rxjs";
 
@@ -16,10 +15,14 @@ import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { getOptionalUserId } from "@bitwarden/common/auth/services/account.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
-import { SyncService } from "@bitwarden/common/platform/sync";
+import { StateProvider } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
+import {
+  AUTHENTICATOR_SYNC_SNAPSHOT,
+  AuthenticatorSyncSnapshot,
+} from "@bitwarden/common/vault/services/key-state/authenticator.state";
 import { KeyService } from "@bitwarden/key-management";
 // The authenticator contract stores name, issuer, secret, and notes as user-key EncStrings.
 // eslint-disable-next-line no-restricted-imports
@@ -84,9 +87,9 @@ export class AuthenticatorService {
     private authService: AuthService,
     private keyService: KeyService,
     private encryptService: EncryptService,
-    private syncService: SyncService,
     private cipherService: CipherService,
     private logService: LogService,
+    private stateProvider: StateProvider,
   ) {
     this.authService.activeAccountStatus$
       .pipe(
@@ -99,18 +102,62 @@ export class AuthenticatorService {
             : EMPTY,
         ),
         switchMap((userId) =>
-          merge(
-            of(userId),
-            this.syncService.activeUserLastSync$().pipe(
-              filter((lastSync) => lastSync != null),
-              map(() => userId),
-            ),
+          this.stateProvider.getUser(userId, AUTHENTICATOR_SYNC_SNAPSHOT).state$.pipe(
+            distinctUntilChanged(),
+            switchMap((snapshot) => from(this.consumeSnapshot(userId, snapshot))),
           ),
         ),
       )
-      .subscribe((userId) => {
-        void this.refresh(userId);
+      .subscribe();
+  }
+
+  /**
+   * Sync already stored ciphertext when the server included authenticatorEntries.
+   * Otherwise GET /authenticator, which also covers official Bitwarden (404) and a refresh.
+   */
+  private async consumeSnapshot(
+    userId: UserId,
+    snapshot: AuthenticatorSyncSnapshot | null,
+  ): Promise<void> {
+    if (snapshot?.source === "sync") {
+      await this.publishDecrypted(snapshot.entries, userId);
+      return;
+    }
+    if (snapshot?.source === "unsupported") {
+      this.stateSubject.next({ status: "unsupported", entries: [] });
+      return;
+    }
+    await this.refresh(userId);
+  }
+
+  private async publishDecrypted(
+    encrypted: AuthenticatorEntryResponse[],
+    userId: UserId,
+  ): Promise<void> {
+    const generation = ++this.refreshGeneration;
+    try {
+      const entries = await this.decryptAll(encrypted, userId);
+      if (generation !== this.refreshGeneration) {
+        return;
+      }
+      this.stateSubject.next({ status: "ready", entries });
+    } catch (error) {
+      if (generation !== this.refreshGeneration) {
+        return;
+      }
+      this.logService.error(error);
+      this.stateSubject.next({
+        status: "error",
+        entries: this.stateSubject.value.entries,
       });
+    }
+  }
+
+  private async writeSnapshot(
+    userId: UserId,
+    snapshot: AuthenticatorSyncSnapshot,
+  ): Promise<void> {
+    await this.stateProvider.getUser(userId, AUTHENTICATOR_SYNC_SNAPSHOT).update(() => snapshot);
   }
 
   async refresh(userId?: UserId): Promise<void> {
@@ -127,12 +174,14 @@ export class AuthenticatorService {
       if (generation !== this.refreshGeneration) {
         return;
       }
+      await this.writeSnapshot(activeUserId, { source: "sync", entries: encrypted });
       this.stateSubject.next({ status: "ready", entries });
     } catch (error) {
       if (generation !== this.refreshGeneration) {
         return;
       }
       if (isAuthenticatorUnsupported(error)) {
+        await this.writeSnapshot(activeUserId, { source: "unsupported", entries: [] });
         this.stateSubject.next({ status: "unsupported", entries: [] });
         return;
       }
