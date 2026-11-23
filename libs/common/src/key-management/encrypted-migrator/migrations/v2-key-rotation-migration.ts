@@ -3,11 +3,10 @@ import { firstValueFrom } from "rxjs";
 // eslint-disable-next-line no-restricted-imports
 import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
-import { EncryptionType, EncryptService } from "@bitwarden/legacy-crypto";
+import { EncryptionType } from "@bitwarden/legacy-crypto";
 import { LogService } from "@bitwarden/logging";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
-import { ApiService } from "../../../abstractions/api.service";
 import { assertNonNullish } from "../../../auth/utils";
 import { FeatureFlag } from "../../../enums/feature-flag.enum";
 import { ConfigService } from "../../../platform/abstractions/config/config.service";
@@ -16,7 +15,6 @@ import { SyncService } from "../../../platform/sync";
 import { UserId } from "../../../types/guid";
 import { CipherService } from "../../../vault/abstractions/cipher.service";
 import { CipherView } from "../../../vault/models/view/cipher.view";
-import { finishAuthenticatorKeyRotation } from "../../../vault/services/authenticator-rotation";
 import { MasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
 import { withPasswordManagerSdk } from "../../utils";
 
@@ -36,8 +34,6 @@ export class V2KeyRotationMigration implements EncryptedMigration {
     private readonly logService: LogService,
     private readonly cipherService: CipherService,
     private readonly sdkService: SdkService,
-    private readonly apiService: ApiService,
-    private readonly encryptService: EncryptService,
   ) {}
 
   async needsMigration(userId: UserId): Promise<MigrationRequirement> {
@@ -112,7 +108,6 @@ export class V2KeyRotationMigration implements EncryptedMigration {
 
     if (await this.masterPasswordService.userHasMasterPassword(userId)) {
       assertNonNullish(masterPassword, "masterPassword");
-      const oldUserKey = await firstValueFrom(this.keyService.userKey$(userId));
       const success = await this.userKeyRotationService.rotateUserKey(
         { Password: { password: masterPassword! } },
         "CreateIfNeeded",
@@ -120,25 +115,6 @@ export class V2KeyRotationMigration implements EncryptedMigration {
       );
       if (!success) {
         throw new Error("[V2KeyRotationMigration] Rotation aborted by user trust prompt.");
-      }
-      const newUserKey = await firstValueFrom(this.keyService.userKey$(userId));
-      if (
-        oldUserKey != null &&
-        newUserKey != null &&
-        oldUserKey.toEncoded() !== newUserKey.toEncoded()
-      ) {
-        try {
-          await finishAuthenticatorKeyRotation(
-            this.apiService,
-            this.encryptService,
-            oldUserKey,
-            newUserKey,
-          );
-        } catch (error) {
-          this.logService.error(
-            `[V2KeyRotationMigration] Authenticator entries still need re-encryption: ${error}`,
-          );
-        }
       }
     } else {
       throw new Error(

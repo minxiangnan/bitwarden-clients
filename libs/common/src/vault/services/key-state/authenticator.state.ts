@@ -18,10 +18,15 @@ export const AUTHENTICATOR_SYNC_SNAPSHOT = new UserKeyDefinition<AuthenticatorSy
   CIPHERS_MEMORY,
   "authenticatorSyncSnapshot",
   {
-    deserializer: (snapshot: Jsonify<AuthenticatorSyncSnapshot>) => ({
-      source: snapshot.source === "unsupported" ? "unsupported" : "sync",
-      entries: (snapshot.entries ?? []).map((entry) => new AuthenticatorEntryResponse(entry)),
-    }),
+    deserializer: (snapshot: Jsonify<AuthenticatorSyncSnapshot> | null) => {
+      if (snapshot == null) {
+        return null;
+      }
+      return {
+        source: snapshot.source === "unsupported" ? "unsupported" : "sync",
+        entries: (snapshot.entries ?? []).map((entry) => new AuthenticatorEntryResponse(entry)),
+      };
+    },
     clearOn: ["logout", "lock"],
   },
 );
