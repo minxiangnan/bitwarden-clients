@@ -24,22 +24,22 @@
   --color-transparent-hover: rgb(0 0 0 / 0.02);
   --color-shadow: 168 179 200;
 
-  --color-background: 255 255 255;
-  --color-background-alt: 243 246 249;
-  --color-background-alt2: 23 92 219;
-  --color-background-alt3: 22 55 146;
-  --color-background-alt4: 2 15 102;
+  --color-background: 250 249 245;
+  --color-background-alt: 240 238 230;
+  --color-background-alt2: 196 83 42;
+  --color-background-alt3: 163 61 34;
+  --color-background-alt4: 92 36 20;
 
-  --color-primary-100: 219 229 246;
-  --color-primary-300: 121 161 233;
-  --color-primary-600: 23 93 220;
-  --color-primary-700: 26 65 172;
+  --color-primary-100: 246 231 223;
+  --color-primary-300: 217 119 87;
+  --color-primary-600: 196 83 42;
+  --color-primary-700: 163 61 34;
 
-  --color-secondary-100: 230 233 239;
-  --color-secondary-300: 168 179 200;
-  --color-secondary-500: 90 109 145;
-  --color-secondary-600: 83 99 131;
-  --color-secondary-700: 63 75 99;
+  --color-secondary-100: 232 230 220;
+  --color-secondary-300: 176 174 165;
+  --color-secondary-500: 107 103 92;
+  --color-secondary-600: 92 88 78;
+  --color-secondary-700: 61 57 41;
 
   --color-info-100: 219 229 246;
   --color-info-600: 121 161 233;
@@ -60,17 +60,17 @@
   --color-notification-100: 255 225 247;
   --color-notification-600: 192 17 118;
 
-  --color-text-main: 27 32 41;
-  --color-text-muted: 96 109 145;
+  --color-text-main: 20 20 19;
+  --color-text-muted: 92 88 78;
   --color-text-contrast: 255 255 255;
   --color-text-alt2: 255 255 255;
   --color-text-code: 192 17 118;
 
-  --color-hover-default: rgb(26 65 172 / 0.1);
+  --color-hover-default: rgb(196 83 42 / 0.12);
   --color-hover-contrast: rgb(255 255 255 / 0.15);
 
-  --color-marketing-logo: 23 93 220;
-  --color-bw-blue: 23 93 220;
+  --color-marketing-logo: 196 83 42;
+  --color-bw-blue: 196 83 42;
 
   --tw-ring-offset-color: #ffffff;
 
@@ -81,7 +81,7 @@
   --color-illustration-fill-secondary: var(--color-brand-200);
   --color-illustration-fill-tertiary: var(--color-brand-050);
   --color-illustration-fill-accent: var(--color-teal-400);
-  --color-illustration-logo: 23 93 220;
+  --color-illustration-logo: 196 83 42;
 
   /* ========================================
    * NEW COLOR PALETTE (Hex format)
@@ -91,37 +91,37 @@
    * ======================================== */
 
   /* Brand Colors */
-  --color-brand-050: #eef6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bedbff;
-  --color-brand-300: #8ec5ff;
-  --color-brand-400: #6baefa;
-  --color-brand-500: #418bfb;
-  --color-brand-600: #2a70f4;
-  --color-brand-700: #175ddc;
-  --color-brand-700-rgb: 23, 93, 220;
-  --color-brand-800: #0d43af;
-  --color-brand-900: #0c3276;
-  --color-brand-950: #162455;
-  --color-brand-800-rgb: 13, 67, 175;
-  --color-brand-950-rgb: 22, 36, 85;
+  --color-brand-050: #fbf6f3;
+  --color-brand-100: #f6e7df;
+  --color-brand-200: #f0d0c2;
+  --color-brand-300: #e3a88e;
+  --color-brand-400: #e08b6e;
+  --color-brand-500: #d97757;
+  --color-brand-600: #c4532a;
+  --color-brand-700: #a33d22;
+  --color-brand-700-rgb: 163, 61, 34;
+  --color-brand-800: #7c2f1a;
+  --color-brand-900: #5c2414;
+  --color-brand-950: #3d180d;
+  --color-brand-800-rgb: 124, 47, 26;
+  --color-brand-950-rgb: 61, 24, 13;
 
   /* Gray Colors */
-  --color-gray-050: #f7f9fa;
-  --color-gray-100: #e6ecf2;
-  --color-gray-200: #d5dde8;
-  --color-gray-300: #b4c2d4;
-  --color-gray-400: #8496b0;
-  --color-gray-400-rgb: 132, 150, 176;
-  --color-gray-500: #62748e;
-  --color-gray-600: #45556c;
-  --color-gray-700: #314158;
-  --color-gray-700-rgb: 49, 65, 88;
-  --color-gray-800: #1d293d;
-  --color-gray-800-rgb: 29, 41, 61;
-  --color-gray-900: #0f172b;
-  --color-gray-950: #020618;
-  --color-gray-950-rgb: 2, 6, 24;
+  --color-gray-050: #faf9f5;
+  --color-gray-100: #f0eee6;
+  --color-gray-200: #e8e6dc;
+  --color-gray-300: #d4d1c6;
+  --color-gray-400: #b0aea5;
+  --color-gray-400-rgb: 176, 174, 165;
+  --color-gray-500: #8a877c;
+  --color-gray-600: #6b675c;
+  --color-gray-700: #3d3929;
+  --color-gray-700-rgb: 61, 57, 41;
+  --color-gray-800: #262624;
+  --color-gray-800-rgb: 38, 38, 36;
+  --color-gray-900: #1f1e1d;
+  --color-gray-950: #141413;
+  --color-gray-950-rgb: 20, 20, 19;
 
   /* Red Colors */
   --color-red-050: #fef2f2;
@@ -281,7 +281,7 @@
   /* Neutral Background */
   --color-bg-white: var(--color-white);
   --color-bg-dark: var(--color-gray-800);
-  --color-bg-primary: var(--color-white);
+  --color-bg-primary: #faf9f5;
   --color-bg-secondary: var(--color-gray-050);
   --color-bg-tertiary: var(--color-gray-050);
   --color-bg-quaternary: var(--color-gray-100);
@@ -494,22 +494,22 @@
   --color-transparent-hover: rgb(255 255 255 / 0.02);
   --color-shadow: 0 0 0;
 
-  --color-background: 32 39 51;
-  --color-background-alt: 18 26 39;
-  --color-background-alt2: 47 52 61;
-  --color-background-alt3: 48 57 70;
-  --color-background-alt4: 18 26 39;
+  --color-background: 38 38 36;
+  --color-background-alt: 31 30 29;
+  --color-background-alt2: 61 57 41;
+  --color-background-alt3: 92 88 78;
+  --color-background-alt4: 20 20 19;
 
-  --color-primary-100: 29 46 99;
-  --color-primary-300: 26 65 172;
-  --color-primary-600: 101 171 255;
-  --color-primary-700: 170 195 239;
+  --color-primary-100: 92 36 20;
+  --color-primary-300: 217 119 87;
+  --color-primary-600: 217 119 87;
+  --color-primary-700: 224 139 110;
 
-  --color-secondary-100: 48 57 70;
-  --color-secondary-300: 82 91 106;
-  --color-secondary-500: 121 128 142;
-  --color-secondary-600: 143 152 166;
-  --color-secondary-700: 158 167 181;
+  --color-secondary-100: 61 57 41;
+  --color-secondary-300: 107 103 92;
+  --color-secondary-500: 176 174 165;
+  --color-secondary-600: 196 193 184;
+  --color-secondary-700: 232 230 220;
 
   --color-success-100: 8 81 15;
   --color-success-600: 107 241 120;
@@ -530,19 +530,19 @@
   --color-notification-100: 117 37 83;
   --color-notification-600: 255 143 208;
 
-  --color-text-main: 243 246 249;
-  --color-text-muted: 136 152 181;
-  --color-text-contrast: 18 26 39;
+  --color-text-main: 250 249 245;
+  --color-text-muted: 196 193 184;
+  --color-text-contrast: 20 20 19;
   --color-text-alt2: 255 255 255;
   --color-text-code: 255 143 208;
 
-  --color-hover-default: rgb(170 195 239 / 0.1);
+  --color-hover-default: rgb(217 119 87 / 0.16);
   --color-hover-contrast: rgb(0 0 0 / 0.15);
 
-  --color-marketing-logo: 255 255 255;
-  --color-bw-blue: 23 93 220;
+  --color-marketing-logo: 250 249 245;
+  --color-bw-blue: 217 119 87;
 
-  --tw-ring-offset-color: #1f242e;
+  --tw-ring-offset-color: #1f1e1d;
 
   --color-illustration-stroke: var(--color-gray-950);
   --color-illustration-fill-primary: var(--color-brand-100);

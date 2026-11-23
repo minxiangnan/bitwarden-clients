@@ -9389,6 +9389,30 @@
   "authenticatorScanFound": {
     "message": "已读取二维码"
   },
+  "authenticatorSecretHint": {
+    "message": "粘贴 Base32 密钥或 otpauth:// 链接"
+  },
+  "authenticatorAdvanced": {
+    "message": "高级设置"
+  },
+  "authenticatorType": {
+    "message": "类型"
+  },
+  "authenticatorTypeTotp": {
+    "message": "TOTP"
+  },
+  "authenticatorTypeSteam": {
+    "message": "Steam"
+  },
+  "authenticatorDefaultName": {
+    "message": "账户 $NUMBER$",
+    "placeholders": {
+      "number": {
+        "content": "$1",
+        "example": "1"
+      }
+    }
+  },
   "authenticatorSecretInvalid": {
     "message": "请输入有效的 Base32 密钥。"
   },

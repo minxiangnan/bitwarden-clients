@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@a
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { firstValueFrom } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
@@ -12,7 +13,8 @@ import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/componen
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
-import { filterAuthenticatorEntries } from "../authenticator-otpauth";
+import { filterAuthenticatorEntries, parseOtpAuthUri } from "../authenticator-otpauth";
+import { scanCurrentTabForOtpauth } from "../authenticator-scan";
 import { AuthenticatorEntryView } from "../authenticator.models";
 
 import { AuthenticatorCodeComponent } from "./authenticator-code.component";
@@ -45,6 +47,7 @@ export class AuthenticatorListComponent {
   protected readonly query = signal("");
   protected readonly favoritesOnly = signal(false);
   protected readonly importing = signal(false);
+  protected readonly scanning = signal(false);
   protected readonly vaultImports = signal<
     Awaited<ReturnType<AuthenticatorService["importVaultTotp"]>>
   >([]);
@@ -80,6 +83,39 @@ export class AuthenticatorListComponent {
 
   protected add(): void {
     void this.router.navigate(["/authenticator/new"]);
+  }
+
+  protected async scanCurrentPage(): Promise<void> {
+    if (this.scanning()) {
+      return;
+    }
+    this.scanning.set(true);
+    try {
+      const uri = await scanCurrentTabForOtpauth();
+      const parsed = uri ? parseOtpAuthUri(uri) : null;
+      if (!parsed) {
+        this.toast.showToast({
+          variant: "error",
+          title: null,
+          message: this.i18n.t(uri ? "authenticatorInvalidUri" : "authenticatorScanEmpty"),
+        });
+        return;
+      }
+      if (!parsed.name.trim()) {
+        const state = await firstValueFrom(this.authenticator.state$);
+        parsed.name =
+          parsed.issuer ||
+          this.i18n.t("authenticatorDefaultName", String(state.entries.length + 1));
+      }
+      await this.authenticator.save(parsed);
+      this.toast.showToast({
+        variant: "success",
+        title: null,
+        message: this.i18n.t("authenticatorScanFound"),
+      });
+    } finally {
+      this.scanning.set(false);
+    }
   }
 
   protected edit(entry: AuthenticatorEntryView): void {

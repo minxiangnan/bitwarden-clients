@@ -15,7 +15,7 @@ import { AuthenticatorEntryView } from "../authenticator.models";
   template: `
     @if (info(); as totp) {
       <span class="tw-flex tw-items-center tw-gap-2">
-        <span class="tw-font-mono tw-text-base tw-tracking-wide">{{ totp.formatted }}</span>
+        <span class="tw-font-mono tw-text-2xl tw-tracking-widest">{{ totp.formatted }}</span>
         <span
           class="tw-relative tw-flex tw-size-7 tw-items-center tw-justify-center"
           aria-hidden="true"
@@ -27,7 +27,7 @@ import { AuthenticatorEntryView } from "../authenticator.models";
             <circle
               class="tw-fill-none"
               [class.tw-stroke-danger-600]="totp.low"
-              [class.tw-stroke-text-main]="!totp.low"
+              [class.tw-stroke-primary-600]="!totp.low"
               r="11"
               cy="14"
               cx="14"

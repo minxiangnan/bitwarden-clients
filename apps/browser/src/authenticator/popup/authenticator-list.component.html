@@ -1,6 +1,9 @@
 <popup-page [loading]="loading()">
   <popup-header slot="header" [pageTitle]="'authenticator' | i18n">
     <ng-container slot="end">
+      <button type="button" bitButton buttonType="primary" (click)="add()">
+        + {{ "authenticatorAdd" | i18n }}
+      </button>
       <app-pop-out />
     </ng-container>
   </popup-header>
@@ -28,8 +31,15 @@
       >
         {{ "authenticatorFavorites" | i18n }}
       </button>
-      <button type="button" bitButton buttonType="secondary" size="small" (click)="add()">
-        {{ "authenticatorAdd" | i18n }}
+      <button
+        type="button"
+        bitButton
+        buttonType="primary"
+        size="small"
+        [disabled]="scanning()"
+        (click)="scanCurrentPage()"
+      >
+        {{ "authenticatorScanTab" | i18n }}
       </button>
       <button
         type="button"
@@ -75,7 +85,7 @@
 
   <ul class="tw-m-0 tw-list-none tw-p-0">
     @for (entry of visible(); track entry.id) {
-      <li class="tw-mb-2 tw-rounded tw-border tw-border-solid tw-border-border-base tw-p-2">
+      <li class="tw-mb-3 tw-rounded-xl tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-p-3">
         <button
           type="button"
           class="tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"

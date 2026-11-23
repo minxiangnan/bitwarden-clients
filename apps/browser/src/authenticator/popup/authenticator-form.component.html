@@ -9,64 +9,81 @@
     <p class="tw-mb-3 tw-text-sm tw-text-danger">{{ errorKey()! | i18n }}</p>
   }
 
-  <form class="tw-flex tw-flex-col tw-gap-3" [formGroup]="form" (ngSubmit)="submit()">
-    <bit-form-field>
-      <bit-label>{{ "name" | i18n }}</bit-label>
-      <input bitInput type="text" formControlName="name" />
-    </bit-form-field>
-    <bit-form-field>
-      <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
-      <input bitInput type="text" formControlName="issuer" />
-    </bit-form-field>
-    <bit-form-field>
-      <bit-label>{{ "authenticatorSecret" | i18n }}</bit-label>
-      <textarea bitInput rows="3" formControlName="secret"></textarea>
-    </bit-form-field>
-    <bit-form-field>
-      <bit-label>{{ "authenticatorAlgorithm" | i18n }}</bit-label>
-      <select bitInput formControlName="algorithm">
-        @for (algorithm of algorithms; track algorithm) {
-          <option [value]="algorithm">{{ algorithm }}</option>
-        }
-      </select>
-    </bit-form-field>
-    <bit-form-field>
-      <bit-label>{{ "authenticatorDigits" | i18n }}</bit-label>
-      <input bitInput type="number" [min]="minDigits" [max]="maxDigits" formControlName="digits" />
-    </bit-form-field>
-    <bit-form-field>
-      <bit-label>{{ "authenticatorPeriod" | i18n }}</bit-label>
-      <input bitInput type="number" [min]="minPeriod" [max]="maxPeriod" formControlName="period" />
-    </bit-form-field>
-    <bit-form-field>
-      <bit-label>{{ "notes" | i18n }}</bit-label>
-      <textarea bitInput rows="2" formControlName="notes"></textarea>
-    </bit-form-field>
-    <label class="tw-flex tw-items-center tw-gap-2 tw-text-sm">
-      <input type="checkbox" formControlName="favorite" />
-      {{ "favorite" | i18n }}
-    </label>
-
-    <div class="tw-flex tw-flex-wrap tw-gap-2">
-      <button type="button" bitButton buttonType="secondary" size="small" (click)="pasteUri()">
-        {{ "authenticatorPasteUri" | i18n }}
-      </button>
+  <form class="tw-flex tw-flex-col tw-gap-4" [formGroup]="form" (ngSubmit)="submit()">
+    @if (!editing()) {
       <button
         type="button"
         bitButton
-        buttonType="secondary"
-        size="small"
-        [disabled]="scanning() || !canScan"
+        buttonType="primary"
+        block
+        [block]="true"
+        [disabled]="scanning() || saving()"
+        [loading]="scanning()"
         (click)="scan()"
       >
         {{ "authenticatorScanTab" | i18n }}
       </button>
-    </div>
-    @if (!canScan) {
-      <p class="tw-text-xs tw-text-muted">{{ "authenticatorScanUnsupported" | i18n }}</p>
     }
 
-    <button type="submit" bitButton [disabled]="form.invalid || saving()">
+    <bit-form-field>
+      <bit-label>{{ "authenticatorSecret" | i18n }}</bit-label>
+      <textarea
+        bitInput
+        rows="3"
+        formControlName="secret"
+        [placeholder]="'authenticatorSecretHint' | i18n"
+        (paste)="onSecretPaste($event)"
+      ></textarea>
+      <bit-hint>{{ "authenticatorSecretHint" | i18n }}</bit-hint>
+    </bit-form-field>
+
+    <button
+      type="button"
+      class="tw-self-start tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"
+      (click)="advancedOpen.set(!advancedOpen())"
+    >
+      {{ "authenticatorAdvanced" | i18n }}
+    </button>
+
+    @if (advancedOpen() || editing()) {
+      <bit-form-field>
+        <bit-label>{{ "name" | i18n }}</bit-label>
+        <input bitInput type="text" formControlName="name" />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
+        <input bitInput type="text" formControlName="issuer" />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorType" | i18n }}</bit-label>
+        <select bitInput [value]="otpType()" (change)="setOtpType($any($event.target).value)">
+          <option value="totp">{{ "authenticatorTypeTotp" | i18n }}</option>
+          <option value="steam">{{ "authenticatorTypeSteam" | i18n }}</option>
+        </select>
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorAlgorithm" | i18n }}</bit-label>
+        <select bitInput formControlName="algorithm">
+          @for (algorithm of algorithms; track algorithm) {
+            <option [value]="algorithm">{{ algorithm }}</option>
+          }
+        </select>
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorDigits" | i18n }}</bit-label>
+        <input bitInput type="number" [min]="minDigits" [max]="maxDigits" formControlName="digits" />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorPeriod" | i18n }}</bit-label>
+        <input bitInput type="number" [min]="minPeriod" [max]="maxPeriod" formControlName="period" />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "notes" | i18n }}</bit-label>
+        <textarea bitInput rows="2" formControlName="notes"></textarea>
+      </bit-form-field>
+    }
+
+    <button type="submit" bitButton buttonType="primary" [block]="true" [disabled]="saving()" [loading]="saving()">
       {{ "save" | i18n }}
     </button>
   </form>

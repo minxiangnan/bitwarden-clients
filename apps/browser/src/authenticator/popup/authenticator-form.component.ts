@@ -11,7 +11,7 @@ import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/componen
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
-import { isValidTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
+import { isValidTotpSecret, normalizeTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
 import { scanCurrentTabForOtpauth } from "../authenticator-scan";
 import {
   AuthenticatorAlgorithm,
@@ -62,11 +62,14 @@ export class AuthenticatorFormComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly scanning = signal(false);
+  protected readonly advancedOpen = signal(false);
+  protected readonly otpType = signal<"totp" | "steam">("totp");
+  protected readonly editing = signal(false);
   protected readonly errorKey = signal<string | null>(null);
   protected readonly titleKey = signal("authenticatorAdd");
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    name: ["", Validators.required],
+    name: [""],
     issuer: [""],
     secret: ["", Validators.required],
     algorithm: [AuthenticatorAlgorithms.Sha1 as AuthenticatorAlgorithm],
@@ -98,6 +101,8 @@ export class AuthenticatorFormComponent implements OnInit {
       return;
     }
     this.entryId.set(id);
+    this.editing.set(true);
+    this.advancedOpen.set(true);
     this.titleKey.set("authenticatorEdit");
     this.loading.set(true);
     const state = await firstValueFrom(this.authenticator.state$);
@@ -113,16 +118,43 @@ export class AuthenticatorFormComponent implements OnInit {
       return;
     }
     this.form.patchValue(draftFromView(entry));
+    this.otpType.set(entry.digits === MIN_AUTHENTICATOR_DIGITS ? "steam" : "totp");
+  }
+
+  protected setOtpType(value: string): void {
+    const type = value === "steam" ? "steam" : "totp";
+    this.otpType.set(type);
+    if (type === "steam") {
+      this.form.patchValue({
+        algorithm: AuthenticatorAlgorithms.Sha1,
+        digits: MIN_AUTHENTICATOR_DIGITS,
+      });
+    } else if (this.form.controls.digits.value === MIN_AUTHENTICATOR_DIGITS) {
+      this.form.controls.digits.setValue(DEFAULT_AUTHENTICATOR_DIGITS);
+    }
+  }
+
+  protected onSecretPaste(event: ClipboardEvent): void {
+    const text = event.clipboardData?.getData("text") ?? "";
+    if (!text.trim()) {
+      return;
+    }
+    event.preventDefault();
+    void this.acceptInput(text, !this.editing());
   }
 
   protected async submit(): Promise<void> {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.saving()) {
       return;
     }
     const draft = this.form.getRawValue() satisfies AuthenticatorDraft;
+    draft.secret = normalizeTotpSecret(draft.secret);
     if (!isValidTotpSecret(draft.secret)) {
       this.errorKey.set("authenticatorSecretInvalid");
       return;
+    }
+    if (!draft.name.trim()) {
+      draft.name = await this.defaultName();
     }
     this.saving.set(true);
     this.errorKey.set(null);
@@ -136,17 +168,6 @@ export class AuthenticatorFormComponent implements OnInit {
     }
   }
 
-  protected async pasteUri(): Promise<void> {
-    let text = "";
-    try {
-      text = await navigator.clipboard.readText();
-    } catch {
-      this.errorKey.set("authenticatorPasteFailed");
-      return;
-    }
-    this.applyUri(text);
-  }
-
   protected async scan(): Promise<void> {
     this.scanning.set(true);
     this.errorKey.set(null);
@@ -156,24 +177,43 @@ export class AuthenticatorFormComponent implements OnInit {
         this.errorKey.set("authenticatorScanEmpty");
         return;
       }
-      this.applyUri(uri);
-      this.toast.showToast({
-        variant: "success",
-        title: null,
-        message: this.i18n.t("authenticatorScanFound"),
-      });
+      await this.acceptInput(uri, !this.editing());
     } finally {
       this.scanning.set(false);
     }
   }
 
-  private applyUri(value: string): void {
-    const parsed = parseOtpAuthUri(value);
-    if (!parsed) {
-      this.errorKey.set("authenticatorInvalidUri");
-      return;
+  private async acceptInput(value: string, saveNow: boolean): Promise<void> {
+    const trimmed = value.trim();
+    if (trimmed.toLowerCase().startsWith("otpauth://")) {
+      const parsed = parseOtpAuthUri(trimmed);
+      if (!parsed) {
+        this.errorKey.set("authenticatorInvalidUri");
+        return;
+      }
+      this.errorKey.set(null);
+      this.otpType.set(parsed.digits === MIN_AUTHENTICATOR_DIGITS ? "steam" : "totp");
+      this.form.patchValue(parsed);
+    } else {
+      const secret = normalizeTotpSecret(trimmed);
+      this.form.controls.secret.setValue(secret);
+      if (!isValidTotpSecret(secret)) {
+        this.errorKey.set("authenticatorSecretInvalid");
+        return;
+      }
+      this.errorKey.set(null);
     }
-    this.errorKey.set(null);
-    this.form.patchValue(parsed);
+    if (saveNow) {
+      await this.submit();
+    }
+  }
+
+  private async defaultName(): Promise<string> {
+    const issuer = this.form.controls.issuer.value.trim();
+    if (issuer) {
+      return issuer;
+    }
+    const state = await firstValueFrom(this.authenticator.state$);
+    return this.i18n.t("authenticatorDefaultName", String(state.entries.length + 1));
   }
 }

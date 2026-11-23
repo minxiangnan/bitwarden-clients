@@ -28,13 +28,60 @@ describe("AuthenticatorFormComponent", () => {
           useValue: { snapshot: { paramMap: { get: (): string | null => null } } },
         },
         { provide: Router, useValue: { navigate: jest.fn() } },
-        { provide: I18nService, useValue: { t: (key: string) => key } },
+        {
+          provide: I18nService,
+          useValue: { t: (key: string, value?: string) => value ?? key },
+        },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
       ],
     });
     const fixture = TestBed.createComponent(AuthenticatorFormComponent);
     return fixture.componentInstance;
   }
+
+  it("does not require a name", () => {
+    const component = setup();
+
+    component["form"].controls.name.setValue("");
+    component["form"].controls.secret.setValue("WQIQ25BRKZYCJVYP");
+
+    expect(component["form"].controls.name.valid).toBe(true);
+    expect(component["form"].valid).toBe(true);
+  });
+
+  it("saves a pasted otpauth link immediately", async () => {
+    const component = setup();
+    const authenticator = TestBed.inject(AuthenticatorService);
+
+    await component["acceptInput"](
+      "otpauth://totp/GitHub:ada?secret=wqiq%2025br%20kzyc%20jvyp&issuer=GitHub",
+      true,
+    );
+
+    expect(authenticator.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "ada",
+        issuer: "GitHub",
+        secret: "WQIQ25BRKZYCJVYP",
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+      }),
+      undefined,
+    );
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(["/tabs/authenticator"]);
+  });
+
+  it("saves a raw Base32 secret and names it from the account count", async () => {
+    const component = setup([{ id: "existing" }]);
+
+    await component["acceptInput"]("wqiq 25br kzyc jvyp", true);
+
+    expect(TestBed.inject(AuthenticatorService).save).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "2", secret: "WQIQ25BRKZYCJVYP" }),
+      undefined,
+    );
+  });
 
   it("accepts digits 5 through 10 and periods up to one day", () => {
     const component = setup();
@@ -92,7 +139,10 @@ describe("AuthenticatorFormComponent", () => {
           useValue: { snapshot: { paramMap: { get: (): string | null => "1" } } },
         },
         { provide: Router, useValue: { navigate: jest.fn() } },
-        { provide: I18nService, useValue: { t: (key: string) => key } },
+        {
+          provide: I18nService,
+          useValue: { t: (key: string, value?: string) => value ?? key },
+        },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
       ],
     });
