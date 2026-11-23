@@ -9313,5 +9313,101 @@
   },
   "requestAccessModalRequestCreatedSuccessV2": {
     "message": "Access requested"
+  },
+  "authenticator": {
+    "message": "Authenticator"
+  },
+  "authenticatorAdd": {
+    "message": "Add code"
+  },
+  "authenticatorEdit": {
+    "message": "Edit code"
+  },
+  "authenticatorIssuer": {
+    "message": "Issuer"
+  },
+  "authenticatorSecret": {
+    "message": "Secret key"
+  },
+  "authenticatorAlgorithm": {
+    "message": "Algorithm"
+  },
+  "authenticatorDigits": {
+    "message": "Digits"
+  },
+  "authenticatorPeriod": {
+    "message": "Period (seconds)"
+  },
+  "authenticatorFavorites": {
+    "message": "Favorites"
+  },
+  "authenticatorFavorite": {
+    "message": "Favorite"
+  },
+  "authenticatorUnfavorite": {
+    "message": "Unfavorite"
+  },
+  "authenticatorEmpty": {
+    "message": "No authenticator codes yet."
+  },
+  "authenticatorLoadError": {
+    "message": "Could not load authenticator codes."
+  },
+  "authenticatorCopied": {
+    "message": "Code copied"
+  },
+  "authenticatorImport": {
+    "message": "Import from vault"
+  },
+  "authenticatorImportHelp": {
+    "message": "Vault logins that already store a verification-code secret."
+  },
+  "authenticatorImportNone": {
+    "message": "No new vault codes to import."
+  },
+  "authenticatorImportOne": {
+    "message": "Import"
+  },
+  "authenticatorPasteUri": {
+    "message": "Paste otpauth link"
+  },
+  "authenticatorPasteFailed": {
+    "message": "Could not read the clipboard."
+  },
+  "authenticatorInvalidUri": {
+    "message": "That is not a valid otpauth link."
+  },
+  "authenticatorScanTab": {
+    "message": "Scan current tab"
+  },
+  "authenticatorScanEmpty": {
+    "message": "No QR code found on this tab."
+  },
+  "authenticatorScanUnsupported": {
+    "message": "QR scan needs a browser that can read QR codes. Paste the otpauth link instead."
+  },
+  "authenticatorScanFound": {
+    "message": "QR code read"
+  },
+  "authenticatorSecretInvalid": {
+    "message": "Enter a valid Base32 secret."
+  },
+  "authenticatorSaveError": {
+    "message": "Could not save this code."
+  },
+  "authenticatorMissing": {
+    "message": "This code is no longer available."
+  },
+  "authenticatorDeleteConfirm": {
+    "message": "Confirm delete"
+  },
+  "authenticatorUndecryptable": {
+    "message": "This code could not be decrypted. It cannot be edited until it can be read."
+  },
+  "authenticatorMoveUp": {
+    "message": "Move up"
+  },
+  "authenticatorMoveDown": {
+    "message": "Move down"
   }
 }

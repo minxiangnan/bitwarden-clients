@@ -50,6 +50,11 @@ export class NotificationResponse extends BaseResponse {
       case NotificationType.SyncSendDelete:
         this.payload = new SyncSendNotification(payload);
         break;
+      case NotificationType.SyncAuthenticatorCreate:
+      case NotificationType.SyncAuthenticatorUpdate:
+      case NotificationType.SyncAuthenticatorDelete:
+        this.payload = new SyncAuthenticatorNotification(payload);
+        break;
       case NotificationType.AuthRequest:
       case NotificationType.AuthRequestResponse:
         this.payload = new AuthRequestPushNotification(payload);
@@ -120,6 +125,19 @@ export class UserNotification extends BaseResponse {
     super(response);
     this.userId = this.getResponseProperty("UserId");
     this.date = new Date(this.getResponseProperty("Date"));
+  }
+}
+
+export class SyncAuthenticatorNotification extends BaseResponse {
+  id: string;
+  userId: string;
+  revisionDate: Date;
+
+  constructor(response: any) {
+    super(response);
+    this.id = this.getResponseProperty("Id");
+    this.userId = this.getResponseProperty("UserId");
+    this.revisionDate = new Date(this.getResponseProperty("RevisionDate"));
   }
 }
 

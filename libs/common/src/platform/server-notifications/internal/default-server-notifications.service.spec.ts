@@ -480,6 +480,25 @@ describe("NotificationsService", () => {
       });
     });
 
+    describe.each([
+      NotificationType.SyncAuthenticatorCreate,
+      NotificationType.SyncAuthenticatorUpdate,
+      NotificationType.SyncAuthenticatorDelete,
+    ])("authenticator notification %s", (type) => {
+      it("forces a full sync so authenticator entries refresh from the sync body", async () => {
+        const notification = new NotificationResponse({
+          type,
+          payload: {},
+          contextId: "different-app-id",
+        });
+
+        await sut["processNotification"](notification, mockUser1);
+
+        expect(syncService.fullSync).toHaveBeenCalledTimes(1);
+        expect(syncService.fullSync).toHaveBeenCalledWith(true);
+      });
+    });
+
     describe("NotificationType.AuthRequest", () => {
       it("should call receivedPendingAuthRequest when it exists (Extension/Desktop)", async () => {
         authRequestAnsweringService.receivedPendingAuthRequest!.mockResolvedValue(undefined as any);

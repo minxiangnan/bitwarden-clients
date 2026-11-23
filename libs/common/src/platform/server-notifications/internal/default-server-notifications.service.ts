@@ -271,6 +271,14 @@ export class DefaultServerNotificationsService implements ServerNotificationsSer
       case NotificationType.SyncSendDelete:
         await this.syncService.syncDeleteSend(notification.payload as SyncSendNotification);
         break;
+      case NotificationType.SyncAuthenticatorCreate:
+      case NotificationType.SyncAuthenticatorUpdate:
+      case NotificationType.SyncAuthenticatorDelete:
+        // Create, update, and delete only. Key rotation does not send these; other
+        // sessions are logged out and sync the re-encrypted entries on the next login.
+        // Account revision may not change for a single entry edit, so force a sync.
+        await this.syncService.fullSync(true);
+        break;
       case NotificationType.AuthRequest: {
         // Only Extension and Desktop implement the AuthRequestAnsweringService
         if (this.authRequestAnsweringService.receivedPendingAuthRequest) {

@@ -2,6 +2,7 @@ import { any, mock, MockProxy } from "jest-mock-extended";
 import { BehaviorSubject, firstValueFrom, of } from "rxjs";
 
 import { OrganizationUserResetPasswordWithIdRequest } from "@bitwarden/admin-console/common";
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { Account } from "@bitwarden/common/auth/abstractions/account.service";
 import { LogoutService } from "@bitwarden/common/auth/logout";
 import { WebauthnRotateCredentialRequest } from "@bitwarden/common/auth/models/request/webauthn-rotate-credential.request";
@@ -9,6 +10,7 @@ import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { DeviceTrustServiceAbstraction } from "@bitwarden/common/key-management/device-trust/abstractions/device-trust.service.abstraction";
 import { MasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
 import { MasterPasswordSalt } from "@bitwarden/common/key-management/master-password/types/master-password.types";
+import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
@@ -352,6 +354,11 @@ describe("KeyRotationService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.assign(mockApiService, {
+      apiService: {
+        send: jest.fn().mockRejectedValue(new ErrorResponse({}, 404)),
+      } as unknown as ApiService,
+    });
     jest.mock("@bitwarden/key-management-ui");
     jest.spyOn(PureCrypto, "make_user_key_aes256_cbc_hmac").mockReturnValue(new Uint8Array(64));
     jest
@@ -581,6 +588,52 @@ describe("KeyRotationService", () => {
         expect(mockSdkUserKeyRotationService.changePasswordAndRotateUserKey).not.toHaveBeenCalled();
         expect(mockApiService.postUserKeyUpdate).toHaveBeenCalled();
         expect(mockLogoutService.logout).toHaveBeenCalledWith(mockUser.id, "userKeyRotation");
+      });
+
+      it("refuses SDK rotation when a v2 user has authenticator entries", async () => {
+        const sdkSpy = jest
+          .spyOn(keyRotationService, "shouldUseSdkKeyRotation$")
+          .mockReturnValue(of(true));
+        const v2Key = new SymmetricCryptoKey(new Uint8Array(70)) as UserKey;
+        mockKeyService.userKey$.mockReturnValue(of(v2Key));
+        Object.assign(mockApiService, {
+          apiService: {
+            send: jest.fn().mockResolvedValue({
+              data: [
+                {
+                  id: "entry-1",
+                  name: "2.name",
+                  secret: "2.secret",
+                  algorithm: "SHA1",
+                  digits: 6,
+                  period: 30,
+                  favorite: false,
+                  sortOrder: 0,
+                },
+              ],
+              object: "list",
+            }),
+          } as unknown as ApiService,
+        });
+
+        try {
+          await expect(
+            keyRotationService.rotateUserKeyMasterPasswordAndEncryptedData(
+              "mockMasterPassword",
+              "mockMasterPassword1",
+              mockUser,
+              "masterPasswordHint",
+            ),
+          ).rejects.toThrow(/Authenticator entries/);
+          expect(
+            mockSdkUserKeyRotationService.changePasswordAndRotateUserKey,
+          ).not.toHaveBeenCalled();
+        } finally {
+          sdkSpy.mockRestore();
+          mockKeyService.userKey$.mockReturnValue(
+            new BehaviorSubject(new SymmetricCryptoKey(new Uint8Array(64)) as UserKey),
+          );
+        }
       });
     });
 
@@ -935,6 +988,11 @@ describe("KeyRotationService", () => {
       mockCipherService.getRotatedData.mockResolvedValue(mockCiphers);
       mockFolderService.getRotatedData.mockResolvedValue(mockFolders);
       mockSendService.getRotatedData.mockResolvedValue(mockSends);
+      Object.assign(mockApiService, {
+        apiService: {
+          send: jest.fn().mockRejectedValue(new ErrorResponse({}, 404)),
+        } as unknown as ApiService,
+      });
 
       const accountDataRequest = await keyRotationService.getAccountDataRequest(
         initialKey,
@@ -946,6 +1004,63 @@ describe("KeyRotationService", () => {
         folders: mockFolders,
         sends: mockSends,
       });
+      expect(accountDataRequest.authenticatorEntries).toBeUndefined();
+    });
+
+    it("re-encrypts authenticator entries with the new user key", async () => {
+      const initialKey = new SymmetricCryptoKey(new Uint8Array(64)) as UserKey;
+      const newKey = new SymmetricCryptoKey(new Uint8Array(64)) as UserKey;
+
+      mockCipherService.getRotatedData.mockResolvedValue(mockCiphers);
+      mockFolderService.getRotatedData.mockResolvedValue(mockFolders);
+      mockSendService.getRotatedData.mockResolvedValue(mockSends);
+      mockEncryptService.decryptString.mockImplementation(async (value: EncString) =>
+        value.encryptedString.replace(/^old:/, ""),
+      );
+      mockEncryptService.encryptString.mockImplementation(
+        async (value: string) => ({ toJSON: () => `new:${value}` }) as EncString,
+      );
+      Object.assign(mockApiService, {
+        apiService: {
+          send: jest.fn().mockResolvedValue({
+            data: [
+              {
+                id: "entry-1",
+                name: "old:Ada",
+                issuer: "old:Example",
+                secret: "old:SECRET",
+                notes: null,
+                algorithm: "SHA256",
+                digits: 8,
+                period: 60,
+                favorite: true,
+                sortOrder: 3,
+              },
+            ],
+            object: "list",
+          }),
+        } as unknown as ApiService,
+      });
+
+      const accountDataRequest = await keyRotationService.getAccountDataRequest(
+        initialKey,
+        newKey,
+        mockUser,
+      );
+
+      expect(accountDataRequest.authenticatorEntries).toEqual([
+        {
+          id: "entry-1",
+          name: "new:Ada",
+          issuer: "new:Example",
+          secret: "new:SECRET",
+          algorithm: "SHA256",
+          digits: 8,
+          period: 60,
+          favorite: true,
+          sortOrder: 3,
+        },
+      ]);
     });
 
     it("throws if rotated ciphers are null", async () => {
