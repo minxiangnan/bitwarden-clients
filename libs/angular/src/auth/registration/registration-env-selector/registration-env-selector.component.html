@@ -19,7 +19,7 @@
     <input
       id="register-self-hosted-url"
       bitInput
-      type="url"
+        type="text"
       [value]="baseUrl"
       (input)="baseUrl = $any($event.target).value"
       (blur)="saveBaseUrl()"
