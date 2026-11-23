@@ -89,7 +89,7 @@ describe("AuthenticatorFormComponent", () => {
       "otpauth://totp/GitHub:ada?secret=WQIQ25BRKZYCJVYP&issuer=GitHub",
     );
 
-    await component.submit();
+    await component["submit"]();
 
     expect(TestBed.inject(AuthenticatorService).save).toHaveBeenCalledWith(
       expect.objectContaining({ name: "ada", issuer: "GitHub", secret: "WQIQ25BRKZYCJVYP" }),
