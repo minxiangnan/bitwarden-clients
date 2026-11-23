@@ -144,6 +144,7 @@ export const ExtensionCommand = {
   GeneratePassword: "generate_password",
   OpenPopup: "open_popup",
   LockVault: "lock_vault",
+  CopySiteTotp: "copy_site_totp",
   NoopCommand: "noop",
 } as const;
 

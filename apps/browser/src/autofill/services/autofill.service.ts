@@ -99,6 +99,7 @@ export default class AutofillService implements AutofillServiceInterface {
   private openVaultItemPasswordRepromptPopout = openVaultItemPasswordRepromptPopout;
   private openPasswordRepromptPopoutDebounce?: ReturnType<typeof setTimeout>;
   private currentlyOpeningPasswordRepromptPopout = false;
+  private authenticatorTotpLookup: ((url: string) => Promise<string | null>) | null = null;
   static searchFieldNamesSet = new Set(AutoFillConstants.SearchFieldNames);
   enableInlineMenuAnimation$: Observable<boolean>;
   enableNotificationAnimation$: Observable<boolean>;
@@ -122,6 +123,14 @@ export default class AutofillService implements AutofillServiceInterface {
   ) {
     this.enableInlineMenuAnimation$ = this.animationControlService.enableInlineMenuAnimation$;
     this.enableNotificationAnimation$ = this.animationControlService.enableNotificationAnimation$;
+  }
+
+  /**
+   * Supplies a TOTP seed from the authenticator tab when the login item itself has none.
+   * The seed is an otpauth URI or a steam:// secret already stored in the user's vault.
+   */
+  setAuthenticatorTotpLookup(lookup: (url: string) => Promise<string | null>): void {
+    this.authenticatorTotpLookup = lookup;
   }
 
   /**
@@ -458,13 +467,18 @@ export default class AutofillService implements AutofillServiceInterface {
   private async fillOutcomeWithTotp(
     outcome: typeof AutofillOutcome.Filled | typeof AutofillOutcome.Absent,
     cipher: CipherView,
+    tabUrl?: string,
   ): Promise<FillOccurred> {
-    if (cipher.type !== CipherType.Login || !cipher.login?.totp) {
+    let seed = cipher.type === CipherType.Login ? cipher.login?.totp : undefined;
+    if (!seed && tabUrl && this.authenticatorTotpLookup) {
+      seed = (await this.authenticatorTotpLookup(tabUrl)) ?? undefined;
+    }
+    if (cipher.type !== CipherType.Login || !seed) {
       return Object.freeze({ outcome });
     }
 
     const canAutoCopyTotp = await this.getShouldAutoCopyTotp();
-    const totp = (await firstValueFrom(this.totpService.getCode$(cipher.login.totp))).code;
+    const totp = (await firstValueFrom(this.totpService.getCode$(seed))).code;
 
     return Object.freeze({ outcome, totp: totp ?? undefined, canAutoCopyTotp });
   }
@@ -486,16 +500,10 @@ export default class AutofillService implements AutofillServiceInterface {
     }
 
     const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
-    let canAccessPremium = false;
-    if (activeAccount?.id) {
-      canAccessPremium = await firstValueFrom(
-        this.billingAccountProfileStateService.hasPremiumFromAnySource$(activeAccount.id),
-      );
-    }
+    // This fork fills verification codes from the user's own server. There is no premium gate.
+    void this.billingAccountProfileStateService;
+    const canUseTotp = true;
     const defaultUriMatch = await this.getDefaultUriMatchStrategy();
-
-    // check for premium subscription entitlement or organizational policy
-    const canUseTotp = canAccessPremium || options.cipher.organizationUseTotp;
 
     const outcomes = await Promise.all(
       options.pageDetails.map(async (pd): Promise<AutofillOutcome> => {
@@ -588,7 +596,7 @@ export default class AutofillService implements AutofillServiceInterface {
     }
 
     if (canUseTotp) {
-      return await this.fillOutcomeWithTotp(outcome, options.cipher);
+      return await this.fillOutcomeWithTotp(outcome, options.cipher, tabUrl);
     }
 
     return Object.freeze({ outcome });
@@ -979,7 +987,11 @@ export default class AutofillService implements AutofillServiceInterface {
     let username: AutofillField | null = null;
     let totp: AutofillField | null = null;
     const login = options.cipher.login;
-    const totpToFill = options.allowTotpAutofill && options.canAccessTotp ? login?.totp : undefined;
+    let totpToFill: string | undefined =
+      options.allowTotpAutofill && options.canAccessTotp ? login?.totp : undefined;
+    if (!totpToFill && options.allowTotpAutofill && this.authenticatorTotpLookup && pageDetails.url) {
+      totpToFill = (await this.authenticatorTotpLookup(pageDetails.url)) ?? undefined;
+    }
     fillScript.requiresInsecurePageConfirmation = await this.requiresInsecurePageConfirmation(
       pageDetails.url,
       options,

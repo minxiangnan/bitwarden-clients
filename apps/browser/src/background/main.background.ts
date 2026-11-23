@@ -373,6 +373,9 @@ import { AutofillBadgeUpdaterService } from "../autofill/services/autofill-badge
 import { DefaultAutofillLifecycleService } from "../autofill/services/autofill-lifecycle.service";
 import { AutofillTriageService } from "../autofill/services/autofill-triage.service";
 import AutofillService from "../autofill/services/autofill.service";
+import { createAuthenticatorTotpLookup } from "../authenticator/authenticator-autofill";
+import { steamCode } from "../authenticator/authenticator-codes";
+import { clipboardClearMs } from "../authenticator/clipboard-delay";
 import { ClipboardNotificationBadgeUpdaterService } from "../autofill/services/clipboard-notification-badge-updater.service";
 import { DefaultFillCipherPolicy } from "../autofill/services/default-fill-cipher-policy";
 import { InlineMenuFieldQualificationService } from "../autofill/services/inline-menu-field-qualification.service";
@@ -1395,6 +1398,14 @@ export default class MainBackground {
       this.animationControlService,
       this.autofillLifecycleService,
     );
+    this.authenticatorTotpLookup = createAuthenticatorTotpLookup({
+      accountService: this.accountService,
+      stateProvider: this.stateProvider,
+      keyService: this.keyService,
+      encryptService: this.encryptService,
+      logService: this.logService,
+    });
+    this.autofillService.setAuthenticatorTotpLookup(this.authenticatorTotpLookup);
     this.autofillOrchestrator = new DefaultAutofillOrchestrator(
       this.autofillLifecycleService,
       this.autofillService,
@@ -2265,6 +2276,28 @@ export default class MainBackground {
       await this.systemService.clearClipboard(clipboardValue, clearMs);
     }
   }
+
+  /** Copies the authenticator code linked to the tab's exact hostname. */
+  async copySiteAuthenticator(tab: chrome.tabs.Tab): Promise<void> {
+    if (!tab.url || this.authenticatorTotpLookup == null) {
+      return;
+    }
+    const seed = await this.authenticatorTotpLookup(tab.url);
+    if (!seed) {
+      return;
+    }
+    const code = seed.startsWith("steam://")
+      ? await steamCode(seed.slice("steam://".length), Date.now())
+      : (await firstValueFrom(this.totpService.getCode$(seed))).code;
+    if (!code) {
+      return;
+    }
+    const delay = await firstValueFrom(this.autofillSettingsService.clearClipboardDelay$);
+    const clearMs = clipboardClearMs(delay);
+    this.platformUtilsService.copyToClipboard(code, clearMs ? { clearMs } : undefined);
+  }
+
+  private authenticatorTotpLookup: ((url: string) => Promise<string | null>) | null = null;
 
   private async fullSync(override = false) {
     const syncInternal = 6 * 60 * 60 * 1000; // 6 hours

@@ -19,7 +19,9 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { StateProvider } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { CipherType } from "@bitwarden/common/vault/enums/cipher-type";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
+import { SecureNoteView } from "@bitwarden/common/vault/models/view/secure-note.view";
 import {
   AUTHENTICATOR_SYNC_SNAPSHOT,
   AuthenticatorSyncSnapshot,
@@ -29,6 +31,13 @@ import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
 import { EncString, EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 
+import { buildAuthenticatorExport } from "../authenticator-export";
+import {
+  AuthenticatorKind,
+  joinAuthenticatorNotes,
+  kindFromStored,
+  splitAuthenticatorNotes,
+} from "../authenticator-meta";
 import { compareAuthenticatorEntries, parseOtpAuthUri } from "../authenticator-otpauth";
 import {
   AuthenticatorAlgorithm,
@@ -51,6 +60,10 @@ export type AuthenticatorDraft = {
   period: number;
   notes: string;
   favorite: boolean;
+  kind?: AuthenticatorKind;
+  host?: string;
+  tags?: string[];
+  counter?: number;
 };
 
 export type VaultTotpImport = {
@@ -60,11 +73,12 @@ export type VaultTotpImport = {
   draft: AuthenticatorDraft;
 };
 
-type AuthenticatorStatus = "loading" | "ready" | "unsupported" | "error";
+type AuthenticatorStatus = "loading" | "ready" | "unsupported" | "error" | "offline";
 
 type AuthenticatorState = {
   status: AuthenticatorStatus;
   entries: AuthenticatorEntryView[];
+  syncedAt?: string | null;
 };
 
 const EMPTY_STATE: AuthenticatorState = { status: "loading", entries: [] };
@@ -80,7 +94,10 @@ export class AuthenticatorService {
 
   /** True once this server exposes the authenticator API. A 404 keeps the tab hidden. */
   readonly supported$ = this.state$.pipe(
-    map((state) => state.status === "ready" || state.status === "error"),
+    map(
+      (state) =>
+        state.status === "ready" || state.status === "error" || state.status === "offline",
+    ),
     distinctUntilChanged(),
   );
 
@@ -128,7 +145,7 @@ export class AuthenticatorService {
     snapshot: AuthenticatorSyncSnapshot | null,
   ): Promise<void> {
     if (snapshot?.source === "sync") {
-      await this.publishDecrypted(snapshot.entries, userId);
+      await this.publishDecrypted(snapshot.entries, userId, snapshot.syncedAt ?? null);
       return;
     }
     if (snapshot?.source === "unsupported") {
@@ -141,6 +158,7 @@ export class AuthenticatorService {
   private async publishDecrypted(
     encrypted: AuthenticatorEntryResponse[],
     userId: UserId,
+    syncedAt?: string | null,
   ): Promise<void> {
     const key = snapshotKey(encrypted);
     if (key === this.lastPublishedKey && this.stateSubject.value.status === "ready") {
@@ -153,7 +171,7 @@ export class AuthenticatorService {
         return;
       }
       this.lastPublishedKey = key;
-      this.stateSubject.next({ status: "ready", entries });
+      this.stateSubject.next({ status: "ready", entries, syncedAt: syncedAt ?? null });
     } catch (error) {
       if (generation !== this.refreshGeneration) {
         return;
@@ -184,9 +202,10 @@ export class AuthenticatorService {
       if (generation !== this.refreshGeneration) {
         return;
       }
+      const syncedAt = new Date().toISOString();
       this.lastPublishedKey = snapshotKey(encrypted);
-      this.stateSubject.next({ status: "ready", entries });
-      await this.writeSnapshot(activeUserId, { source: "sync", entries: encrypted });
+      this.stateSubject.next({ status: "ready", entries, syncedAt });
+      await this.writeSnapshot(activeUserId, { source: "sync", entries: encrypted, syncedAt });
     } catch (error) {
       if (generation !== this.refreshGeneration) {
         return;
@@ -198,10 +217,23 @@ export class AuthenticatorService {
       }
       this.logService.error(error);
       this.stateSubject.next({
-        status: "error",
+        status: this.stateSubject.value.entries.length > 0 ? "offline" : "error",
         entries: this.stateSubject.value.entries,
+        syncedAt: this.stateSubject.value.syncedAt,
       });
     }
+  }
+
+  /** Confirms the cache against the server. A failure keeps the cached codes read-only. */
+  async confirmServer(): Promise<void> {
+    const userId = await this.activeUserId();
+    if (userId == null) {
+      return;
+    }
+    if (this.stateSubject.value.status === "loading") {
+      await firstValueFrom(this.state$.pipe(filter((state) => state.status !== "loading")));
+    }
+    await this.refresh(userId);
   }
 
   async save(draft: AuthenticatorDraft, id?: string, sortOrder?: number): Promise<void> {
@@ -310,11 +342,54 @@ export class AuthenticatorService {
     if (issuer) {
       request.issuer = await this.encrypt(issuer, key);
     }
-    const notes = draft.notes.trim();
+    const notes = joinAuthenticatorNotes(
+      draft.notes.trim(),
+      {
+        kind: draft.kind ?? "totp",
+        host: (draft.host ?? "").trim().toLowerCase(),
+        tags: draft.tags ?? [],
+        counter: draft.counter ?? 0,
+      },
+      draft.digits,
+    );
     if (notes) {
       request.notes = await this.encrypt(notes, key);
     }
     return request;
+  }
+
+  async saveImported(drafts: AuthenticatorDraft[]): Promise<number> {
+    const existing = new Set(
+      this.stateSubject.value.entries.map((entry) => entry.secret.replace(/\s+/g, "").toUpperCase()),
+    );
+    let saved = 0;
+    for (const draft of drafts) {
+      const secret = draft.secret.replace(/\s+/g, "").toUpperCase();
+      if (!secret || existing.has(secret)) {
+        continue;
+      }
+      await this.save({ ...draft, secret });
+      existing.add(secret);
+      saved++;
+    }
+    return saved;
+  }
+
+  async advanceHotp(entry: AuthenticatorEntryView): Promise<void> {
+    await this.save(draftFromView({ ...entry, counter: (entry.counter ?? 0) + 1 }), entry.id);
+  }
+
+  /** Stores the plain migration file inside a vault secure note, which the server encrypts. */
+  async backupToVault(): Promise<void> {
+    const document = buildAuthenticatorExport(
+      this.stateSubject.value.entries.filter((entry) => !entry.undecryptable),
+    );
+    const cipher = new CipherView();
+    cipher.name = "验证器备份";
+    cipher.type = CipherType.SecureNote;
+    cipher.notes = JSON.stringify(document);
+    cipher.secureNote = new SecureNoteView();
+    await this.cipherService.createWithServer(cipher, await this.requireUserId());
   }
 
   private async decryptAll(
@@ -338,20 +413,26 @@ export class AuthenticatorService {
     const issuer = entry.issuer ? await this.decryptField(entry.issuer, key) : ok("");
     const notes = entry.notes ? await this.decryptField(entry.notes, key) : ok("");
     const undecryptable = !name.ok || !secret.ok || !issuer.ok || !notes.ok;
+    const digits = entry.digits || DEFAULT_AUTHENTICATOR_DIGITS;
+    const split = splitAuthenticatorNotes(notes.ok ? notes.text : "");
     return {
       id: entry.id,
       name: name.ok ? name.text : "",
       issuer: issuer.ok ? issuer.text : "",
       secret: secret.ok ? secret.text.replace(/\s+/g, "").toUpperCase() : "",
       algorithm: normalizeAlgorithm(entry.algorithm),
-      digits: entry.digits || DEFAULT_AUTHENTICATOR_DIGITS,
+      digits,
       period: entry.period || DEFAULT_AUTHENTICATOR_PERIOD,
-      notes: notes.ok ? notes.text : "",
+      notes: split.text,
       favorite: entry.favorite,
       sortOrder: entry.sortOrder,
       revisionDate: entry.revisionDate,
       creationDate: entry.creationDate,
       undecryptable,
+      kind: kindFromStored(split.meta, split.hasTrailer, digits),
+      host: split.meta.host,
+      tags: split.meta.tags,
+      counter: split.meta.counter,
     };
   }
 
@@ -449,6 +530,10 @@ export function draftFromView(entry: AuthenticatorEntryView): AuthenticatorDraft
     period: entry.period,
     notes: entry.notes,
     favorite: entry.favorite,
+    kind: entry.kind ?? (entry.digits === 5 ? "steam" : "totp"),
+    host: entry.host ?? "",
+    tags: entry.tags ?? [],
+    counter: entry.counter ?? 0,
   };
 }
 

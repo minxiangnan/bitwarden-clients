@@ -1,3 +1,6 @@
+import { entryKind } from "./authenticator-codes";
+import { AuthenticatorKind, AuthenticatorKinds } from "./authenticator-meta";
+import { AuthenticatorSort } from "./authenticator-ui-state";
 import {
   AuthenticatorAlgorithm,
   AuthenticatorEntryView,
@@ -17,6 +20,8 @@ export type ParsedOtpAuth = {
   algorithm: AuthenticatorAlgorithm;
   digits: number;
   period: number;
+  kind: AuthenticatorKind;
+  counter: number;
 };
 
 const BASE32_ALPHABET = /^[A-Z2-7]+=*$/;
@@ -36,17 +41,22 @@ export function toOtpAuthUri(
   entry: Pick<
     AuthenticatorEntryView,
     "name" | "issuer" | "secret" | "algorithm" | "digits" | "period"
-  >,
+  > & { kind?: AuthenticatorKind; counter?: number },
 ): string {
   const label = entry.issuer ? `${entry.issuer}:${entry.name}` : entry.name;
+  const kind = entryKind(entry);
   const params = new URLSearchParams({
     secret: normalizeTotpSecret(entry.secret),
-    algorithm: entry.algorithm,
-    digits: String(entry.digits),
+    algorithm: kind === AuthenticatorKinds.Steam ? "steam" : entry.algorithm,
+    digits: String(kind === AuthenticatorKinds.Steam ? MIN_AUTHENTICATOR_DIGITS : entry.digits),
     period: String(entry.period),
   });
   if (entry.issuer) {
     params.set("issuer", entry.issuer);
+  }
+  if (kind === AuthenticatorKinds.Hotp) {
+    params.set("counter", String(entry.counter ?? 0));
+    return `otpauth://hotp/${encodeURIComponent(label)}?${params.toString()}`;
   }
   return `otpauth://totp/${encodeURIComponent(label)}?${params.toString()}`;
 }
@@ -65,7 +75,8 @@ export function parseOtpAuthUri(value: string): ParsedOtpAuth | null {
     return null;
   }
 
-  if (url.protocol !== "otpauth:" || url.hostname.toLowerCase() !== "totp") {
+  const type = url.hostname.toLowerCase();
+  if (url.protocol !== "otpauth:" || (type !== "totp" && type !== "hotp")) {
     return null;
   }
 
@@ -85,6 +96,8 @@ export function parseOtpAuthUri(value: string): ParsedOtpAuth | null {
   const nameFromLabel = separator >= 0 ? label.slice(separator + 1) : label;
   const issuer = (url.searchParams.get("issuer") ?? issuerFromLabel).trim();
   const steam = (url.searchParams.get("algorithm") ?? "").toLowerCase() === "steam";
+  const hotp = type === "hotp";
+  const counter = boundedInteger(url.searchParams.get("counter"), 0, 0, Number.MAX_SAFE_INTEGER);
   const digits = boundedInteger(
     url.searchParams.get("digits"),
     steam ? MIN_AUTHENTICATOR_DIGITS : DEFAULT_AUTHENTICATOR_DIGITS,
@@ -97,7 +110,12 @@ export function parseOtpAuthUri(value: string): ParsedOtpAuth | null {
     MIN_AUTHENTICATOR_PERIOD,
     MAX_AUTHENTICATOR_PERIOD,
   );
-  if (digits == null || period == null || (steam && digits !== MIN_AUTHENTICATOR_DIGITS)) {
+  if (
+    digits == null ||
+    period == null ||
+    counter == null ||
+    (steam && digits !== MIN_AUTHENTICATOR_DIGITS)
+  ) {
     return null;
   }
 
@@ -108,6 +126,8 @@ export function parseOtpAuthUri(value: string): ParsedOtpAuth | null {
     algorithm: normalizeAlgorithm(steam ? "SHA1" : url.searchParams.get("algorithm")),
     digits,
     period,
+    kind: steam ? AuthenticatorKinds.Steam : hotp ? AuthenticatorKinds.Hotp : AuthenticatorKinds.Totp,
+    counter: hotp ? counter : 0,
   };
 }
 
@@ -142,6 +162,7 @@ export function filterAuthenticatorEntries(
   entries: AuthenticatorEntryView[],
   query: string,
   favoritesOnly: boolean,
+  sort: AuthenticatorSort = "manual",
 ): AuthenticatorEntryView[] {
   const term = query.trim().toLowerCase();
   return entries
@@ -153,8 +174,24 @@ export function filterAuthenticatorEntries(
       return (
         entry.name.toLowerCase().includes(term) ||
         entry.issuer.toLowerCase().includes(term) ||
-        entry.notes.toLowerCase().includes(term)
+        entry.notes.toLowerCase().includes(term) ||
+        (entry.host ?? "").toLowerCase().includes(term) ||
+        (entry.tags ?? []).some((tag) => tag.toLowerCase().includes(term))
       );
     })
-    .sort(compareAuthenticatorEntries);
+    .sort((a, b) => compareBySort(a, b, sort));
+}
+
+function compareBySort(
+  a: AuthenticatorEntryView,
+  b: AuthenticatorEntryView,
+  sort: AuthenticatorSort,
+): number {
+  if (sort === "name") {
+    return a.name.localeCompare(b.name, "zh") || a.issuer.localeCompare(b.issuer, "zh");
+  }
+  if (sort === "issuer") {
+    return a.issuer.localeCompare(b.issuer, "zh") || a.name.localeCompare(b.name, "zh");
+  }
+  return compareAuthenticatorEntries(a, b);
 }

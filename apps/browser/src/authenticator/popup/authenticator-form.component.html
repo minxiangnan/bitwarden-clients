@@ -36,15 +36,7 @@
       ></textarea>
     </bit-form-field>
 
-    <button
-      type="button"
-      class="tw-self-start tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"
-      (click)="advancedOpen.set(!advancedOpen())"
-    >
-      {{ "authenticatorAdvanced" | i18n }}
-    </button>
-
-    @if (advancedOpen() || editing()) {
+    @if (editing()) {
       <bit-form-field>
         <bit-label>{{ "name" | i18n }}</bit-label>
         <input bitInput type="text" formControlName="name" />
@@ -53,13 +45,53 @@
         <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
         <input bitInput type="text" formControlName="issuer" />
       </bit-form-field>
+    }
+
+    <button
+      type="button"
+      class="tw-self-start tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"
+      [attr.aria-expanded]="advancedOpen()"
+      (click)="advancedOpen.set(!advancedOpen())"
+    >
+      {{ "authenticatorAdvanced" | i18n }}
+    </button>
+
+    @if (advancedOpen()) {
+      @if (!editing()) {
+        <bit-form-field>
+          <bit-label>{{ "name" | i18n }}</bit-label>
+          <input bitInput type="text" formControlName="name" />
+        </bit-form-field>
+        <bit-form-field>
+          <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
+          <input bitInput type="text" formControlName="issuer" />
+        </bit-form-field>
+      }
       <bit-form-field>
         <bit-label>{{ "authenticatorType" | i18n }}</bit-label>
         <select bitInput [value]="otpType()" (change)="setOtpType($any($event.target).value)">
           <option value="totp">{{ "authenticatorTypeTotp" | i18n }}</option>
+          <option value="hotp">{{ "authenticatorTypeHotp" | i18n }}</option>
           <option value="steam">{{ "authenticatorTypeSteam" | i18n }}</option>
         </select>
       </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorHost" | i18n }}</bit-label>
+        <input bitInput type="text" formControlName="host" [placeholder]="'authenticatorHostHint' | i18n" />
+      </bit-form-field>
+      <button type="button" bitButton buttonType="secondary" size="small" (click)="useCurrentHost()">
+        {{ "authenticatorUseHost" | i18n }}
+      </button>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorTags" | i18n }}</bit-label>
+        <input bitInput type="text" formControlName="tagsText" [placeholder]="'authenticatorTagsHint' | i18n" />
+      </bit-form-field>
+      @if (otpType() === "hotp") {
+        <bit-form-field>
+          <bit-label>{{ "authenticatorCounter" | i18n }}</bit-label>
+          <input bitInput type="number" min="0" formControlName="counter" />
+        </bit-form-field>
+      }
       <bit-form-field>
         <bit-label>{{ "authenticatorAlgorithm" | i18n }}</bit-label>
         <select bitInput formControlName="algorithm">
@@ -85,5 +117,18 @@
     <button type="submit" bitButton buttonType="primary" [block]="true" [disabled]="saving()" [loading]="saving()">
       {{ "save" | i18n }}
     </button>
+    @if (editing()) {
+      <div class="tw-flex tw-gap-2">
+        <button type="button" bitButton buttonType="secondary" size="small" [disabled]="saving()" (click)="move(-1)">
+          {{ "authenticatorMoveUp" | i18n }}
+        </button>
+        <button type="button" bitButton buttonType="secondary" size="small" [disabled]="saving()" (click)="move(1)">
+          {{ "authenticatorMoveDown" | i18n }}
+        </button>
+      </div>
+      <button type="button" bitButton buttonType="danger" [block]="true" [disabled]="saving()" (click)="remove()">
+        {{ (confirmDelete() ? "authenticatorDeleteConfirm" : "delete") | i18n }}
+      </button>
+    }
   </form>
 </popup-page>

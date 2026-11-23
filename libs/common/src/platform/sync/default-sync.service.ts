@@ -475,6 +475,7 @@ export class DefaultSyncService extends CoreSyncService {
     await this.stateProvider.getUser(userId, AUTHENTICATOR_SYNC_SNAPSHOT).update(() => ({
       source: "sync",
       entries: response.authenticatorEntries ?? [],
+      syncedAt: new Date().toISOString(),
     }));
   }
 

@@ -9439,5 +9439,173 @@
   },
   "authenticatorMoveDown": {
     "message": "Move down"
+  },
+  "authenticatorHelp": {
+    "message": "Help"
+  },
+  "authenticatorTools": {
+    "message": "More"
+  },
+  "authenticatorArrange": {
+    "message": "Order and groups"
+  },
+  "authenticatorArrangeHelp": {
+    "message": "This only changes how the list looks on this browser. Moving an item up or down on the edit page is what the server stores."
+  },
+  "authenticatorSort": {
+    "message": "Sort"
+  },
+  "authenticatorGroup": {
+    "message": "Group"
+  },
+  "authenticatorHide": {
+    "message": "Hide"
+  },
+  "authenticatorBackupHelp": {
+    "message": "Saves an encrypted secure note on the server. A downloaded JSON file is plaintext and is only for moving codes."
+  },
+  "authenticatorRecentEmpty": {
+    "message": "No codes have been copied yet."
+  },
+  "authenticatorCopyAction": {
+    "message": "Copy verification code"
+  },
+  "passwordHealthClear": {
+    "message": "Nothing needs attention."
+  },
+  "passwordHealthBusy": {
+    "message": "Checking…"
+  },
+  "passwordPresetHint": {
+    "message": "One click generates this preset and copies it. Adjust the length and characters below."
+  },
+  "authenticatorHost": {
+    "message": "Website host"
+  },
+  "authenticatorHostHint": {
+    "message": "example: github.com"
+  },
+  "authenticatorUseHost": {
+    "message": "Use current website"
+  },
+  "authenticatorTags": {
+    "message": "Groups"
+  },
+  "authenticatorTagsHint": {
+    "message": "Comma-separated, for example Work, Personal"
+  },
+  "authenticatorCounter": {
+    "message": "Counter"
+  },
+  "authenticatorTypeHotp": {
+    "message": "HOTP"
+  },
+  "authenticatorSortManual": {
+    "message": "Manual order"
+  },
+  "authenticatorSortName": {
+    "message": "By name"
+  },
+  "authenticatorSortIssuer": {
+    "message": "By issuer"
+  },
+  "authenticatorGroupNone": {
+    "message": "No groups"
+  },
+  "authenticatorGroupIssuer": {
+    "message": "Group by issuer"
+  },
+  "authenticatorGroupTag": {
+    "message": "Group by tag"
+  },
+  "authenticatorOffline": {
+    "message": "The server is unreachable. Showing the last synced codes. You can view and copy them."
+  },
+  "authenticatorSyncedAt": {
+    "message": "Synced $TIME$",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "2026/11/23 14:00"
+      }
+    }
+  },
+  "authenticatorImportHint": {
+    "message": "Paste otpauth links, a Google migration link, or an Aegis, 2FAS, or Bitwarden export"
+  },
+  "authenticatorImportPaste": {
+    "message": "Import pasted text"
+  },
+  "authenticatorImportFile": {
+    "message": "Import image or file"
+  },
+  "authenticatorImportEmpty": {
+    "message": "No codes were found to import."
+  },
+  "authenticatorImportEncrypted": {
+    "message": "This backup is encrypted. Export an unencrypted JSON from the original app."
+  },
+  "authenticatorImported": {
+    "message": "Imported $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "authenticatorExport": {
+    "message": "Export JSON"
+  },
+  "authenticatorExportWarning": {
+    "message": "The export file contains plaintext secrets and is only for migration. The encrypted copy stays on the server."
+  },
+  "authenticatorBackup": {
+    "message": "Back up into the vault"
+  },
+  "authenticatorBackupSaved": {
+    "message": "Saved as an encrypted secure note."
+  },
+  "authenticatorRecent": {
+    "message": "Recent"
+  },
+  "authenticatorNext": {
+    "message": "Next"
+  },
+  "commandCopySiteTotp": {
+    "message": "Copy the verification code for the current website"
+  },
+  "passwordHealth": {
+    "message": "Password health"
+  },
+  "passwordHealthHelp": {
+    "message": "Checks short, simple, and reused passwords on this device. The exposure check sends only the first 5 characters of the password hash."
+  },
+  "passwordHealthLocal": {
+    "message": "Check weak and reused"
+  },
+  "passwordHealthExposed": {
+    "message": "Check exposure"
+  },
+  "passwordHealthWeak": {
+    "message": "Weak"
+  },
+  "passwordHealthReused": {
+    "message": "Reused"
+  },
+  "passwordHealthLeaked": {
+    "message": "Exposed"
+  },
+  "passwordPresetStrong": {
+    "message": "20-character password"
+  },
+  "passwordPresetPin": {
+    "message": "6-digit PIN"
+  },
+  "passwordPresetPhrase": {
+    "message": "5-word passphrase"
+  },
+  "passwordPresetCopied": {
+    "message": "Generated from the preset and copied"
   }
 }

@@ -79,6 +79,20 @@
       </a>
     </bit-item>
     <bit-item>
+      <a bit-item-content routerLink="/password-health" [truncate]="false">
+        <i slot="start" class="bwi bwi-shield" aria-hidden="true"></i>
+        {{ "passwordHealth" | i18n }}
+        <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
+      </a>
+    </bit-item>
+    <bit-item>
+      <a bit-item-content routerLink="/authenticator-help" [truncate]="false">
+        <i slot="start" class="bwi bwi-info-circle" aria-hidden="true"></i>
+        {{ "authenticatorHelp" | i18n }}
+        <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
+      </a>
+    </bit-item>
+    <bit-item>
       <a bit-item-content routerLink="/appearance" [truncate]="false">
         <i slot="start" class="bwi bwi-brush" aria-hidden="true"></i>
         {{ "appearance" | i18n }}
