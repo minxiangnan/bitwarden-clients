@@ -107,7 +107,7 @@ export class AuthenticatorListComponent {
           parsed.issuer ||
           this.i18n.t("authenticatorDefaultName", String(state.entries.length + 1));
       }
-      await this.authenticator.save(parsed);
+      await this.authenticator.save({ ...parsed, notes: "", favorite: false });
       this.toast.showToast({
         variant: "success",
         title: null,
