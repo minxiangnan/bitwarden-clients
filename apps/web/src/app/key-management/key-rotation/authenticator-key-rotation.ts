@@ -36,6 +36,21 @@ export type AuthenticatorRotationRequest = {
  * Returns undefined when the server has no authenticator API (404), so the field is omitted.
  * An empty array means the server supports the API and the user has no entries.
  */
+/** How many authenticator entries the server has. Undefined when the API is absent (404). */
+export async function countAuthenticatorEntries(
+  apiService: ApiService,
+): Promise<number | undefined> {
+  try {
+    const response = await apiService.send("GET", "/authenticator", null, true, true);
+    return new AuthenticatorListResponse(response).data.length;
+  } catch (error) {
+    if (error instanceof ErrorResponse && error.statusCode === 404) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 export async function getRotatedAuthenticatorEntries(
   apiService: ApiService,
   encryptService: EncryptService,
@@ -56,12 +71,7 @@ export async function getRotatedAuthenticatorEntries(
   const rotated: AuthenticatorRotationRequest[] = [];
   for (const entry of list.data) {
     rotated.push(
-      await rotateEntry(
-        entry,
-        encryptService,
-        asSymmetricKey(oldKey),
-        asSymmetricKey(newKey),
-      ),
+      await rotateEntry(entry, encryptService, asSymmetricKey(oldKey), asSymmetricKey(newKey)),
     );
   }
   return rotated;

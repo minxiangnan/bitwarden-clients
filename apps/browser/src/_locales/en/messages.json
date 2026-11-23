@@ -9400,5 +9400,14 @@
   },
   "authenticatorDeleteConfirm": {
     "message": "Confirm delete"
+  },
+  "authenticatorUndecryptable": {
+    "message": "This code could not be decrypted. It cannot be edited until it can be read."
+  },
+  "authenticatorMoveUp": {
+    "message": "Move up"
+  },
+  "authenticatorMoveDown": {
+    "message": "Move down"
   }
 }

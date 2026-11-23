@@ -12,12 +12,16 @@ import { PopOutComponent } from "../../platform/popup/components/pop-out.compone
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
 import { isValidTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
-import { barcodeDetectorAvailable, scanCurrentTabForOtpauth } from "../authenticator-scan";
+import { scanCurrentTabForOtpauth } from "../authenticator-scan";
 import {
   AuthenticatorAlgorithm,
   AuthenticatorAlgorithms,
   DEFAULT_AUTHENTICATOR_DIGITS,
   DEFAULT_AUTHENTICATOR_PERIOD,
+  MAX_AUTHENTICATOR_DIGITS,
+  MAX_AUTHENTICATOR_PERIOD,
+  MIN_AUTHENTICATOR_DIGITS,
+  MIN_AUTHENTICATOR_PERIOD,
 } from "../authenticator.models";
 
 import { AuthenticatorDraft, AuthenticatorService, draftFromView } from "./authenticator.service";
@@ -50,7 +54,11 @@ export class AuthenticatorFormComponent implements OnInit {
     AuthenticatorAlgorithms.Sha256,
     AuthenticatorAlgorithms.Sha512,
   ];
-  protected readonly canScan = barcodeDetectorAvailable();
+  protected readonly canScan = true;
+  protected readonly minDigits = MIN_AUTHENTICATOR_DIGITS;
+  protected readonly maxDigits = MAX_AUTHENTICATOR_DIGITS;
+  protected readonly minPeriod = MIN_AUTHENTICATOR_PERIOD;
+  protected readonly maxPeriod = MAX_AUTHENTICATOR_PERIOD;
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly scanning = signal(false);
@@ -64,9 +72,20 @@ export class AuthenticatorFormComponent implements OnInit {
     algorithm: [AuthenticatorAlgorithms.Sha1 as AuthenticatorAlgorithm],
     digits: [
       DEFAULT_AUTHENTICATOR_DIGITS,
-      [Validators.required, Validators.min(6), Validators.max(8)],
+      [
+        Validators.required,
+        Validators.min(MIN_AUTHENTICATOR_DIGITS),
+        Validators.max(MAX_AUTHENTICATOR_DIGITS),
+      ],
     ],
-    period: [DEFAULT_AUTHENTICATOR_PERIOD, [Validators.required, Validators.min(1)]],
+    period: [
+      DEFAULT_AUTHENTICATOR_PERIOD,
+      [
+        Validators.required,
+        Validators.min(MIN_AUTHENTICATOR_PERIOD),
+        Validators.max(MAX_AUTHENTICATOR_PERIOD),
+      ],
+    ],
     notes: [""],
     favorite: [false],
   });
@@ -86,6 +105,11 @@ export class AuthenticatorFormComponent implements OnInit {
     this.loading.set(false);
     if (!entry) {
       this.errorKey.set("authenticatorMissing");
+      return;
+    }
+    if (entry.undecryptable) {
+      this.errorKey.set("authenticatorUndecryptable");
+      this.form.disable();
       return;
     }
     this.form.patchValue(draftFromView(entry));

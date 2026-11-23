@@ -881,24 +881,24 @@ const routes: Routes = [
         data: { elevation: 0 } satisfies RouteDataProperties,
       },
       {
-        path: "authenticator/new",
-        component: AuthenticatorFormComponent,
-        canActivate: [authGuard],
-        data: { elevation: 1 } satisfies RouteDataProperties,
-      },
-      {
-        path: "authenticator/:id",
-        component: AuthenticatorFormComponent,
-        canActivate: [authGuard],
-        data: { elevation: 1 } satisfies RouteDataProperties,
-      },
-      {
         path: "health",
         component: HealthComponent,
         canActivate: [authGuard, canAccessHealth],
         data: { elevation: 0 } satisfies RouteDataProperties,
       },
     ],
+  },
+  {
+    path: "authenticator/new",
+    component: AuthenticatorFormComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "authenticator/:id",
+    component: AuthenticatorFormComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "health/:category",

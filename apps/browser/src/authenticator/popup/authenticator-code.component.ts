@@ -55,7 +55,7 @@ export class AuthenticatorCodeComponent {
       return this.totpService.getCode$(toOtpAuthUri(entry)).pipe(
         map((response) => {
           const period = response.period || entry.period || 30;
-          const elapsed = Math.round(Date.now() / 1000) % period;
+          const elapsed = Math.floor(Date.now() / 1000) % period;
           const seconds = period - elapsed;
           const half = Math.floor(response.code.length / 2);
           return {

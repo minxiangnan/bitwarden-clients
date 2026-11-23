@@ -36,6 +36,14 @@ import { VaultPopupListTableFiltersService } from "../vault/popup/services/vault
   selector: "app-tabs-v2",
   templateUrl: "./tabs-v2.component.html",
   standalone: false,
+  styles: [
+    `
+      :host ::ng-deep bit-bottom-navigation button {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+      }
+    `,
+  ],
 })
 export class TabsV2Component {
   constructor(

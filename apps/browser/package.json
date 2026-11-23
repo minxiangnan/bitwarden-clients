@@ -75,5 +75,8 @@
     "test:clearCache": "jest --clear-cache",
     "update:dev:chrome": "./scripts/update-manifest-dev.sh",
     "update:beta": "./scripts/update-manifest-beta.sh"
+  },
+  "dependencies": {
+    "jsqr": "1.4.0"
   }
 }

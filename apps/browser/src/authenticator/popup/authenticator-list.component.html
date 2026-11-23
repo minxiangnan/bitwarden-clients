@@ -88,11 +88,27 @@
               }
               {{ entry.issuer ? entry.issuer + " · " + entry.name : entry.name }}
             </span>
-            <app-authenticator-code [entry]="entry" (codeChange)="rememberCode(entry.id, $event)" />
+            @if (entry.undecryptable) {
+              <span class="tw-block tw-text-sm tw-text-danger">{{
+                "authenticatorUndecryptable" | i18n
+              }}</span>
+            } @else {
+              <app-authenticator-code
+                [entry]="entry"
+                (codeChange)="rememberCode(entry.id, $event)"
+              />
+            }
           </span>
         </button>
         <div class="tw-mt-2 tw-flex tw-flex-wrap tw-gap-2">
-          <button type="button" bitButton buttonType="secondary" size="small" (click)="edit(entry)">
+          <button
+            type="button"
+            bitButton
+            buttonType="secondary"
+            size="small"
+            [disabled]="entry.undecryptable || busyId() !== null"
+            (click)="edit(entry)"
+          >
             {{ "edit" | i18n }}
           </button>
           <button
@@ -100,6 +116,27 @@
             bitButton
             buttonType="secondary"
             size="small"
+            [disabled]="entry.undecryptable || busyId() !== null"
+            (click)="move(entry, -1)"
+          >
+            {{ "authenticatorMoveUp" | i18n }}
+          </button>
+          <button
+            type="button"
+            bitButton
+            buttonType="secondary"
+            size="small"
+            [disabled]="entry.undecryptable || busyId() !== null"
+            (click)="move(entry, 1)"
+          >
+            {{ "authenticatorMoveDown" | i18n }}
+          </button>
+          <button
+            type="button"
+            bitButton
+            buttonType="secondary"
+            size="small"
+            [disabled]="entry.undecryptable || busyId() !== null"
             (click)="toggleFavorite(entry)"
           >
             {{ (entry.favorite ? "authenticatorUnfavorite" : "authenticatorFavorite") | i18n }}
@@ -110,6 +147,7 @@
               bitButton
               buttonType="danger"
               size="small"
+              [disabled]="busyId() !== null"
               (click)="remove(entry)"
             >
               {{ "authenticatorDeleteConfirm" | i18n }}

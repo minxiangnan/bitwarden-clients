@@ -16,6 +16,10 @@ export type AuthenticatorAlgorithm =
 
 export const DEFAULT_AUTHENTICATOR_DIGITS = 6;
 export const DEFAULT_AUTHENTICATOR_PERIOD = 30;
+export const MIN_AUTHENTICATOR_DIGITS = 5;
+export const MAX_AUTHENTICATOR_DIGITS = 10;
+export const MIN_AUTHENTICATOR_PERIOD = 1;
+export const MAX_AUTHENTICATOR_PERIOD = 86400;
 
 /** Decrypted entry shown in the popup. */
 export type AuthenticatorEntryView = {
@@ -31,6 +35,8 @@ export type AuthenticatorEntryView = {
   sortOrder: number;
   revisionDate: string;
   creationDate: string;
+  /** True when name, secret, issuer, or notes could not be decrypted. Do not save this entry. */
+  undecryptable: boolean;
 };
 
 /** camelCase body for POST and PUT. Name, issuer, secret, and notes are EncStrings. */

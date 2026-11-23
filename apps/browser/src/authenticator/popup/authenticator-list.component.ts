@@ -49,6 +49,7 @@ export class AuthenticatorListComponent {
     Awaited<ReturnType<AuthenticatorService["importVaultTotp"]>>
   >([]);
   protected readonly pendingDelete = signal<string | null>(null);
+  protected readonly busyId = signal<string | null>(null);
 
   private readonly state = toSignal(this.authenticator.state$, {
     initialValue: { status: "loading" as const, entries: [] as AuthenticatorEntryView[] },
@@ -78,20 +79,51 @@ export class AuthenticatorListComponent {
   }
 
   protected add(): void {
-    void this.router.navigate(["/tabs/authenticator/new"]);
+    void this.router.navigate(["/authenticator/new"]);
   }
 
   protected edit(entry: AuthenticatorEntryView): void {
-    void this.router.navigate(["/tabs/authenticator", entry.id]);
+    if (entry.undecryptable || this.busyId() != null) {
+      return;
+    }
+    void this.router.navigate(["/authenticator", entry.id]);
   }
 
   protected async toggleFavorite(entry: AuthenticatorEntryView): Promise<void> {
-    await this.authenticator.setFavorite(entry, !entry.favorite);
+    if (entry.undecryptable || this.busyId() != null) {
+      return;
+    }
+    this.busyId.set(entry.id);
+    try {
+      await this.authenticator.setFavorite(entry, !entry.favorite);
+    } finally {
+      this.busyId.set(null);
+    }
+  }
+
+  protected async move(entry: AuthenticatorEntryView, direction: -1 | 1): Promise<void> {
+    if (entry.undecryptable || this.busyId() != null) {
+      return;
+    }
+    this.busyId.set(entry.id);
+    try {
+      await this.authenticator.move(entry.id, direction);
+    } finally {
+      this.busyId.set(null);
+    }
   }
 
   protected async remove(entry: AuthenticatorEntryView): Promise<void> {
-    await this.authenticator.remove(entry.id);
-    this.pendingDelete.set(null);
+    if (this.busyId() != null) {
+      return;
+    }
+    this.busyId.set(entry.id);
+    try {
+      await this.authenticator.remove(entry.id);
+      this.pendingDelete.set(null);
+    } finally {
+      this.busyId.set(null);
+    }
   }
 
   protected async toggleImport(): Promise<void> {

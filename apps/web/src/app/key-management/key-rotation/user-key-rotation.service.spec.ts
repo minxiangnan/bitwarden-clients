@@ -589,6 +589,52 @@ describe("KeyRotationService", () => {
         expect(mockApiService.postUserKeyUpdate).toHaveBeenCalled();
         expect(mockLogoutService.logout).toHaveBeenCalledWith(mockUser.id, "userKeyRotation");
       });
+
+      it("refuses SDK rotation when a v2 user has authenticator entries", async () => {
+        const sdkSpy = jest
+          .spyOn(keyRotationService, "shouldUseSdkKeyRotation$")
+          .mockReturnValue(of(true));
+        const v2Key = new SymmetricCryptoKey(new Uint8Array(70)) as UserKey;
+        mockKeyService.userKey$.mockReturnValue(of(v2Key));
+        Object.assign(mockApiService, {
+          apiService: {
+            send: jest.fn().mockResolvedValue({
+              data: [
+                {
+                  id: "entry-1",
+                  name: "2.name",
+                  secret: "2.secret",
+                  algorithm: "SHA1",
+                  digits: 6,
+                  period: 30,
+                  favorite: false,
+                  sortOrder: 0,
+                },
+              ],
+              object: "list",
+            }),
+          } as unknown as ApiService,
+        });
+
+        try {
+          await expect(
+            keyRotationService.rotateUserKeyMasterPasswordAndEncryptedData(
+              "mockMasterPassword",
+              "mockMasterPassword1",
+              mockUser,
+              "masterPasswordHint",
+            ),
+          ).rejects.toThrow(/Authenticator entries/);
+          expect(
+            mockSdkUserKeyRotationService.changePasswordAndRotateUserKey,
+          ).not.toHaveBeenCalled();
+        } finally {
+          sdkSpy.mockRestore();
+          mockKeyService.userKey$.mockReturnValue(
+            new BehaviorSubject(new SymmetricCryptoKey(new Uint8Array(64)) as UserKey),
+          );
+        }
+      });
     });
 
     it("throws if kdf config is null", async () => {

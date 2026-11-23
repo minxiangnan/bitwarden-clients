@@ -20,6 +20,7 @@ describe("authenticator otpauth", () => {
     sortOrder: 1,
     revisionDate: "",
     creationDate: "",
+    undecryptable: false,
   } satisfies AuthenticatorEntryView;
 
   it("builds and parses an otpauth URI", () => {
@@ -38,6 +39,20 @@ describe("authenticator otpauth", () => {
   it("rejects a URI that is not a TOTP secret", () => {
     expect(parseOtpAuthUri("https://example.com")).toBeNull();
     expect(parseOtpAuthUri("otpauth://hotp/Name?secret=WQIQ25BRKZYCJVYP")).toBeNull();
+    expect(parseOtpAuthUri("otpauth://totp/%E0%A4%A?secret=WQIQ25BRKZYCJVYP")).toBeNull();
+    expect(parseOtpAuthUri("otpauth://totp/Name?secret=WQIQ25BRKZYCJVYP&digits=4")).toBeNull();
+    expect(parseOtpAuthUri("otpauth://totp/Name?secret=WQIQ25BRKZYCJVYP&period=90000")).toBeNull();
+  });
+
+  it("accepts 5 to 10 digits, a one-day period, and Steam as 5 digits", () => {
+    expect(
+      parseOtpAuthUri("otpauth://totp/Name?secret=WQIQ25BRKZYCJVYP&digits=5&period=1")?.digits,
+    ).toBe(5);
+    expect(
+      parseOtpAuthUri("otpauth://totp/Name?secret=WQIQ25BRKZYCJVYP&digits=10&period=86400")?.period,
+    ).toBe(86400);
+    const steam = parseOtpAuthUri("otpauth://totp/Steam?secret=WQIQ25BRKZYCJVYP&algorithm=steam");
+    expect(steam).toEqual(expect.objectContaining({ algorithm: "SHA1", digits: 5 }));
   });
 
   it("accepts a spaced Base32 secret and rejects a short one", () => {

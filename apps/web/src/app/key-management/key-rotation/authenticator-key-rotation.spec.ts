@@ -6,7 +6,10 @@ import { UserKey } from "@bitwarden/common/types/key";
 // eslint-disable-next-line no-restricted-imports
 import { EncString, EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 
-import { getRotatedAuthenticatorEntries } from "./authenticator-key-rotation";
+import {
+  countAuthenticatorEntries,
+  getRotatedAuthenticatorEntries,
+} from "./authenticator-key-rotation";
 
 describe("getRotatedAuthenticatorEntries", () => {
   const apiService = mock<ApiService>();
@@ -22,6 +25,14 @@ describe("getRotatedAuthenticatorEntries", () => {
     encryptService.encryptString.mockImplementation(
       async (value: string) => ({ toJSON: () => `new:${value}` }) as EncString,
     );
+  });
+
+  it("reports no authenticator API on 404 and a count otherwise", async () => {
+    apiService.send.mockRejectedValueOnce(new ErrorResponse({}, 404));
+    await expect(countAuthenticatorEntries(apiService)).resolves.toBeUndefined();
+
+    apiService.send.mockResolvedValueOnce({ data: [{ id: "1" }, { id: "2" }], object: "list" });
+    await expect(countAuthenticatorEntries(apiService)).resolves.toBe(2);
   });
 
   it("omits the field when the server returns 404", async () => {

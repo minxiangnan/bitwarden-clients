@@ -44,7 +44,10 @@ import { OrganizationUserResetPasswordService } from "../../admin-console/organi
 import { WebauthnLoginAdminService } from "../../auth/core";
 import { EmergencyAccessService } from "../../auth/emergency-access";
 
-import { getRotatedAuthenticatorEntries } from "./authenticator-key-rotation";
+import {
+  countAuthenticatorEntries,
+  getRotatedAuthenticatorEntries,
+} from "./authenticator-key-rotation";
 import { AccountKeysRequest } from "./request/account-keys.request";
 import { MasterPasswordUnlockDataRequest } from "./request/master-password-unlock-data.request";
 import { RotateUserAccountKeysRequest } from "./request/rotate-user-account-keys.request";
@@ -125,7 +128,19 @@ export class UserKeyRotationService {
     newMasterPasswordHint?: string,
   ): Promise<void> {
     const useSdkKeyRotation = await firstValueFrom(this.shouldUseSdkKeyRotation$(user.id));
-    if (useSdkKeyRotation) {
+    const authenticatorCount = await countAuthenticatorEntries(this.apiService.apiService);
+    const currentUserKey = await firstValueFrom(this.keyService.userKey$(user.id));
+    const sdkCanOmitAuthenticators = authenticatorCount == null || authenticatorCount === 0;
+    if (
+      useSdkKeyRotation &&
+      !sdkCanOmitAuthenticators &&
+      (currentUserKey == null || !this.isV1User(currentUserKey))
+    ) {
+      throw new Error(
+        "Authenticator entries cannot be re-encrypted during SDK key rotation until the server provides a two-phase contract.",
+      );
+    }
+    if (useSdkKeyRotation && sdkCanOmitAuthenticators) {
       this.logService.info(
         "[UserKey Rotation] Using SDK-based key rotation service from user-crypto-management",
       );

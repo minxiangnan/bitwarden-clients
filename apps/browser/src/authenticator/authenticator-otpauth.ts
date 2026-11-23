@@ -3,6 +3,10 @@ import {
   AuthenticatorEntryView,
   DEFAULT_AUTHENTICATOR_DIGITS,
   DEFAULT_AUTHENTICATOR_PERIOD,
+  MAX_AUTHENTICATOR_DIGITS,
+  MAX_AUTHENTICATOR_PERIOD,
+  MIN_AUTHENTICATOR_DIGITS,
+  MIN_AUTHENTICATOR_PERIOD,
   normalizeAlgorithm,
 } from "./authenticator.models";
 
@@ -70,22 +74,57 @@ export function parseOtpAuthUri(value: string): ParsedOtpAuth | null {
     return null;
   }
 
-  const label = decodeURIComponent(url.pathname.replace(/^\//, ""));
+  let label: string;
+  try {
+    label = decodeURIComponent(url.pathname.replace(/^\//, ""));
+  } catch {
+    return null;
+  }
   const separator = label.indexOf(":");
   const issuerFromLabel = separator >= 0 ? label.slice(0, separator) : "";
   const nameFromLabel = separator >= 0 ? label.slice(separator + 1) : label;
   const issuer = (url.searchParams.get("issuer") ?? issuerFromLabel).trim();
-  const digits = Number(url.searchParams.get("digits") ?? DEFAULT_AUTHENTICATOR_DIGITS);
-  const period = Number(url.searchParams.get("period") ?? DEFAULT_AUTHENTICATOR_PERIOD);
+  const steam = (url.searchParams.get("algorithm") ?? "").toLowerCase() === "steam";
+  const digits = boundedInteger(
+    url.searchParams.get("digits"),
+    steam ? MIN_AUTHENTICATOR_DIGITS : DEFAULT_AUTHENTICATOR_DIGITS,
+    MIN_AUTHENTICATOR_DIGITS,
+    MAX_AUTHENTICATOR_DIGITS,
+  );
+  const period = boundedInteger(
+    url.searchParams.get("period"),
+    DEFAULT_AUTHENTICATOR_PERIOD,
+    MIN_AUTHENTICATOR_PERIOD,
+    MAX_AUTHENTICATOR_PERIOD,
+  );
+  if (digits == null || period == null || (steam && digits !== MIN_AUTHENTICATOR_DIGITS)) {
+    return null;
+  }
 
   return {
     name: nameFromLabel.trim() || issuer || "TOTP",
     issuer,
     secret,
-    algorithm: normalizeAlgorithm(url.searchParams.get("algorithm")),
-    digits: Number.isFinite(digits) && digits > 0 ? digits : DEFAULT_AUTHENTICATOR_DIGITS,
-    period: Number.isFinite(period) && period > 0 ? period : DEFAULT_AUTHENTICATOR_PERIOD,
+    algorithm: normalizeAlgorithm(steam ? "SHA1" : url.searchParams.get("algorithm")),
+    digits,
+    period,
   };
+}
+
+function boundedInteger(
+  raw: string | null,
+  fallback: number,
+  min: number,
+  max: number,
+): number | null {
+  if (raw == null || raw === "") {
+    return fallback;
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    return null;
+  }
+  return value;
 }
 
 export function filterAuthenticatorEntries(

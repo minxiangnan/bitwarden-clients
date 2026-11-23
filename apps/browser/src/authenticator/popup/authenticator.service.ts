@@ -8,6 +8,7 @@ import {
   from,
   map,
   switchMap,
+  tap,
 } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -72,6 +73,8 @@ const EMPTY_STATE: AuthenticatorState = { status: "loading", entries: [] };
 export class AuthenticatorService {
   private readonly stateSubject = new BehaviorSubject<AuthenticatorState>(EMPTY_STATE);
   private refreshGeneration = 0;
+  /** Ciphertext fingerprint already decrypted into stateSubject. */
+  private lastPublishedKey: string | null = null;
 
   readonly state$ = this.stateSubject.asObservable();
 
@@ -93,6 +96,11 @@ export class AuthenticatorService {
   ) {
     this.authService.activeAccountStatus$
       .pipe(
+        tap((status) => {
+          if (status !== AuthenticationStatus.Unlocked) {
+            this.clearDecryptedState();
+          }
+        }),
         switchMap((status) =>
           status === AuthenticationStatus.Unlocked
             ? this.accountService.activeAccount$.pipe(
@@ -134,12 +142,17 @@ export class AuthenticatorService {
     encrypted: AuthenticatorEntryResponse[],
     userId: UserId,
   ): Promise<void> {
+    const key = snapshotKey(encrypted);
+    if (key === this.lastPublishedKey && this.stateSubject.value.status === "ready") {
+      return;
+    }
     const generation = ++this.refreshGeneration;
     try {
       const entries = await this.decryptAll(encrypted, userId);
       if (generation !== this.refreshGeneration) {
         return;
       }
+      this.lastPublishedKey = key;
       this.stateSubject.next({ status: "ready", entries });
     } catch (error) {
       if (generation !== this.refreshGeneration) {
@@ -153,10 +166,7 @@ export class AuthenticatorService {
     }
   }
 
-  private async writeSnapshot(
-    userId: UserId,
-    snapshot: AuthenticatorSyncSnapshot,
-  ): Promise<void> {
+  private async writeSnapshot(userId: UserId, snapshot: AuthenticatorSyncSnapshot): Promise<void> {
     await this.stateProvider.getUser(userId, AUTHENTICATOR_SYNC_SNAPSHOT).update(() => snapshot);
   }
 
@@ -174,8 +184,9 @@ export class AuthenticatorService {
       if (generation !== this.refreshGeneration) {
         return;
       }
-      await this.writeSnapshot(activeUserId, { source: "sync", entries: encrypted });
+      this.lastPublishedKey = snapshotKey(encrypted);
       this.stateSubject.next({ status: "ready", entries });
+      await this.writeSnapshot(activeUserId, { source: "sync", entries: encrypted });
     } catch (error) {
       if (generation !== this.refreshGeneration) {
         return;
@@ -193,9 +204,10 @@ export class AuthenticatorService {
     }
   }
 
-  async save(draft: AuthenticatorDraft, id?: string): Promise<void> {
+  async save(draft: AuthenticatorDraft, id?: string, sortOrder?: number): Promise<void> {
     const userId = await this.requireUserId();
-    const request = await this.encryptDraft(draft, userId, id);
+    this.assertEditable(id);
+    const request = await this.encryptDraft(draft, userId, id, sortOrder);
     if (id) {
       await this.api.update(id, request);
     } else {
@@ -212,6 +224,28 @@ export class AuthenticatorService {
 
   async setFavorite(entry: AuthenticatorEntryView, favorite: boolean): Promise<void> {
     await this.save(draftFromView({ ...entry, favorite }), entry.id);
+  }
+
+  /** Swaps sortOrder with the neighboring entry. Undecryptable entries are left unchanged. */
+  async move(id: string, direction: -1 | 1): Promise<void> {
+    const ordered = [...this.stateSubject.value.entries].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+    );
+    const index = ordered.findIndex((entry) => entry.id === id);
+    const neighbor = ordered[index + direction];
+    const current = ordered[index];
+    if (current == null || neighbor == null) {
+      return;
+    }
+    if (current.undecryptable || neighbor.undecryptable) {
+      throw new Error("Cannot reorder an authenticator entry that could not be decrypted.");
+    }
+    const currentOrder = current.sortOrder;
+    const neighborOrder =
+      neighbor.sortOrder === currentOrder ? currentOrder + direction : neighbor.sortOrder;
+    const restoredNeighbor = neighbor.sortOrder === currentOrder ? currentOrder : currentOrder;
+    await this.save(draftFromView(current), current.id, neighborOrder);
+    await this.save(draftFromView(neighbor), neighbor.id, restoredNeighbor);
   }
 
   async importVaultTotp(): Promise<VaultTotpImport[]> {
@@ -239,10 +273,21 @@ export class AuthenticatorService {
     return imports;
   }
 
+  private assertEditable(id?: string): void {
+    if (id == null) {
+      return;
+    }
+    const existing = this.stateSubject.value.entries.find((entry) => entry.id === id);
+    if (existing?.undecryptable) {
+      throw new Error("Cannot edit an authenticator entry that could not be decrypted.");
+    }
+  }
+
   private async encryptDraft(
     draft: AuthenticatorDraft,
     userId: UserId,
     id?: string,
+    sortOrder?: number,
   ): Promise<AuthenticatorEntryRequest> {
     const key = await this.userKey(userId);
     const request: AuthenticatorEntryRequest = {
@@ -252,9 +297,11 @@ export class AuthenticatorService {
       digits: draft.digits,
       period: draft.period,
       favorite: draft.favorite,
-      sortOrder: id
-        ? (this.stateSubject.value.entries.find((entry) => entry.id === id)?.sortOrder ?? 0)
-        : this.nextSortOrder(),
+      sortOrder:
+        sortOrder ??
+        (id
+          ? (this.stateSubject.value.entries.find((entry) => entry.id === id)?.sortOrder ?? 0)
+          : this.nextSortOrder()),
     };
     const issuer = draft.issuer.trim();
     if (issuer) {
@@ -283,19 +330,25 @@ export class AuthenticatorService {
     entry: AuthenticatorEntryResponse,
     key: SymmetricCryptoKey,
   ): Promise<AuthenticatorEntryView> {
+    const name = await this.decryptField(entry.name, key);
+    const secret = await this.decryptField(entry.secret, key);
+    const issuer = entry.issuer ? await this.decryptField(entry.issuer, key) : ok("");
+    const notes = entry.notes ? await this.decryptField(entry.notes, key) : ok("");
+    const undecryptable = !name.ok || !secret.ok || !issuer.ok || !notes.ok;
     return {
       id: entry.id,
-      name: await this.decrypt(entry.name, key),
-      issuer: entry.issuer ? await this.decrypt(entry.issuer, key) : "",
-      secret: (await this.decrypt(entry.secret, key)).replace(/\s+/g, "").toUpperCase(),
+      name: name.ok ? name.text : "",
+      issuer: issuer.ok ? issuer.text : "",
+      secret: secret.ok ? secret.text.replace(/\s+/g, "").toUpperCase() : "",
       algorithm: normalizeAlgorithm(entry.algorithm),
       digits: entry.digits || DEFAULT_AUTHENTICATOR_DIGITS,
       period: entry.period || DEFAULT_AUTHENTICATOR_PERIOD,
-      notes: entry.notes ? await this.decrypt(entry.notes, key) : "",
+      notes: notes.ok ? notes.text : "",
       favorite: entry.favorite,
       sortOrder: entry.sortOrder,
       revisionDate: entry.revisionDate,
       creationDate: entry.creationDate,
+      undecryptable,
     };
   }
 
@@ -304,15 +357,33 @@ export class AuthenticatorService {
     return encrypted.toJSON();
   }
 
-  private async decrypt(value: string, key: SymmetricCryptoKey): Promise<string> {
+  private async decryptField(
+    value: string,
+    key: SymmetricCryptoKey,
+  ): Promise<{ ok: true; text: string } | { ok: false }> {
     if (!value) {
-      return "";
+      return ok("");
     }
     try {
-      return await this.encryptService.decryptString(new EncString(value), key);
+      const text = await this.encryptService.decryptString(new EncString(value), key);
+      if (text == null) {
+        return { ok: false };
+      }
+      return ok(text);
     } catch (error) {
       this.logService.error(error);
-      return "";
+      return { ok: false };
+    }
+  }
+
+  private clearDecryptedState(): void {
+    this.lastPublishedKey = null;
+    this.refreshGeneration++;
+    if (
+      this.stateSubject.value.entries.length > 0 ||
+      this.stateSubject.value.status !== EMPTY_STATE.status
+    ) {
+      this.stateSubject.next(EMPTY_STATE);
     }
   }
 
@@ -342,6 +413,27 @@ export class AuthenticatorService {
     }
     return userId;
   }
+}
+
+function snapshotKey(entries: AuthenticatorEntryResponse[]): string {
+  return entries
+    .map((entry) =>
+      [
+        entry.id,
+        entry.name,
+        entry.issuer ?? "",
+        entry.secret,
+        entry.notes ?? "",
+        entry.favorite,
+        entry.sortOrder,
+        entry.revisionDate,
+      ].join("\u0001"),
+    )
+    .join("\u0002");
+}
+
+function ok(text: string): { ok: true; text: string } {
+  return { ok: true, text };
 }
 
 export function draftFromView(entry: AuthenticatorEntryView): AuthenticatorDraft {

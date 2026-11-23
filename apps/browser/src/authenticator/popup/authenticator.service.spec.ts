@@ -34,7 +34,11 @@ describe("AuthenticatorService", () => {
     authService.activeAccountStatus$ = status$;
     stateProvider.getUser.mockReturnValue({
       state$: snapshot$,
-      update: jest.fn(async (updater: (current: unknown) => unknown) => updater(snapshot$.value)),
+      update: jest.fn(async (updater: (current: unknown) => unknown) => {
+        const next = updater(snapshot$.value);
+        snapshot$.next(next);
+        return next;
+      }),
     } as never);
     keyService.userKey$.mockReturnValue(of("user-key" as never));
     encryptService.encryptString.mockImplementation(async (value: string) => {
@@ -96,12 +100,125 @@ describe("AuthenticatorService", () => {
     status$.next(AuthenticationStatus.Unlocked);
     const service = createService();
 
-    const state = await firstValueFrom(service.state$.pipe(filter((value) => value.status === "ready")));
+    const state = await firstValueFrom(
+      service.state$.pipe(filter((value) => value.status === "ready")),
+    );
 
     expect(api.list).not.toHaveBeenCalled();
     expect(state.entries[0]).toEqual(
-      expect.objectContaining({ id: "1", name: "Ada", secret: "WQIQ25BRKZYCJVYP" }),
+      expect.objectContaining({
+        id: "1",
+        name: "Ada",
+        secret: "WQIQ25BRKZYCJVYP",
+        undecryptable: false,
+      }),
     );
+  });
+
+  it("decrypts a refresh once when writing the snapshot replays it", async () => {
+    api.list.mockResolvedValue([
+      {
+        id: "1",
+        name: "enc:Ada",
+        issuer: null,
+        secret: "enc:SECRET",
+        notes: null,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        favorite: false,
+        sortOrder: 0,
+        revisionDate: "",
+        creationDate: "",
+        object: "authenticatorEntry",
+      },
+    ] as never);
+    status$.next(AuthenticationStatus.Unlocked);
+    const service = createService();
+
+    await firstValueFrom(service.state$.pipe(filter((value) => value.status === "ready")));
+
+    expect(encryptService.decryptString).toHaveBeenCalledTimes(2);
+    expect(service["stateSubject"].value.entries).toHaveLength(1);
+  });
+
+  it("drops decrypted entries when the vault locks", async () => {
+    snapshot$.next({
+      source: "sync",
+      entries: [
+        {
+          id: "1",
+          name: "enc:Ada",
+          issuer: null,
+          secret: "enc:SECRET",
+          notes: null,
+          algorithm: "SHA1",
+          digits: 6,
+          period: 30,
+          favorite: false,
+          sortOrder: 0,
+          revisionDate: "",
+          creationDate: "",
+          object: "authenticatorEntry",
+        },
+      ],
+    });
+    status$.next(AuthenticationStatus.Unlocked);
+    const service = createService();
+    await firstValueFrom(service.state$.pipe(filter((value) => value.status === "ready")));
+
+    status$.next(AuthenticationStatus.Locked);
+
+    expect(service["stateSubject"].value).toEqual({ status: "loading", entries: [] });
+  });
+
+  it("marks a failed decrypt and refuses to save over it", async () => {
+    api.list.mockResolvedValue([
+      {
+        id: "1",
+        name: "enc:Ada",
+        issuer: null,
+        secret: "enc:SECRET",
+        notes: null,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        favorite: false,
+        sortOrder: 0,
+        revisionDate: "",
+        creationDate: "",
+        object: "authenticatorEntry",
+      },
+    ] as never);
+    const service = createService();
+    encryptService.decryptString.mockImplementation(async (value: EncString) => {
+      if (value.toJSON() === "enc:SECRET") {
+        return null;
+      }
+      return String(value.toJSON()).replace(/^enc:/, "");
+    });
+
+    await service.refresh(userId);
+
+    expect(service["stateSubject"].value.entries[0]).toEqual(
+      expect.objectContaining({ undecryptable: true, secret: "", name: "Ada" }),
+    );
+    await expect(
+      service.save(
+        {
+          name: "Ada",
+          issuer: "",
+          secret: "WQIQ25BRKZYCJVYP",
+          algorithm: "SHA1",
+          digits: 6,
+          period: 30,
+          notes: "",
+          favorite: false,
+        },
+        "1",
+      ),
+    ).rejects.toThrow(/decrypted/);
+    expect(api.update).not.toHaveBeenCalled();
   });
 
   it("encrypts name, issuer, secret, and notes before saving", async () => {
