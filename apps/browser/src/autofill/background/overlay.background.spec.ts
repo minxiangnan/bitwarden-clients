@@ -2701,6 +2701,25 @@ describe("OverlayBackground", () => {
         expect(sendResponse).toHaveBeenCalledWith(false);
       });
 
+      it("clears the filling latch when the tab is removed", async () => {
+        const sender = fillingSender(4);
+        sendMockExtensionMessage(
+          {
+            command: "updateIsFieldCurrentlyFilling",
+            isFieldCurrentlyFilling: true,
+          },
+          sender,
+        );
+
+        overlayBackground["handleTabRemoved"](4);
+
+        sendMockExtensionMessage({ command: "checkIsFieldCurrentlyFilling" }, sender, sendResponse);
+        await flushPromises();
+
+        expect(sendResponse).toHaveBeenCalledWith(false);
+        expect(overlayBackground["fillingTabTimeouts"].has(4)).toBe(false);
+      });
+
       it("clears a stuck filling latch for that tab after the timeout", async () => {
         jest.useFakeTimers();
         try {

@@ -3272,6 +3272,11 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     return this.fillingTabTimeouts.has(tabId);
   }
 
+  private readonly handleTabRemoved = (tabId: number) => {
+    this.clearFieldFillingTimeout(tabId);
+    this.fillingTabTimeouts.delete(tabId);
+  };
+
   private clearFieldFillingTimeout(tabId: number) {
     const existing = this.fillingTabTimeouts.get(tabId);
     if (existing != null) {
@@ -3500,6 +3505,9 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     BrowserApi.messageListener("overlay.background", this.handleExtensionMessage);
     BrowserApi.addListener(chrome.webNavigation.onCommitted, this.handleWebNavigationOnCommitted);
     BrowserApi.addListener(chrome.runtime.onConnect, this.handlePortOnConnect);
+    if (chrome.tabs?.onRemoved) {
+      BrowserApi.addListener(chrome.tabs.onRemoved, this.handleTabRemoved);
+    }
 
     this.messageListener
       .messages$(RETRY_WHEN_UNLOCK_COMPLETED)

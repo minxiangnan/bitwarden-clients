@@ -121,6 +121,8 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     'input[autocomplete~="new-password"]',
     "form",
   ].join(", ");
+  /** Text inputs that are not given an explicit type, the usual username step. */
+  private static readonly plainTextInputSelector = 'input[type="text"], input:not([type])';
   private readonly handleUserTyping = () => {
     this.suppressRescansForTyping = true;
     if (this.typingQuietTimer != null) {
@@ -265,10 +267,35 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
   }
 
   private documentHasLoginLikeField(): boolean {
-    return (
-      globalThis.document.querySelector(CollectAutofillContentService.loginLikeFieldSelector) !=
-      null
-    );
+    return this.rootHasLoginLikeField(globalThis.document);
+  }
+
+  /**
+   * Login fields inside an open shadow root, and a form-less page whose only
+   * field is a single text input, still need the inline menu.
+   */
+  private rootHasLoginLikeField(root: ParentNode): boolean {
+    if (root.querySelector(CollectAutofillContentService.loginLikeFieldSelector) != null) {
+      return true;
+    }
+    if (this.isFormlessSingleTextStep(root)) {
+      return true;
+    }
+    const elements = root.querySelectorAll("*");
+    for (const element of elements) {
+      const shadow = element.shadowRoot;
+      if (shadow != null && this.rootHasLoginLikeField(shadow)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private isFormlessSingleTextStep(root: ParentNode): boolean {
+    if (root.querySelector("form") != null) {
+      return false;
+    }
+    return root.querySelectorAll(CollectAutofillContentService.plainTextInputSelector).length === 1;
   }
 
   private beginFullMonitoring(): void {

@@ -2991,6 +2991,35 @@ describe("CollectAutofillContentService", () => {
       expect(collectAutofillContentService["deferFullMonitoring"]).toBe(true);
     });
 
+    it("starts full monitoring when the only field is a form-less text input", () => {
+      document.body.innerHTML = '<input type="text" />';
+
+      collectAutofillContentService.startMonitoring();
+
+      expect(collectAutofillContentService["deferFullMonitoring"]).toBe(false);
+    });
+
+    it("starts full monitoring for a password field inside an open shadow root", () => {
+      document.body.innerHTML = "<div id='host'></div>";
+      const host = document.getElementById("host")!;
+      const shadow = host.attachShadow({ mode: "open" });
+      shadow.innerHTML = '<input type="password" />';
+
+      collectAutofillContentService.startMonitoring();
+
+      expect(collectAutofillContentService["deferFullMonitoring"]).toBe(false);
+    });
+
+    it("still defers when several plain text inputs are not login fields", () => {
+      document.body.innerHTML = '<input type="text" /><input type="text" />';
+      const suspendSpy = jest.spyOn(domQueryService, "suspendShadowProbe");
+
+      collectAutofillContentService.startMonitoring();
+
+      expect(suspendSpy).toHaveBeenCalled();
+      expect(collectAutofillContentService["deferFullMonitoring"]).toBe(true);
+    });
+
     it("starts full monitoring once a password field is inserted", () => {
       document.body.innerHTML = "<div id='host'></div>";
       collectAutofillContentService.startMonitoring();
