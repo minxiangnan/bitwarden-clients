@@ -80,6 +80,7 @@ function getI18n() {
     saveAsNewLoginAction: chrome.i18n.getMessage("saveAsNewLoginAction"),
     saveFailure: chrome.i18n.getMessage("saveFailure"),
     saveFailureDetails: chrome.i18n.getMessage("saveFailureDetails"),
+    untrustedCertificate: chrome.i18n.getMessage("untrustedCertificate"),
     saveLogin: chrome.i18n.getMessage("saveLogin"),
     typeLogin: chrome.i18n.getMessage("typeLogin"),
     unlockToSave: chrome.i18n.getMessage("unlockToSave"),
@@ -385,7 +386,10 @@ function handleSaveCipherConfirmation(message: NotificationBarWindowMessage) {
   const i18n = getI18n();
   const resolvedTheme = getResolvedTheme(theme ?? ThemeTypes.Light);
   const resolvedType = resolveNotificationType(notificationBarIframeInitData);
-  const headerMessage = getConfirmationHeaderMessage(i18n, resolvedType, error);
+  const headerMessage =
+    error === "untrusted-certificate"
+      ? i18n.untrustedCertificate
+      : getConfirmationHeaderMessage(i18n, resolvedType, error);
   const notificationTestId = getNotificationTestId(resolvedType, true);
   appendHeaderMessageToTitle(headerMessage);
 

@@ -51,6 +51,7 @@ import { SecurityTask } from "@bitwarden/common/vault/tasks/models/security-task
 // eslint-disable-next-line no-restricted-imports
 import { AuthPopoutType, openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
+import { serverCertificateUntrusted } from "../../platform/browser/server-certificate";
 // FIXME (PM-22628): Popup imports are forbidden in background
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -1513,10 +1514,31 @@ export default class NotificationBackground {
         await BrowserApi.tabSendMessage(tab, { command: "addedCipher" });
       } catch (error) {
         await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
-          error: error instanceof Error ? error.message : String(error),
+          error: await this.saveFailureCode(error),
         });
       }
     }
+  }
+
+  /**
+   * A transport failure against an HTTPS server is checked for a certificate
+   * rejection. That case uses a dedicated message instead of the generic save error.
+   */
+  private async saveFailureCode(error: unknown): Promise<string> {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/error sending request|Failed to fetch|NetworkError/i.test(message)) {
+      return message;
+    }
+    try {
+      const environment = await firstValueFrom(this.environmentService.environment$);
+      const apiUrl = environment?.getApiUrl() ?? "";
+      if (await serverCertificateUntrusted(apiUrl)) {
+        return "untrusted-certificate";
+      }
+    } catch {
+      return message;
+    }
+    return message;
   }
 
   /**
@@ -1595,7 +1617,7 @@ export default class NotificationBackground {
       }
     } catch (error) {
       await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
-        error: error instanceof Error ? error.message : String(error),
+        error: await this.saveFailureCode(error),
       });
     }
   }

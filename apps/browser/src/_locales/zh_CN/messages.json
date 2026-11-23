@@ -1458,6 +1458,10 @@
     "message": "糟糕！我们无法保存它。请尝试手动输入详细信息。",
     "description": "Detailed error message shown when saving login details fails."
   },
+  "untrustedCertificate": {
+    "message": "服务器证书不受信任，保存失败",
+    "description": "Shown when a save fails because the server certificate is not trusted."
+  },
   "changePasswordWarning": {
     "message": "更改密码后，您需要使用新密码登录。在其他设备上的活动会话将在一小时内注销。"
   },

@@ -120,6 +120,9 @@ const notificationContainerStyles = (theme: Theme) => css`
 `;
 
 function getConfirmationMessage(i18n: I18n, type?: NotificationType, error?: string) {
+  if (error === "untrusted-certificate") {
+    return i18n.untrustedCertificate;
+  }
   if (error) {
     return i18n.saveFailureDetails;
   }

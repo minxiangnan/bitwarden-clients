@@ -11,7 +11,16 @@ import {
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute, Params, Router, RouterModule } from "@angular/router";
-import { firstValueFrom, Subject, take, takeUntil, skip, combineLatest, startWith } from "rxjs";
+import {
+  filter,
+  firstValueFrom,
+  Subject,
+  take,
+  takeUntil,
+  skip,
+  combineLatest,
+  startWith,
+} from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { LockIcon, VaultIcon, WaveIcon } from "@bitwarden/assets/svg";
@@ -394,6 +403,10 @@ export class LoginComponent implements OnInit, OnDestroy {
    * @param error The error object.
    */
   private async handleSubmitError(error: unknown) {
+    if (await this.untrustedServerCertificate(error)) {
+      this.validationService.showError(new Error(this.i18nService.t("untrustedCertificate")));
+      return;
+    }
     // Handle error responses
     if (error instanceof ErrorResponse) {
       switch (error.statusCode) {
@@ -422,6 +435,46 @@ export class LoginComponent implements OnInit, OnDestroy {
       // Allow all other errors to be handled by toast
       this.validationService.showError(error);
     }
+  }
+
+  private async untrustedServerCertificate(error: unknown): Promise<boolean> {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/Failed to fetch|error sending request|NetworkError/i.test(message)) {
+      return false;
+    }
+    const chromeApi = (globalThis as { chrome?: any }).chrome;
+    if (chromeApi?.webRequest?.onErrorOccurred == null) {
+      return false;
+    }
+    const environment = await firstValueFrom(this.environmentService.environment$);
+    const url = environment.getApiUrl();
+    if (!url.startsWith("https://")) {
+      return false;
+    }
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (untrusted: boolean) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        chromeApi.webRequest.onErrorOccurred.removeListener(listener);
+        resolve(untrusted);
+      };
+      const listener = (details: { error?: string }) => {
+        if (details.error?.includes("CERT")) {
+          finish(true);
+        }
+      };
+      chromeApi.webRequest.onErrorOccurred.addListener(listener, {
+        urls: [`${new URL(url).origin}/*`],
+      });
+      fetch(url).then(
+        () => finish(false),
+        () => setTimeout(() => finish(false), 400),
+      );
+      setTimeout(() => finish(false), 1500);
+    });
   }
 
   /**
@@ -640,6 +693,14 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
     if (this.clientType === ClientType.Browser) {
       this.formGroup.controls.rememberEmail.setValue(true);
+      // The password hash is derived from the prelogin response. Wait until the
+      // self-hosted identity URL is active so that request does not hit the cloud.
+      this.passwordPreloginService.clearCache();
+      await firstValueFrom(
+        this.environmentService.environment$.pipe(
+          filter((env) => env.getIdentityUrl().startsWith(this.serverUrl)),
+        ),
+      );
     }
     const isEmailValid = this.validateEmail();
     if (!isEmailValid) {

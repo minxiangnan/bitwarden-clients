@@ -1454,6 +1454,10 @@
     "message": "Error saving",
     "description": "Error message shown when the system fails to save login details."
   },
+  "untrustedCertificate": {
+    "message": "The server certificate is not trusted, so the save failed.",
+    "description": "Shown when a save fails because the server certificate is not trusted."
+  },
   "saveFailureDetails": {
     "message": "Oh no! We couldn't save this. Try entering the details manually.",
     "description": "Detailed error message shown when saving login details fails."
