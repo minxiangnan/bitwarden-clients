@@ -201,6 +201,7 @@ import { DefaultSyncService } from "@bitwarden/common/platform/sync/internal";
 import { SystemNotificationsService } from "@bitwarden/common/platform/system-notifications/";
 import { SystemNotificationEvent } from "@bitwarden/common/platform/system-notifications/system-notifications.service";
 import { UnsupportedSystemNotificationsService } from "@bitwarden/common/platform/system-notifications/unsupported-system-notifications.service";
+import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import { DefaultThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
 import { ProviderService as ProviderServiceAbstraction } from "@bitwarden/common/provider";
 import { ProviderService } from "@bitwarden/common/provider/services/provider.service";
@@ -954,7 +955,7 @@ export default class MainBackground {
       this.biometricStateService,
       this.stateProvider,
       this.logService,
-      VaultTimeoutStringType.OnRestart, // default vault timeout
+      VaultTimeoutStringType.Never, // default vault timeout
       sessionTimeoutTypeService,
     );
 
@@ -1203,7 +1204,10 @@ export default class MainBackground {
       this.logService,
     );
 
-    this.themeStateService = new DefaultThemeStateService(this.globalStateProvider);
+    this.themeStateService = new DefaultThemeStateService(
+      this.globalStateProvider,
+      ThemeTypes.Light,
+    );
     this.animationControlService = new DefaultAnimationControlService(this.globalStateProvider);
 
     this.cipherEncryptionService = new DefaultCipherEncryptionService(

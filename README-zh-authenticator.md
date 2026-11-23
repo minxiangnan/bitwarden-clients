@@ -94,9 +94,22 @@ Firefox：`about:debugging#/runtime/this-firefox` → 「临时载入附加组�
 
 ## 3. 连接到自建服务器
 
-1. 打开扩展，在登录页选择自建服务器（「自托管」或服务器环境下拉）。
-2. 服务器 URL 填 `DOMAIN` 的值，例如 `https://vault.example.com`。生产扩展不会用明文 HTTP 做推送。
-3. 注册或登录。`SIGNUPS_ALLOWED=true` 时可以在扩展里创建账户。
+扩展名叫 **Bitwarden 验证器版**，可以和官方 Bitwarden 装在同一个浏览器里。登录页只有两样东西：服务器 URL 和邮箱，然后是主密码。没有注册、没有地区选择、没有通行密钥或 SSO。
+
+1. 服务器 URL 填 `DOMAIN`，例如 `https://vault.example.com`。没写 `https://` 会自动补上。本机 `http://localhost` 或 `http://127.0.0.1` 也可以。
+2. 填邮箱，点「继续」，再填主密码。
+3. 账户不能在扩展里注册。请用网页保险库注册（`SIGNUPS_ALLOWED=true`），或在 Vaultwarden 管理页邀请用户。
+
+会话超时默认是「从不」，超时动作是「锁定」。改完会记在这台浏览器里；密码、文件夹和验证码记在服务器上。
+
+## 3.1 和官方扩展共存
+
+- 名称是「Bitwarden 验证器版」，图标是暖色，和官方蓝色盾牌不一样。
+- 没有官方的 `key`，扩展 ID 不会和商店版撞车。Firefox 用了单独的 gecko id。
+- 不占用 Ctrl+Shift+L / Y / U / 9。
+- 右键菜单标题是「Bitwarden 验证器版」。
+- 保存条用自己的节点，不会拆掉官方扩展的保存条。两个扩展都会在页面上各自提示，用哪一个保存由你点哪一条决定。
+- 桌面端生物识别仍连接 `com.8bit.bitwarden`。官方桌面只允许官方扩展，本扩展连不上，也不会把官方扩展挤掉。
 
 ## 4. 打开验证器
 

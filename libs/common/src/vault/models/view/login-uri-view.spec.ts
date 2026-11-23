@@ -244,6 +244,27 @@ describe("LoginUriView", () => {
       });
     });
 
+    describe("gitlab.pub.monite.cn stays on that host", () => {
+      const saved = "https://gitlab.pub.monite.cn/users/sign_in";
+
+      function matches(target: string) {
+        const uri = new LoginUriView();
+        uri.uri = saved;
+        uri.match = null;
+        return uri.matchesUri(target, new Set());
+      }
+
+      it("matches any path on the same host and rejects parent, sibling, and lookalike hosts", () => {
+        expect(matches("https://gitlab.pub.monite.cn/explore")).toBe(true);
+        expect(matches("https://gitlab.pub.monite.cn")).toBe(true);
+        expect(matches("https://monite.cn")).toBe(false);
+        expect(matches("https://pub.monite.cn/login")).toBe(false);
+        expect(matches("https://other.pub.monite.cn")).toBe(false);
+        expect(matches("https://gitlab.pub.monite.cn.evil.test")).toBe(false);
+        expect(Utils.getHost(saved)).toBe("gitlab.pub.monite.cn");
+      });
+    });
+
     describe("using the default host strategy", () => {
       it("matches www.example-a.test and not a sibling host", () => {
         const uri = new LoginUriView();

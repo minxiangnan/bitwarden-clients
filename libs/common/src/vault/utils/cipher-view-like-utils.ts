@@ -281,7 +281,7 @@ export class CipherViewLikeUtils {
     cipher: CipherViewLike,
     targetUri: string,
     equivalentDomains: Set<string>,
-    defaultUriMatch: UriMatchStrategySetting = UriMatchStrategy.Domain,
+    defaultUriMatch: UriMatchStrategySetting = UriMatchStrategy.Host,
     overrideNeverMatchStrategy?: true,
   ): boolean => {
     if (CipherViewLikeUtils.getType(cipher) !== CipherType.Login) {

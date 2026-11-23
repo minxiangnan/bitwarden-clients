@@ -11,7 +11,7 @@ import { Router } from "@angular/router";
 import { firstValueFrom, map } from "rxjs";
 
 import { AbstractThemingService } from "@bitwarden/angular/platform/services/theming/theming.service.abstraction";
-import { BitwardenLogo } from "@bitwarden/assets/svg";
+import { ZhMark } from "@bitwarden/assets/svg";
 import { BrowserClientVendors } from "@bitwarden/common/autofill/constants";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
@@ -91,7 +91,7 @@ export class DefaultPasswordManagerPromptComponent implements OnInit {
     { initialValue: false },
   );
 
-  protected readonly logo = BitwardenLogo;
+  protected readonly logo = ZhMark;
   protected readonly backgroundIllustration = computed(() =>
     this.isDarkTheme() ? DefaultPasswordBackgroundDark : DefaultPasswordBackgroundLight,
   );

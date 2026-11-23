@@ -48,7 +48,7 @@ export class MainContextMenuHandler {
     return [
       {
         id: ROOT_ID,
-        title: "Bitwarden",
+        title: "Bitwarden 验证器版",
       },
       {
         id: AUTOFILL_ID,

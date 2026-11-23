@@ -32,7 +32,10 @@ import { ClientType, HttpStatusCode } from "@bitwarden/common/enums";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
 import { BroadcasterService } from "@bitwarden/common/platform/abstractions/broadcaster.service";
-import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
+import {
+  EnvironmentService,
+  Region,
+} from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
@@ -103,6 +106,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   isKnownDevice = false;
   loginUiState: LoginUiState = LoginUiState.EMAIL_ENTRY;
   ssoRequired = false;
+  /** Self-hosted server address shown on the extension's email step. */
+  serverUrl = "";
+  serverUrlError = "";
 
   formGroup = this.formBuilder.group(
     {
@@ -165,6 +171,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (this.clientType === ClientType.Desktop) {
       await this.desktopOnInit();
+    }
+
+    if (this.clientType === ClientType.Browser) {
+      this.formGroup.controls.rememberEmail.setValue(true);
+      const env = await firstValueFrom(this.environmentService.environment$);
+      this.serverUrl = env.getUrls()?.base ?? "";
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -623,6 +635,12 @@ export class LoginComponent implements OnInit, OnDestroy {
    * @param mpEntryLayoutOverride See {@link continuePressed}.
    */
   protected async continue(mpEntryLayoutOverride?: Partial<AnonLayoutWrapperData>): Promise<void> {
+    if (this.clientType === ClientType.Browser && !(await this.applyServerUrl())) {
+      return;
+    }
+    if (this.clientType === ClientType.Browser) {
+      this.formGroup.controls.rememberEmail.setValue(true);
+    }
     const isEmailValid = this.validateEmail();
     if (!isEmailValid) {
       return;
@@ -641,6 +659,38 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     this.prefetchPasswordPreloginData();
     await this.toggleLoginUiState(LoginUiState.MASTER_PASSWORD_ENTRY, override);
+  }
+
+  /**
+   * Writes the extension's server field as a self-hosted environment.
+   * A missing scheme becomes https://. Anything that is not a usable URL is rejected.
+   */
+  private async applyServerUrl(): Promise<boolean> {
+    this.serverUrlError = "";
+    let raw = this.serverUrl.trim();
+    if (!raw) {
+      this.serverUrlError = this.i18nService.t("selfHostedEnvMustUseHttps");
+      return false;
+    }
+    if (!/^https?:\/\//i.test(raw)) {
+      raw = `https://${raw}`;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      this.serverUrlError = this.i18nService.t("selfHostedEnvMustUseHttps");
+      return false;
+    }
+    const local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && local)) {
+      this.serverUrlError = this.i18nService.t("selfHostedEnvMustUseHttps");
+      return false;
+    }
+    const base = parsed.origin;
+    await this.environmentService.setEnvironment(Region.SelfHosted, { base });
+    this.serverUrl = base;
+    return true;
   }
 
   /**

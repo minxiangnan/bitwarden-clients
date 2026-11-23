@@ -1,5 +1,22 @@
 <form [bitSubmit]="submit" [formGroup]="formGroup">
   <div [ngClass]="{ 'tw-hidden': loginUiState !== LoginUiState.EMAIL_ENTRY }">
+    @if (clientType === ClientType.Browser) {
+      <bit-form-field>
+        <bit-label>服务器 URL</bit-label>
+        <input
+          id="server-url"
+          type="text"
+          bitInput
+          data-testid="login-server-url"
+          [value]="serverUrl"
+          (input)="serverUrl = $any($event.target).value"
+          placeholder="https://vault.example.com"
+        />
+      </bit-form-field>
+      @if (serverUrlError) {
+        <p class="tw-mb-3 tw-text-sm tw-text-danger-600">{{ serverUrlError }}</p>
+      }
+    }
     <!-- Email Address input -->
     <bit-form-field>
       <bit-label>{{ "emailAddress" | i18n }}</bit-label>
@@ -15,8 +32,8 @@
       />
     </bit-form-field>
 
-    <!-- Remember Email input -->
-    <bit-form-control>
+    <!-- Remember Email input. The extension always remembers the address. -->
+    <bit-form-control *ngIf="clientType !== ClientType.Browser">
       <input
         type="checkbox"
         formControlName="rememberEmail"
@@ -44,10 +61,10 @@
         {{ "continue" | i18n }}
       </button>
 
-      <div class="tw-text-center">{{ "or" | i18n }}</div>
+      <div class="tw-text-center" *ngIf="clientType !== ClientType.Browser">{{ "or" | i18n }}</div>
 
       <!-- Button to Login with Passkey -->
-      <ng-container *ngIf="isLoginWithPasskeySupported()">
+      <ng-container *ngIf="clientType !== ClientType.Browser && isLoginWithPasskeySupported()">
         <button
           type="button"
           bitButton
@@ -66,6 +83,7 @@
 
       <!-- Button to Login with SSO -->
       <button
+        *ngIf="clientType !== ClientType.Browser"
         type="button"
         bitButton
         block
@@ -114,7 +132,7 @@
       </button>
 
       <!-- Button to Login with Device -->
-      <ng-container *ngIf="isKnownDevice">
+      <ng-container *ngIf="clientType !== ClientType.Browser && isKnownDevice">
         <div class="tw-text-center">{{ "or" | i18n }}</div>
 
         <button

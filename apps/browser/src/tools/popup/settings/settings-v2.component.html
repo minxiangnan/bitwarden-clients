@@ -1,5 +1,5 @@
 <popup-page>
-  @if (!(hasPremium$ | async)) {
+  @if (false && !(hasPremium$ | async)) {
     <bit-callout [icon]="null">
       {{ "unlockFeaturesWithPremium" | i18n }}
       <button
@@ -112,6 +112,7 @@
         <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
       </a>
     </bit-item>
+    @if (false) {
     <bit-item>
       <a bit-item-content routerLink="/download-bitwarden" [truncate]="false">
         <i slot="start" class="bwi bwi-mobile" aria-hidden="true"></i>
@@ -135,5 +136,6 @@
         <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
       </a>
     </bit-item>
+    }
   </bit-item-group>
 </popup-page>

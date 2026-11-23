@@ -28,6 +28,7 @@ import {
   AUTOFILL_NUDGE_SERVICE,
   AUTO_CONFIRM_NUDGE_SERVICE,
   AutoConfirmNudgeService,
+  NudgesService,
 } from "@bitwarden/angular/vault";
 import { VaultProfileService } from "@bitwarden/angular/vault/services/vault-profile.service";
 import {
@@ -186,6 +187,11 @@ import {
   WebCryptoFunctionService,
 } from "@bitwarden/legacy-crypto";
 import { FlightRecorderLogRecorderService } from "@bitwarden/logging-angular";
+import { ThemeTypes } from "@bitwarden/common/platform/enums";
+import {
+  DefaultThemeStateService,
+  ThemeStateService,
+} from "@bitwarden/common/platform/theming/theme-state.service";
 import { DerivedStateProvider, GlobalStateProvider, StateProvider } from "@bitwarden/state";
 import { InlineDerivedStateProvider } from "@bitwarden/state-internal";
 import { SHARE_ITEM_PRESENTER, SHARE_PASSWORD_REPROMPT } from "@bitwarden/tools-share";
@@ -261,6 +267,7 @@ import {
   isNotificationsSupported,
 } from "../../platform/system-notifications/browser-system-notification.service";
 import { fromChromeRuntimeMessaging } from "../../platform/utils/from-chrome-runtime-messaging";
+import { QuietNudgesService } from "../../vault/popup/services/quiet-nudges.service";
 import { BrowserAutofillNudgeService } from "../../vault/popup/services/browser-autofill-nudge.service";
 import { Fido2UserVerificationService } from "../../vault/services/fido2-user-verification.service";
 import { ForegroundCipherService } from "../../vault/services/foreground-cipher.service";
@@ -312,7 +319,18 @@ const safeProviders: SafeProvider[] = [
   safeProvider(InlineMenuFieldQualificationService),
   safeProvider({
     provide: DEFAULT_VAULT_TIMEOUT,
-    useValue: VaultTimeoutStringType.OnRestart,
+    useValue: VaultTimeoutStringType.Never,
+  }),
+  safeProvider({
+    provide: ThemeStateService,
+    useFactory: (globalStateProvider: GlobalStateProvider) =>
+      new DefaultThemeStateService(globalStateProvider, ThemeTypes.Light),
+    deps: [GlobalStateProvider],
+  }),
+  safeProvider({
+    provide: NudgesService,
+    useClass: QuietNudgesService,
+    deps: [],
   }),
   safeProvider({
     provide: APP_INITIALIZER as SafeInjectionToken<() => Promise<void>>,

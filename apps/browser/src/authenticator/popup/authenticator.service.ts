@@ -213,7 +213,12 @@ export class AuthenticatorService {
     } else {
       await this.api.create(request);
     }
-    await this.refresh(userId);
+    // The server write already succeeded. A later refresh failure must not look like a local-only save.
+    try {
+      await this.refresh(userId);
+    } catch (error) {
+      this.logService.error(error);
+    }
   }
 
   async remove(id: string): Promise<void> {

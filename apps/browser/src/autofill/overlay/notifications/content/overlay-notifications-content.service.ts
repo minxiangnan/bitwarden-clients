@@ -202,7 +202,7 @@ export class OverlayNotificationsContentService implements OverlayNotificationsC
 
     this.currentNotificationBarType = initData.type ?? null;
     this.notificationBarIframeElement = globalThis.document.createElement("iframe");
-    this.notificationBarIframeElement.id = "bit-notification-bar-iframe";
+    this.notificationBarIframeElement.id = "bwzh-notification-bar-iframe";
     const parentOrigin = globalThis.location.origin;
     const iframeUrl = new URL(BrowserApi.getRuntimeURL("notification/bar.html"));
     iframeUrl.searchParams.set("parentOrigin", parentOrigin);
@@ -250,7 +250,7 @@ export class OverlayNotificationsContentService implements OverlayNotificationsC
   private createNotificationBarElement() {
     if (this.notificationBarIframeElement) {
       this.notificationBarRootElement = globalThis.document.createElement(
-        "bit-notification-bar-root",
+        "bwzh-notification-bar-root",
       );
 
       this.notificationBarShadowRoot = this.notificationBarRootElement.attachShadow({
@@ -259,7 +259,7 @@ export class OverlayNotificationsContentService implements OverlayNotificationsC
       });
 
       this.notificationBarElement = globalThis.document.createElement("div");
-      this.notificationBarElement.id = "bit-notification-bar";
+      this.notificationBarElement.id = "bwzh-notification-bar";
 
       const containerStyles = { ...this.notificationBarContainerStyles };
       if (!this.showAnimations) {

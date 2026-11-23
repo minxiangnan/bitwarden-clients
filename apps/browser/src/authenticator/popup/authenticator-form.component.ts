@@ -172,6 +172,11 @@ export class AuthenticatorFormComponent implements OnInit {
       await this.router.navigate(["/tabs/authenticator"]);
     } catch {
       this.errorKey.set("authenticatorSaveError");
+      this.toast.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18n.t("serverSaveFailed"),
+      });
     } finally {
       this.saving.set(false);
     }

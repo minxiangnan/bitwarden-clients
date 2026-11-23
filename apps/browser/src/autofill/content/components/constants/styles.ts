@@ -45,7 +45,7 @@ const lightTheme = {
     accent: `rgba(217, 119, 87)`,
   },
   text: {
-    main: `rgba(20, 20, 19)`,
+    main: `rgba(61, 57, 41)`,
     muted: `rgba(92, 88, 78)`,
     contrast: `rgba(255, 255, 255)`,
     alt2: `rgba(255, 255, 255)`,
@@ -106,7 +106,7 @@ const darkTheme = {
     accent: `rgba(217, 119, 87)`,
   },
   text: {
-    main: `rgba(250, 249, 245)`,
+    main: `rgba(245, 244, 238)`,
     muted: `rgba(196, 193, 184)`,
     contrast: `rgba(20, 20, 19)`,
     alt2: `rgba(250, 249, 245)`,
@@ -114,7 +114,7 @@ const darkTheme = {
   },
   background: {
     DEFAULT: `rgba(38, 38, 36)`,
-    alt: `rgba(31, 30, 29)`,
+    alt: `rgba(48, 48, 46)`,
     alt2: `rgba(61, 57, 41)`,
     alt3: `rgba(92, 88, 78)`,
     alt4: `rgba(20, 20, 19)`,

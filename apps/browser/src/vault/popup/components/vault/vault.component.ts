@@ -529,20 +529,11 @@ export class VaultComponent implements OnInit, OnDestroy {
    * been introduced to the product is not told what changed about it. The remaining rules are
    * shared with web and desktop, and live in {@link NewExperienceDialogService}.
    */
-  private async openNewExperienceDialog(userId: UserId, onboardingWelcomeDismissed: boolean) {
-    if (!onboardingWelcomeDismissed) {
-      return;
-    }
-
-    const result = await this.newExperienceDialogService.conditionallyOpen(userId, {
-      lightImgSrc: NEW_EXPERIENCE_LIGHT_IMG,
-      darkImgSrc: NEW_EXPERIENCE_DARK_IMG,
-    });
-    if (result !== NewExperienceDialogResult.Explore) {
-      return;
-    }
-
-    await this.vaultTourService.start(userId);
+  private async openNewExperienceDialog(
+    _userId: UserId,
+    _onboardingWelcomeDismissed: boolean,
+  ) {
+    return;
   }
 
   ngOnDestroy() {

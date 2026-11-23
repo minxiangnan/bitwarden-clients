@@ -186,7 +186,7 @@ export class AutofillComponent implements OnInit {
   /** Non-null asserted. */
   clearClipboard!: ClearClipboardDelaySetting;
   clearClipboardOptions: { name: string; value: ClearClipboardDelaySetting }[];
-  defaultUriMatch: UriMatchStrategySetting = UriMatchStrategy.Domain;
+  defaultUriMatch: UriMatchStrategySetting = UriMatchStrategy.Host;
   uriMatchOptions: { name: string; value: UriMatchStrategySetting | null; disabled?: boolean }[];
   showCardsCurrentTab: boolean = true;
   showIdentitiesCurrentTab: boolean = true;
@@ -418,7 +418,7 @@ export class AutofillComponent implements OnInit {
     const defaultUriMatch = await firstValueFrom(
       this.domainSettingsService.resolvedDefaultUriMatchStrategy$,
     );
-    this.defaultUriMatch = defaultUriMatch == null ? UriMatchStrategy.Domain : defaultUriMatch;
+    this.defaultUriMatch = defaultUriMatch == null ? UriMatchStrategy.Host : defaultUriMatch;
 
     this.additionalOptionsForm.controls.defaultUriMatch.patchValue(this.defaultUriMatch, {
       emitEvent: false,

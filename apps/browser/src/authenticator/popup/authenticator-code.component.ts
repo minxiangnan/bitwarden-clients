@@ -15,7 +15,7 @@ import { AuthenticatorEntryView } from "../authenticator.models";
   template: `
     @if (info(); as totp) {
       <span class="tw-flex tw-items-center tw-gap-2">
-        <span class="tw-font-mono tw-text-2xl tw-tracking-widest">{{ totp.formatted }}</span>
+        <span class="tw-font-mono tw-text-3xl tw-font-medium tw-tabular-nums tw-tracking-[0.18em] tw-text-main">{{ totp.formatted }}</span>
         <span
           class="tw-relative tw-flex tw-size-7 tw-items-center tw-justify-center"
           aria-hidden="true"

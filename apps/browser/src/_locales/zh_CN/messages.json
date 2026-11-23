@@ -9417,7 +9417,10 @@
     "message": "请输入有效的 Base32 密钥。"
   },
   "authenticatorSaveError": {
-    "message": "无法保存此验证码。"
+    "message": "无法保存到服务器，请检查网络后重试。"
+  },
+  "serverSaveFailed": {
+    "message": "无法保存到服务器，请检查网络后重试。"
   },
   "authenticatorMissing": {
     "message": "找不到此验证码。"

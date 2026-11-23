@@ -60,7 +60,7 @@
   --color-notification-100: 255 225 247;
   --color-notification-600: 192 17 118;
 
-  --color-text-main: 20 20 19;
+  --color-text-main: 61 57 41;
   --color-text-muted: 92 88 78;
   --color-text-contrast: 255 255 255;
   --color-text-alt2: 255 255 255;
@@ -241,11 +241,11 @@
 
   /* Neutral Foreground */
   --color-fg-white: var(--color-white);
-  --color-fg-dark: var(--color-gray-900);
+  --color-fg-dark: #3d3929;
   --color-fg-contrast: var(--color-white);
   --color-fg-contrast-strong: var(--color-gray-200);
-  --color-fg-heading: var(--color-gray-900);
-  --color-fg-body: var(--color-gray-600);
+  --color-fg-heading: #3d3929;
+  --color-fg-body: #5e5d59;
   --color-fg-body-subtle: var(--color-gray-500);
   --color-fg-inactive: var(--color-gray-400);
 
@@ -282,7 +282,7 @@
   --color-bg-white: var(--color-white);
   --color-bg-dark: var(--color-gray-800);
   --color-bg-primary: #faf9f5;
-  --color-bg-secondary: var(--color-gray-050);
+  --color-bg-secondary: #f0eee6;
   --color-bg-tertiary: var(--color-gray-050);
   --color-bg-quaternary: var(--color-gray-100);
   --color-bg-inactive: var(--color-gray-100);
@@ -416,7 +416,7 @@
   /* Neutral Border */
   --color-border-muted: var(--color-gray-050);
   --color-border-light: var(--color-gray-100);
-  --color-border-base: var(--color-gray-200);
+  --color-border-base: #d4d1c6;
   --color-border-strong: var(--color-gray-400);
   --color-border-stronger: var(--color-gray-800);
   --color-border-buffer: var(--color-white);
@@ -530,7 +530,7 @@
   --color-notification-100: 117 37 83;
   --color-notification-600: 255 143 208;
 
-  --color-text-main: 250 249 245;
+  --color-text-main: 245 244 238;
   --color-text-muted: 196 193 184;
   --color-text-contrast: 20 20 19;
   --color-text-alt2: 255 255 255;
@@ -558,8 +558,8 @@
   /* Neutral Foreground */
   --color-fg-contrast: var(--color-gray-900);
   --color-fg-contrast-strong: var(--color-gray-600);
-  --color-fg-heading: var(--color-gray-050);
-  --color-fg-body: var(--color-gray-200);
+  --color-fg-heading: #f5f4ee;
+  --color-fg-body: #e8e6dc;
   --color-fg-body-subtle: var(--color-gray-400);
   --color-fg-inactive: var(--color-gray-600);
 
@@ -593,9 +593,9 @@
    * ======================================== */
 
   /* Neutral Background */
-  --color-bg-primary: var(--color-gray-900);
-  --color-bg-secondary: var(--color-gray-800);
-  --color-bg-tertiary: var(--color-gray-950);
+  --color-bg-primary: #262624;
+  --color-bg-secondary: #30302e;
+  --color-bg-tertiary: #30302e;
   --color-bg-quaternary: var(--color-gray-700);
   --color-bg-inactive: var(--color-gray-950);
 
@@ -726,7 +726,7 @@
   /* Neutral Border */
   --color-border-muted: var(--color-gray-900);
   --color-border-light: var(--color-gray-800);
-  --color-border-base: var(--color-gray-700);
+  --color-border-base: #3e3e38;
   --color-border-strong: var(--color-gray-500);
   --color-border-stronger: var(--color-gray-400);
   --color-border-buffer: var(--color-gray-950);

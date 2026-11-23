@@ -17,12 +17,6 @@ import {
 import { LoginViaWebAuthnComponent } from "@bitwarden/angular/auth/login-via-webauthn/login-via-webauthn.component";
 import { ChangePasswordComponent } from "@bitwarden/angular/auth/password-management/change-password";
 import { SetInitialPasswordComponent } from "@bitwarden/angular/auth/password-management/set-initial-password/set-initial-password.component";
-import {
-  RegistrationFinishComponent,
-  RegistrationStartComponent,
-  RegistrationStartSecondaryComponent,
-  RegistrationStartSecondaryComponentData,
-} from "@bitwarden/angular/auth/registration";
 import { canAccessFeature } from "@bitwarden/angular/platform/guard/feature-flag.guard";
 import { featureFlaggedRoute } from "@bitwarden/angular/platform/utils/feature-flagged-route";
 import {
@@ -482,48 +476,11 @@ const routes: Routes = [
     children: [
       {
         path: AuthRoute.SignUp,
-        canActivate: [unauthGuardFn()],
-        data: {
-          elevation: 1,
-          pageTitle: {
-            key: "createAccount",
-          },
-          showBackButton: true,
-          hidePageIcon: true,
-          contentVerticalPadding: "compact",
-          footerVerticalPadding: "compact",
-          heroTextAlignment: "left",
-          hideFooter: true,
-        } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
-        children: [
-          {
-            path: "",
-            component: RegistrationStartComponent,
-          },
-          {
-            path: "",
-            component: RegistrationStartSecondaryComponent,
-            outlet: "secondary",
-            data: {
-              loginRoute: `/${AuthRoute.Login}`,
-            } satisfies RegistrationStartSecondaryComponentData,
-          },
-        ],
+        redirectTo: AuthRoute.Login,
       },
       {
         path: AuthRoute.FinishSignUp,
-        canActivate: [unauthGuardFn()],
-        data: {
-          pageIcon: LockIcon,
-          elevation: 1,
-          showBackButton: true,
-        } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
-        children: [
-          {
-            path: "",
-            component: RegistrationFinishComponent,
-          },
-        ],
+        redirectTo: AuthRoute.Login,
       },
       {
         path: AuthRoute.SetInitialPassword,
@@ -546,21 +503,15 @@ const routes: Routes = [
           },
           elevation: 1,
           showAcctSwitcher: true,
+          showLogo: false,
+          hideFooter: true,
           hidePageIcon: true,
           contentVerticalPadding: "compact",
           footerVerticalPadding: "compact",
           heroTextAlignment: "left",
           secondaryContentLocation: "footer",
         } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
-        children: [
-          { path: "", component: LoginComponent },
-          { path: "", component: LoginSecondaryContentComponent, outlet: "secondary" },
-          {
-            path: "",
-            component: EnvironmentSelectorComponent,
-            outlet: "environment-selector",
-          },
-        ],
+        children: [{ path: "", component: LoginComponent }],
       },
       {
         path: AuthRoute.LoginWithPasskey,

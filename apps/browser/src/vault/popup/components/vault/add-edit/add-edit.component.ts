@@ -573,6 +573,11 @@ export class AddEditComponent implements OnInit, OnDestroy {
       await this.deleteCipher(activeUserId);
     } catch (e) {
       this.logService.error(e);
+      this.toastService.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18nService.t("serverSaveFailed"),
+      });
       return false;
     }
 

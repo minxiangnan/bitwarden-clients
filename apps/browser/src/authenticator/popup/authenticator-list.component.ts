@@ -113,6 +113,12 @@ export class AuthenticatorListComponent {
         title: null,
         message: this.i18n.t("authenticatorScanFound"),
       });
+    } catch {
+      this.toast.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18n.t("serverSaveFailed"),
+      });
     } finally {
       this.scanning.set(false);
     }
@@ -132,6 +138,8 @@ export class AuthenticatorListComponent {
     this.busyId.set(entry.id);
     try {
       await this.authenticator.setFavorite(entry, !entry.favorite);
+    } catch {
+      this.failSave();
     } finally {
       this.busyId.set(null);
     }
@@ -144,6 +152,8 @@ export class AuthenticatorListComponent {
     this.busyId.set(entry.id);
     try {
       await this.authenticator.move(entry.id, direction);
+    } catch {
+      this.failSave();
     } finally {
       this.busyId.set(null);
     }
@@ -157,6 +167,8 @@ export class AuthenticatorListComponent {
     try {
       await this.authenticator.remove(entry.id);
       this.pendingDelete.set(null);
+    } catch {
+      this.failSave();
     } finally {
       this.busyId.set(null);
     }
@@ -172,7 +184,19 @@ export class AuthenticatorListComponent {
   }
 
   protected async importOne(draft: AuthenticatorDraft): Promise<void> {
-    await this.authenticator.save(draft);
-    this.vaultImports.set(await this.authenticator.importVaultTotp());
+    try {
+      await this.authenticator.save(draft);
+      this.vaultImports.set(await this.authenticator.importVaultTotp());
+    } catch {
+      this.failSave();
+    }
+  }
+
+  private failSave(): void {
+    this.toast.showToast({
+      variant: "error",
+      title: null,
+      message: this.i18n.t("serverSaveFailed"),
+    });
   }
 }

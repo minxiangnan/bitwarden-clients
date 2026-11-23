@@ -9417,7 +9417,10 @@
     "message": "Enter a valid Base32 secret."
   },
   "authenticatorSaveError": {
-    "message": "Could not save this code."
+    "message": "Could not save to the server. Check the connection and try again."
+  },
+  "serverSaveFailed": {
+    "message": "Could not save to the server. Check the connection and try again."
   },
   "authenticatorMissing": {
     "message": "This code is no longer available."

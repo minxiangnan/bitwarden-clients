@@ -3,7 +3,7 @@ import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Data, NavigationEnd, Router, RouterModule } from "@angular/router";
 import { filter, map, of, switchMap, tap } from "rxjs";
 
-import { BitwardenLogo, BitwardenLogoBeta, BitSvg } from "@bitwarden/assets/svg";
+import { ZhMark, BitSvg } from "@bitwarden/assets/svg";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import {
   SvgModule,
@@ -22,7 +22,6 @@ import { I18nPipe } from "@bitwarden/ui-common";
 
 import { CurrentAccountComponent } from "../../../auth/popup/account-switching/current-account.component";
 import { AccountSwitcherService } from "../../../auth/popup/account-switching/services/account-switcher.service";
-import { flagEnabled } from "../../../platform/flags";
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
@@ -105,7 +104,7 @@ export class ExtensionAnonLayoutWrapperComponent implements OnInit {
     { initialValue: false },
   );
 
-  protected readonly logo = flagEnabled("prereleaseBuild") ? BitwardenLogoBeta : BitwardenLogo;
+  protected readonly logo = ZhMark;
 
   ngOnInit(): void {
     // Set the initial page data on load
