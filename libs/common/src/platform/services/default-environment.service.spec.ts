@@ -384,7 +384,8 @@ describe("EnvironmentService", () => {
 
     it("self-hosted and sets all urls", async () => {
       let env = await firstValueFrom(sut.environment$);
-      expect(env.getScimUrl()).toBe("https://scim.bitwarden.com/v2");
+      expect(env.getRegion()).toBe(Region.SelfHosted);
+      expect(env.getScimUrl()).toBe("https://vault.bitwarden.com/scim/v2");
 
       await sut.setEnvironment(Region.SelfHosted, {
         base: "base.example.com",
@@ -485,6 +486,15 @@ describe("EnvironmentService", () => {
 
       const env = await sut.getEnvironment(testUser);
       expect(env?.getHostname()).toBe("base.example.com");
+    });
+  });
+
+  describe("fresh install", () => {
+    it("starts on a self-hosted environment with no server URL", async () => {
+      const env = await firstValueFrom(sut.environment$);
+
+      expect(env.getRegion()).toBe(Region.SelfHosted);
+      expect(env.getUrls().base).toBeNull();
     });
   });
 

@@ -37,12 +37,32 @@
     </bit-menu>
     <div bitTypography="body2">
       {{ "accessing" | i18n }}:
+      <b class="tw-text-primary-600 tw-font-medium">{{
+        data.selectedRegion?.domain || ("selfHostedServer" | i18n)
+      }}</b>
+    </div>
+    @if (!data.selectedRegion) {
+      <label class="tw-mt-2 tw-block tw-text-sm" for="private-server-url">{{
+        "baseUrl" | i18n
+      }}</label>
+      <input
+        id="private-server-url"
+        class="tw-mt-1 tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-secondary-300 tw-bg-background tw-px-3 tw-py-2"
+        type="url"
+        [value]="baseUrl"
+        (input)="baseUrl = $any($event.target).value"
+        (blur)="saveBaseUrl()"
+        placeholder="https://vault.example.com"
+      />
+      <button class="tw-mt-2 tw-text-sm tw-text-muted" type="button" (click)="showCloudRegions = !showCloudRegions">
+        Bitwarden 云
+      </button>
+    }
+    @if (data.selectedRegion || showCloudRegions) {
       <button [bitMenuTriggerFor]="environmentOptions" bitLink type="button">
-        <b class="tw-text-primary-600 tw-font-medium">{{
-          data.selectedRegion?.domain || ("selfHostedServer" | i18n)
-        }}</b>
+        {{ "selfHostedServer" | i18n }}
         <bit-icon name="bwi-angle-down" class="bwi-fw bwi-sm"></bit-icon>
       </button>
-    </div>
+    }
   </div>
 </ng-container>

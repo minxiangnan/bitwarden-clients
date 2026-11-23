@@ -14,4 +14,16 @@
       ></bit-option>
     </bit-select>
   </bit-form-field>
+  <bit-form-field *ngIf="selectedRegion.value === ServerEnvironmentType.SelfHosted">
+    <bit-label>{{ "baseUrl" | i18n }}</bit-label>
+    <input
+      id="register-self-hosted-url"
+      bitInput
+      type="url"
+      [value]="baseUrl"
+      (input)="baseUrl = $any($event.target).value"
+      (blur)="saveBaseUrl()"
+      placeholder="https://vault.example.com"
+    />
+  </bit-form-field>
 </form>

@@ -244,6 +244,24 @@ describe("LoginUriView", () => {
       });
     });
 
+    describe("using the default host strategy", () => {
+      it("matches www.example-a.test and not a sibling host", () => {
+        const uri = new LoginUriView();
+        uri.uri = "https://www.example-a.test/login";
+        uri.match = null;
+
+        expect(
+          uri.matchesUri("https://www.example-a.test/account", new Set(), UriMatchStrategy.Host),
+        ).toBe(true);
+        expect(
+          uri.matchesUri("https://sub.example-a.test", new Set(), UriMatchStrategy.Host),
+        ).toBe(false);
+        expect(uri.matchesUri("https://example-a.test", new Set(), UriMatchStrategy.Host)).toBe(
+          false,
+        );
+      });
+    });
+
     describe("using host matching", () => {
       it("matches the same host", () => {
         const uri = uriFactory(UriMatchStrategy.Host, Utils.getHost(exampleUris.standard));

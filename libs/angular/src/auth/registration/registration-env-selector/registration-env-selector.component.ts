@@ -65,6 +65,7 @@ export class RegistrationEnvSelectorComponent implements OnInit, OnDestroy {
 
   hideEnvSelector = false;
   isDesktopOrBrowserExtension = false;
+  baseUrl = "";
 
   private destroy$ = new Subject<void>();
 
@@ -103,7 +104,7 @@ export class RegistrationEnvSelectorComponent implements OnInit, OnDestroy {
             .find((availableRegionConfig) => availableRegionConfig.key === region);
 
           if (regionConfig === undefined) {
-            // Self hosted does not have a region config.
+            this.baseUrl = env.getUrls()?.base ?? "";
             return Region.SelfHosted;
           }
 
@@ -193,8 +194,22 @@ export class RegistrationEnvSelectorComponent implements OnInit, OnDestroy {
    * Handles the event when the select is closed.
    * If the selected region is self-hosted, opens the self-hosted environment settings dialog.
    */
+  protected async saveBaseUrl(): Promise<void> {
+    const base = this.baseUrl.trim();
+    if (!base) {
+      return;
+    }
+    await this.environmentService.setEnvironment(Region.SelfHosted, { base });
+  }
+
   protected async onSelectClosed() {
-    if (this.selectedRegion.value === Region.SelfHosted) {
+    // The server URL is on the page. Open the advanced dialog only when switching
+    // away from a cloud region that has no URL yet.
+    if (
+      this.selectedRegion.value === Region.SelfHosted &&
+      this.selectedRegionFromEnv !== Region.SelfHosted &&
+      !this.baseUrl
+    ) {
       const result = await SelfHostedEnvConfigDialogComponent.open(this.dialogService);
       return this.handleSelfHostedEnvConfigDialogResult(result, this.selectedRegion.value);
     }

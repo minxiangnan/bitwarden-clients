@@ -152,7 +152,7 @@ export class LoginUriView implements View {
     }
 
     let matchType = this.match ?? defaultUriMatch;
-    matchType ??= UriMatchStrategy.Domain;
+    matchType ??= UriMatchStrategy.Host;
 
     // Override the match strategy with `Domain` when it is `Never` and `overrideNeverMatchStrategy` is true.
     // This is useful in scenarios when the cipher should be matched to rely other information other than autofill.
