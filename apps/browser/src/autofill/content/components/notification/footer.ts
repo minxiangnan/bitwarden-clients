@@ -21,6 +21,7 @@ export type NotificationFooterProps = {
   organizations?: OrgView[];
   personalVaultIsAllowed: boolean;
   theme: Theme;
+  handleNeverAction?: (e: Event) => void;
   handleSaveAction: (e: Event) => void;
 };
 
@@ -33,6 +34,7 @@ export function NotificationFooter({
   organizations,
   personalVaultIsAllowed,
   theme,
+  handleNeverAction,
   handleSaveAction,
 }: NotificationFooterProps) {
   const isChangeNotification = notificationType === NotificationTypes.Change;
@@ -63,9 +65,29 @@ export function NotificationFooter({
             })
           : nothing
       }
+      ${
+        !isUnlockNotification && handleNeverAction
+          ? html`<button type="button" class=${neverButtonStyles} @click=${handleNeverAction}>
+              ${i18n.neverForWebsite}
+            </button>`
+          : nothing
+      }
     </div>
   `;
 }
+
+const neverButtonStyles = css`
+  margin-right: auto;
+  border: 0;
+  background: transparent;
+  color: rgba(92, 88, 78, 1);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 20px;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+`;
 
 const notificationFooterStyles = ({
   isChangeNotification,
@@ -73,7 +95,10 @@ const notificationFooterStyles = ({
   isChangeNotification: boolean;
 }) => css`
   display: flex;
-  padding: ${spacing[2]} ${spacing[4]} ${isChangeNotification ? spacing[1] : spacing[4]}
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${spacing[2]};
+  padding: ${spacing[2]} ${spacing[4]} ${isChangeNotification ? spacing[3] : spacing[4]}
     ${spacing[4]};
 
   :last-child {

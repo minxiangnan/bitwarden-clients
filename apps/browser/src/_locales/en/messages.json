@@ -988,6 +988,9 @@
   "never": {
     "message": "Never"
   },
+  "neverForWebsite": {
+    "message": "Never for this site"
+  },
   "security": {
     "message": "Security"
   },

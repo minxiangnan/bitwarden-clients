@@ -21,6 +21,7 @@ import {
 
 export type NotificationContainerProps = NotificationBarIframeInitData & {
   handleCloseNotification: (e: Event) => void;
+  handleNeverAction?: (e: Event) => void;
   handleSaveAction: (e: Event) => void;
   handleEditOrUpdateAction: (e: Event) => void;
 } & {
@@ -39,6 +40,7 @@ export type NotificationContainerProps = NotificationBarIframeInitData & {
 export function NotificationContainer({
   handleCloseNotification,
   handleEditOrUpdateAction,
+  handleNeverAction,
   handleSaveAction,
   ciphers,
   collections,
@@ -74,6 +76,7 @@ export function NotificationContainer({
           : nothing
       }
       ${NotificationFooter({
+        handleNeverAction,
         handleSaveAction,
         collections,
         folders,

@@ -988,6 +988,9 @@
   "never": {
     "message": "从不"
   },
+  "neverForWebsite": {
+    "message": "此网站永不"
+  },
   "security": {
     "message": "安全"
   },

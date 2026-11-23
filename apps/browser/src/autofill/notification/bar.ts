@@ -60,6 +60,7 @@ function getI18n() {
     loginUpdateTaskSuccessAdditional: chrome.i18n.getMessage("loginUpdateTaskSuccessAdditional"),
     myVault: chrome.i18n.getMessage("myVault"),
     never: chrome.i18n.getMessage("never"),
+    neverForWebsite: chrome.i18n.getMessage("neverForWebsite"),
     newItem: chrome.i18n.getMessage("newItem"),
     nextSecurityTaskAction: chrome.i18n.getMessage("nextSecurityTaskAction"),
     notificationAddDesc: chrome.i18n.getMessage("notificationAddDesc"),
@@ -212,6 +213,7 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
       theme: resolvedTheme,
       personalVaultIsAllowed: !personalVaultDisallowed,
       handleCloseNotification,
+      handleNeverAction,
       handleEditOrUpdateAction,
       i18n,
     };
@@ -287,6 +289,7 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
         notificationTestId,
         personalVaultIsAllowed: !personalVaultDisallowed,
         handleCloseNotification,
+        handleNeverAction,
         handleSaveAction,
         handleEditOrUpdateAction,
         i18n,
@@ -316,6 +319,11 @@ function handleCloseNotification(e: Event) {
     // user preference and/or removed entirely
     fadeOutNotification: true,
   });
+}
+
+function handleNeverAction(e: Event) {
+  e.preventDefault();
+  sendPlatformMessage({ command: "bgNeverSave" });
 }
 
 function handleSaveAction(e: Event) {

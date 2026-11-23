@@ -280,7 +280,15 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
         return false;
       }
 
-      return origins.some((origin) => excludedDomains[new URL(origin).hostname] !== undefined);
+      return origins.some((origin) => {
+        const url = new URL(origin);
+        // host keeps a non-default port, so "此网站永不" on 127.0.0.1:8776
+        // does not also hide prompts on 127.0.0.1:8000. hostname still matches
+        // older entries that were stored without a port.
+        return (
+          excludedDomains[url.host] !== undefined || excludedDomains[url.hostname] !== undefined
+        );
+      });
     } catch {
       return true;
     }

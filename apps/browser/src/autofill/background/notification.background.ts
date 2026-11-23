@@ -1720,7 +1720,11 @@ export default class NotificationBackground {
   private async saveNever(tab: chrome.tabs.Tab) {
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       const queueMessage = this.notificationQueue[i];
-      if (queueMessage.tab.id !== tab.id || queueMessage.type !== NotificationType.AddLogin) {
+      if (
+        queueMessage.tab.id !== tab.id ||
+        (queueMessage.type !== NotificationType.AddLogin &&
+          queueMessage.type !== NotificationType.ChangePassword)
+      ) {
         continue;
       }
 
@@ -1730,10 +1734,18 @@ export default class NotificationBackground {
 
       this.notificationQueue.splice(i, 1);
       await BrowserApi.tabSendMessageData(tab, "closeNotificationBar");
+      this.loginPromptKeys.delete(tab.id);
 
-      const hostname = Utils.getHostname(queueMessage.data.uri ?? "") ?? "";
-      if (hostname) {
-        await this.cipherService.saveNeverDomain(hostname);
+      const source =
+        queueMessage.type === NotificationType.AddLogin ? queueMessage.data.uri : tab.url;
+      let host = "";
+      try {
+        host = source ? new URL(source).host : "";
+      } catch {
+        host = "";
+      }
+      if (host) {
+        await this.cipherService.saveNeverDomain(host);
       }
     }
   }
