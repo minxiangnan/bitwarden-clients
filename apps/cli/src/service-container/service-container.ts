@@ -1217,6 +1217,8 @@ export class ServiceContainer {
       this.sdkService,
       this.stateProvider,
       this.i18nService,
+      this.apiService,
+      this.encryptService,
     );
   }
 

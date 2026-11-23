@@ -7,9 +7,12 @@ import {
   KdfConfigService,
   KeyService,
 } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService } from "@bitwarden/legacy-crypto";
 import { LogService, Measurement } from "@bitwarden/logging";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
+import { ApiService } from "../../abstractions/api.service";
 import { ClientType } from "../../enums";
 import { ConfigService } from "../../platform/abstractions/config/config.service";
 import { I18nService } from "../../platform/abstractions/i18n.service";
@@ -100,6 +103,8 @@ describe("EncryptedMigrator", () => {
       mockSdkService,
       mockStateProvider,
       mockI18nService,
+      mock<ApiService>(),
+      mock<EncryptService>(),
     );
   });
 

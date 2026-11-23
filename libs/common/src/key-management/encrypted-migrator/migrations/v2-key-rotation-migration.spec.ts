@@ -4,10 +4,11 @@ import { of } from "rxjs";
 // eslint-disable-next-line no-restricted-imports
 import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
-import { SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
+import { EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 import { LogService } from "@bitwarden/logging";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
+import { ApiService } from "../../../abstractions/api.service";
 import { FeatureFlag } from "../../../enums/feature-flag.enum";
 import { ConfigService } from "../../../platform/abstractions/config/config.service";
 import { SdkService } from "../../../platform/abstractions/sdk/sdk.service";
@@ -108,6 +109,8 @@ describe("V2KeyRotationMigration", () => {
       mockLogService,
       mockCipherService,
       mockSdkService,
+      mock<ApiService>(),
+      mock<EncryptService>(),
     );
   });
 

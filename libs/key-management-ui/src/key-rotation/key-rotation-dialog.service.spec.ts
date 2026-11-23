@@ -6,12 +6,17 @@ import {
   UserDecryptionOptions,
   UserDecryptionOptionsServiceAbstraction,
 } from "@bitwarden/auth/common";
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { LogoutService } from "@bitwarden/common/auth/logout";
 import { DeviceTrustServiceAbstraction } from "@bitwarden/common/key-management/device-trust/abstractions/device-trust.service.abstraction";
 import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { ToastService } from "@bitwarden/components";
+import { KeyService } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService } from "@bitwarden/legacy-crypto";
 import { UserId } from "@bitwarden/user-core";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
@@ -43,6 +48,8 @@ describe("KeyRotationDialogService", () => {
     mockMasterPasswordUnlockService = mock<MasterPasswordUnlockService>();
     mockUserDecryptionOptionsService = mock<UserDecryptionOptionsServiceAbstraction>();
     mockDeviceTrustService = mock<DeviceTrustServiceAbstraction>();
+    const keyService = mock<KeyService>();
+    keyService.userKey$.mockReturnValue(of(null));
 
     mockI18nService.t.mockImplementation((key) => `${key}-used-i18n`);
 
@@ -59,6 +66,10 @@ describe("KeyRotationDialogService", () => {
           useValue: mockUserDecryptionOptionsService,
         },
         { provide: DeviceTrustServiceAbstraction, useValue: mockDeviceTrustService },
+        { provide: ApiService, useValue: mock<ApiService>() },
+        { provide: EncryptService, useValue: mock<EncryptService>() },
+        { provide: KeyService, useValue: keyService },
+        { provide: LogService, useValue: mock<LogService>() },
       ],
     });
 

@@ -5,9 +5,12 @@ import {
   KdfConfigService,
   KeyService,
 } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService } from "@bitwarden/legacy-crypto";
 import { LogService, measured, PerfTrackGroup } from "@bitwarden/logging";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
+import { ApiService } from "../../abstractions/api.service";
 import { assertNonNullish } from "../../auth/utils";
 import { ClientType } from "../../enums";
 import { ConfigService } from "../../platform/abstractions/config/config.service";
@@ -49,6 +52,8 @@ export class DefaultEncryptedMigrator implements EncryptedMigrator {
     sdkService: SdkService,
     stateProvider: StateProvider,
     i18nService: I18nService,
+    apiService: ApiService,
+    encryptService: EncryptService,
   ) {
     // Register migrations here
 
@@ -95,6 +100,8 @@ export class DefaultEncryptedMigrator implements EncryptedMigrator {
           logService,
           cipherService,
           sdkService,
+          apiService,
+          encryptService,
         ),
       });
     }

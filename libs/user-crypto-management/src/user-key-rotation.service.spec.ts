@@ -1,11 +1,7 @@
 import { mock, MockProxy } from "jest-mock-extended";
 import { of } from "rxjs";
 
-import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { SdkService } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
-import { KeyService } from "@bitwarden/key-management";
-// eslint-disable-next-line no-restricted-imports
-import { EncryptService } from "@bitwarden/legacy-crypto";
 import { LogService } from "@bitwarden/logging";
 import { PublicKey, UpgradeTokenAction } from "@bitwarden/sdk-internal";
 import { UserId } from "@bitwarden/user-core";
@@ -58,16 +54,11 @@ describe("DefaultUserKeyRotationService", () => {
     };
 
     mockSdkService.userClient$.mockReturnValue(of(mockSdkClient as any));
-    const keyService = mock<KeyService>();
-    keyService.userKey$.mockReturnValue(of(null));
 
     service = new DefaultUserKeyRotationService(
       mockSdkService,
       mockLogService,
       mockUserCryptoDialogService,
-      mock<ApiService>(),
-      mock<EncryptService>(),
-      keyService,
     );
   });
 

@@ -2,11 +2,18 @@ import { inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { UserDecryptionOptionsServiceAbstraction } from "@bitwarden/auth/common";
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { LogoutService } from "@bitwarden/common/auth/logout";
 import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
+import { UserKey } from "@bitwarden/common/types/key";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { finishAuthenticatorKeyRotation } from "@bitwarden/common/vault/services/authenticator-rotation";
 import { ToastService } from "@bitwarden/components";
+import { KeyService } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService } from "@bitwarden/legacy-crypto";
 import { UserId } from "@bitwarden/user-core";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
@@ -21,6 +28,10 @@ export class KeyRotationDialogService {
   private readonly logoutService = inject(LogoutService);
   private readonly masterPasswordUnlockService = inject(MasterPasswordUnlockService);
   private readonly userDecryptionOptionsService = inject(UserDecryptionOptionsServiceAbstraction);
+  private readonly apiService = inject(ApiService);
+  private readonly encryptService = inject(EncryptService);
+  private readonly keyService = inject(KeyService);
+  private readonly logService = inject(LogService);
 
   /**
    * Rotates the user's account encryption keys if the provided master password is validated via local proof of decryption.
@@ -44,11 +55,15 @@ export class KeyRotationDialogService {
       return false;
     }
 
+    const oldUserKey = await firstValueFrom(this.keyService.userKey$(userId));
     const success = await this.userKeyRotationService.rotateUserKey(
       { Password: { password: masterPassword } },
       "Skip",
       userId,
     );
+    if (success) {
+      await this.reencryptAuthenticatorEntries(userId, oldUserKey);
+    }
 
     if (success) {
       this.toastService.showToast({
@@ -83,11 +98,15 @@ export class KeyRotationDialogService {
       throw new Error("Key Connector URL not found in user decryption options");
     }
 
+    const oldUserKey = await firstValueFrom(this.keyService.userKey$(userId));
     const success = await this.userKeyRotationService.rotateUserKey(
       { KeyConnector: { key_connector_url: keyConnectorUrl } },
       "Skip",
       userId,
     );
+    if (success) {
+      await this.reencryptAuthenticatorEntries(userId, oldUserKey);
+    }
 
     if (success) {
       this.toastService.showToast({
@@ -112,7 +131,11 @@ export class KeyRotationDialogService {
   async rotateKeysForTDE(userId: UserId): Promise<boolean> {
     // TDE keys are rotated as a part of standard key rotation.
     // The call only needs to indicate we're using TDE with no additional metadata required.
+    const oldUserKey = await firstValueFrom(this.keyService.userKey$(userId));
     const success = await this.userKeyRotationService.rotateUserKey("Tde", "Skip", userId);
+    if (success) {
+      await this.reencryptAuthenticatorEntries(userId, oldUserKey);
+    }
 
     if (success) {
       this.toastService.showToast({
@@ -136,6 +159,30 @@ export class KeyRotationDialogService {
    * @param userId The ID of the user.
    * @returns True if the user has legacy cipher attachments, false otherwise.
    */
+  private async reencryptAuthenticatorEntries(
+    userId: UserId,
+    oldUserKey: UserKey | null,
+  ): Promise<void> {
+    const newUserKey = await firstValueFrom(this.keyService.userKey$(userId));
+    if (
+      oldUserKey == null ||
+      newUserKey == null ||
+      oldUserKey.toEncoded() === newUserKey.toEncoded()
+    ) {
+      return;
+    }
+    try {
+      await finishAuthenticatorKeyRotation(
+        this.apiService,
+        this.encryptService,
+        oldUserKey,
+        newUserKey,
+      );
+    } catch (error) {
+      this.logService.error(`Authenticator entries still need re-encryption: ${error}`);
+    }
+  }
+
   async hasLegacyCipherAttachments(userId: UserId): Promise<boolean> {
     const ciphers = await this.cipherService.getAllDecrypted(userId);
     return ciphers?.some((c) => c.organizationId == null && c.hasOldAttachments) ?? false;
