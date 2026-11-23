@@ -83,6 +83,20 @@ describe("AuthenticatorFormComponent", () => {
     );
   });
 
+  it("parses an otpauth link left in the secret field when saving", async () => {
+    const component = setup();
+    component["form"].controls.secret.setValue(
+      "otpauth://totp/GitHub:ada?secret=WQIQ25BRKZYCJVYP&issuer=GitHub",
+    );
+
+    await component.submit();
+
+    expect(TestBed.inject(AuthenticatorService).save).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "ada", issuer: "GitHub", secret: "WQIQ25BRKZYCJVYP" }),
+      undefined,
+    );
+  });
+
   it("accepts digits 5 through 10 and periods up to one day", () => {
     const component = setup();
 

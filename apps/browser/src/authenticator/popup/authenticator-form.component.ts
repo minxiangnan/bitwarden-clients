@@ -147,6 +147,15 @@ export class AuthenticatorFormComponent implements OnInit {
     if (this.form.invalid || this.saving()) {
       return;
     }
+    const rawSecret = this.form.controls.secret.value.trim();
+    if (rawSecret.toLowerCase().startsWith("otpauth://")) {
+      const parsed = parseOtpAuthUri(rawSecret);
+      if (!parsed) {
+        this.errorKey.set("authenticatorInvalidUri");
+        return;
+      }
+      this.form.patchValue(parsed);
+    }
     const draft = this.form.getRawValue() satisfies AuthenticatorDraft;
     draft.secret = normalizeTotpSecret(draft.secret);
     if (!isValidTotpSecret(draft.secret)) {
