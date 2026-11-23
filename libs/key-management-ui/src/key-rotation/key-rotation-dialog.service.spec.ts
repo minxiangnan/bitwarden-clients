@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { mock, MockProxy } from "jest-mock-extended";
-import { of } from "rxjs";
+import { BehaviorSubject, of } from "rxjs";
 
 import {
   UserDecryptionOptions,
@@ -16,7 +16,7 @@ import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.servi
 import { ToastService } from "@bitwarden/components";
 import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
-import { EncryptService } from "@bitwarden/legacy-crypto";
+import { EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 import { UserId } from "@bitwarden/user-core";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
@@ -79,6 +79,27 @@ describe("KeyRotationDialogService", () => {
   describe("rotateKeys", () => {
     beforeEach(() => {
       mockMasterPasswordUnlockService.proofOfDecryption.mockResolvedValue(true);
+    });
+
+    it("still re-encrypts authenticator entries when the user key changed and rotation then fails", async () => {
+      const oldKey = new SymmetricCryptoKey(new Uint8Array(64).fill(1));
+      const newKey = new SymmetricCryptoKey(new Uint8Array(64).fill(2));
+      const key$ = new BehaviorSubject(oldKey);
+      (TestBed.inject(KeyService) as MockProxy<KeyService>).userKey$.mockReturnValue(
+        key$ as never,
+      );
+      mockUserKeyRotationService.rotateUserKey.mockImplementation(async () => {
+        key$.next(newKey);
+        throw new Error("Authenticator entries must be re-encrypted");
+      });
+      const api = TestBed.inject(ApiService) as MockProxy<ApiService>;
+      api.send.mockResolvedValue({ data: [], object: "list" });
+
+      const result = await sut.rotateKeys(masterPassword, mockUserId);
+
+      expect(result).toBe(false);
+      expect(api.send).toHaveBeenCalledWith("GET", "/authenticator", null, true, true);
+      expect(mockLogoutService.logout).not.toHaveBeenCalled();
     });
 
     it("shows error toast when proof of decryption fails", async () => {

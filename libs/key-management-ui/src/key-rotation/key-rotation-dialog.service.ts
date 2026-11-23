@@ -56,12 +56,18 @@ export class KeyRotationDialogService {
     }
 
     const oldUserKey = await firstValueFrom(this.keyService.userKey$(userId));
-    const success = await this.userKeyRotationService.rotateUserKey(
-      { Password: { password: masterPassword } },
-      "Skip",
-      userId,
-    );
-    if (success) {
+    let success = false;
+    try {
+      success = await this.userKeyRotationService.rotateUserKey(
+        { Password: { password: masterPassword } },
+        "Skip",
+        userId,
+      );
+    } catch (error) {
+      // The server can accept the rotation and then reject a follow-up call. The user key may
+      // already be the new one, so authenticator entries still have to be re-encrypted.
+      this.logService.error(error);
+    } finally {
       await this.reencryptAuthenticatorEntries(userId, oldUserKey);
     }
 
@@ -164,11 +170,7 @@ export class KeyRotationDialogService {
     oldUserKey: UserKey | null,
   ): Promise<void> {
     const newUserKey = await firstValueFrom(this.keyService.userKey$(userId));
-    if (
-      oldUserKey == null ||
-      newUserKey == null ||
-      oldUserKey.toEncoded() === newUserKey.toEncoded()
-    ) {
+    if (oldUserKey == null || newUserKey == null || sameKeyBytes(oldUserKey, newUserKey)) {
       return;
     }
     try {
@@ -187,4 +189,18 @@ export class KeyRotationDialogService {
     const ciphers = await this.cipherService.getAllDecrypted(userId);
     return ciphers?.some((c) => c.organizationId == null && c.hasOldAttachments) ?? false;
   }
+}
+
+function sameKeyBytes(left: UserKey, right: UserKey): boolean {
+  const a = left.toEncoded();
+  const b = right.toEncoded();
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+  for (let i = 0; i < a.byteLength; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
