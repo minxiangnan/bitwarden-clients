@@ -1,3 +1,4 @@
+import "../../platform/i18n/force-zh-cn";
 import { ExtensionPageUrls } from "@bitwarden/common/vault/enums";
 import { VaultMessages } from "@bitwarden/common/vault/enums/vault-messages.enum";
 

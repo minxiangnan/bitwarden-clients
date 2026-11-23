@@ -18,7 +18,7 @@ describe("AutofillSettingsService", () => {
   let accountService: FakeAccountService;
   let stateProvider: FakeStateProvider;
   let configService: MockProxy<ConfigService>;
-  let featureFlag$: BehaviorSubject<boolean>;
+  let serverConfig$: BehaviorSubject<{ featureStates: Record<string, boolean> } | null>;
   let enableBasicAuthResponseByUser: Map<UserId, Observable<boolean | null>>;
   let autofillSettingsService: AutofillSettingsService;
 
@@ -32,11 +32,11 @@ describe("AutofillSettingsService", () => {
     accountService = mockAccountServiceWith(userId);
     stateProvider = new FakeStateProvider(accountService);
 
-    featureFlag$ = new BehaviorSubject<boolean>(true);
+    serverConfig$ = new BehaviorSubject<{ featureStates: Record<string, boolean> } | null>({
+      featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true },
+    });
     configService = mock<ConfigService>();
-    configService.getFeatureFlag$
-      .calledWith(FeatureFlag.EnableBasicAuthResponse)
-      .mockReturnValue(featureFlag$);
+    configService.serverConfig$ = serverConfig$;
 
     // Only the resolved basic auth response state reads single-user state, so
     // each user's stored setting is supplied here as its own stream.
@@ -72,7 +72,7 @@ describe("AutofillSettingsService", () => {
     });
 
     it("emits false when the feature flag is disabled", async () => {
-      featureFlag$.next(false);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: false } });
 
       await expect(
         firstValueFrom(autofillSettingsService.resolvedEnableBasicAuthResponse$),
@@ -123,13 +123,21 @@ describe("AutofillSettingsService", () => {
       subscription.unsubscribe();
     });
 
+    it("treats a server that omits the basic auth flag as enabled", async () => {
+      serverConfig$.next({ featureStates: {} });
+
+      await expect(
+        firstValueFrom(autofillSettingsService.resolvedEnableBasicAuthResponse$),
+      ).resolves.toBe(true);
+    });
+
     it("updates when the feature flag changes", () => {
       const { emissions, subscription } = collectEmissions(
         autofillSettingsService.resolvedEnableBasicAuthResponse$,
       );
 
-      featureFlag$.next(false);
-      featureFlag$.next(true);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: false } });
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true } });
 
       expect(emissions).toEqual([true, false, true]);
       subscription.unsubscribe();
@@ -140,7 +148,7 @@ describe("AutofillSettingsService", () => {
         autofillSettingsService.resolvedEnableBasicAuthResponse$,
       );
 
-      featureFlag$.next(true);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true } });
 
       expect(emissions).toEqual([true]);
       subscription.unsubscribe();
@@ -150,8 +158,8 @@ describe("AutofillSettingsService", () => {
       const resolved = collectEmissions(autofillSettingsService.resolvedEnableBasicAuthResponse$);
       const available = collectEmissions(autofillSettingsService.httpAuthenticationAvailable$);
 
-      featureFlag$.next(false);
-      featureFlag$.next(true);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: false } });
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true } });
 
       expect(resolved.emissions).toEqual([true, false, true]);
       expect(available.emissions).toEqual([true, false, true]);
@@ -198,7 +206,7 @@ describe("AutofillSettingsService", () => {
     });
 
     it("emits false when the feature flag is off", async () => {
-      featureFlag$.next(false);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: false } });
 
       await expect(
         firstValueFrom(autofillSettingsService.httpAuthenticationAvailable$),
@@ -230,8 +238,8 @@ describe("AutofillSettingsService", () => {
         autofillSettingsService.httpAuthenticationAvailable$,
       );
 
-      featureFlag$.next(false);
-      featureFlag$.next(true);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: false } });
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true } });
 
       expect(emissions).toEqual([true, false, true]);
       subscription.unsubscribe();
@@ -242,7 +250,7 @@ describe("AutofillSettingsService", () => {
         autofillSettingsService.httpAuthenticationAvailable$,
       );
 
-      featureFlag$.next(true);
+      serverConfig$.next({ featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true } });
       await accountService.switchAccount(otherUserId);
 
       expect(emissions).toEqual([true]);

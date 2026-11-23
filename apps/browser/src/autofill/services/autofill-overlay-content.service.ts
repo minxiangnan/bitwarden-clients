@@ -81,6 +81,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   private fieldsWithSubmitElements: WeakMap<FillableFormFieldElement, HTMLElement> = new WeakMap();
   private ignoredFieldTypes: Set<string> = new Set(AutoFillConstants.ExcludedInlineMenuTypes);
   private userFilledFields: Record<string, FillableFormFieldElement> | null = {};
+  /**
+   * Last non-empty login values. Pages clear fields before a scripted submit or the next
+   * step, and a full navigation destroys this script, so these are also sent to the
+   * background while they are still known.
+   */
+  private lastNonEmptyLoginFields = { username: "", password: "", newPassword: "" };
+  private loginCaptureTimer: ReturnType<typeof setTimeout> | null = null;
   private focusableElements: FocusableElement[] = [];
   private mostRecentlyFocusedField: ElementWithOpId<FormFieldElement> | null = null;
   private focusedFieldData: FocusedFieldData | null = null;
@@ -203,6 +210,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * `startMonitoring()` begins fresh. Idempotent.
    */
   stopMonitoring(): void {
+    this.flushCapturedLogin();
     this.isMonitoring = false;
     globalThis.document.removeEventListener(
       EVENTS.DOMCONTENTLOADED,
@@ -214,6 +222,8 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       this.handleVisibilityChangeEvent,
     );
     globalThis.removeEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
+    globalThis.removeEventListener("pagehide", this.flushCapturedLogin);
+    globalThis.removeEventListener("pointerdown", this.flushCapturedLogin, true);
     this.removeOverlayRepositionEventListeners();
     this.removeRebuildSubFrameOffsetsListeners();
     this.removeSubFrameFocusOutListeners();
@@ -232,6 +242,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     this.submitElements.clear();
     this.focusableElements = [];
     this.clearUserFilledFields();
+    this.lastNonEmptyLoginFields = { username: "", password: "", newPassword: "" };
     this.mostRecentlyFocusedField = null;
     this.focusedFieldData = null;
     this.pageDetailsUpdateRequired = false;
@@ -738,13 +749,85 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * Returns the form field data used for add login and change password notifications.
    */
   private getFormFieldData = (): ModifyLoginCipherFormData => {
-    return {
-      uri: globalThis.document.URL,
+    const current = {
       username: this.userFilledFields?.["username"]?.value || "",
       password: this.userFilledFields?.["password"]?.value || "",
       newPassword: this.userFilledFields?.["newPassword"]?.value || "",
     };
+    return {
+      uri: globalThis.document.URL,
+      username:
+        current.username ||
+        this.lastNonEmptyLoginFields.username ||
+        this.liveLoginFieldValue([
+          'input[autocomplete="username"]',
+          'input[autocomplete="email"]',
+          'input[type="email"]',
+          'input[name="username" i]',
+        ]),
+      password:
+        current.password ||
+        this.lastNonEmptyLoginFields.password ||
+        this.liveLoginFieldValue([
+          'input[autocomplete="current-password"]',
+          'input[type="password"]:not([autocomplete="new-password"])',
+        ]),
+      newPassword:
+        current.newPassword ||
+        this.lastNonEmptyLoginFields.newPassword ||
+        this.liveLoginFieldValue(['input[autocomplete="new-password"]']),
+    };
   };
+
+  /**
+   * Reads a login value straight from the DOM. Field qualification can lag a
+   * navigation, and the two-step password page still needs the username that is
+   * on screen when the user continues.
+   */
+  private liveLoginFieldValue(selectors: string[]): string {
+    for (const selector of selectors) {
+      const fields = globalThis.document.querySelectorAll<HTMLInputElement>(selector);
+      for (const field of fields) {
+        if (field.value) {
+          return field.value;
+        }
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Sends the latest login fields to the background. Called when a field is filled, when the
+   * page is hidden, and before an in-page navigation clears the live fields.
+   */
+  flushCapturedLogin = () => {
+    if (this.loginCaptureTimer != null) {
+      clearTimeout(this.loginCaptureTimer);
+      this.loginCaptureTimer = null;
+    }
+    const data = this.getFormFieldData();
+    if (!data.username && !data.password && !data.newPassword) {
+      return;
+    }
+    void this.sendExtensionMessage("formFieldSubmitted", data);
+  };
+
+  private rememberLoginField(qualifier: string | undefined, value: string | undefined) {
+    if (
+      value == null ||
+      value === "" ||
+      (qualifier !== "username" && qualifier !== "password" && qualifier !== "newPassword")
+    ) {
+      return;
+    }
+    if (this.lastNonEmptyLoginFields[qualifier] === value) {
+      return;
+    }
+    this.lastNonEmptyLoginFields[qualifier] = value;
+    // A delayed flush is lost when the next click navigates before the timer fires,
+    // which drops the username on a two-step login.
+    this.flushCapturedLogin();
+  }
 
   /**
    * Helper method that facilitates registration of an event handler to a form field element.
@@ -977,6 +1060,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     this.userFilledFields[autofillFieldData.fieldQualifier] = clonedNode;
+    this.rememberLoginField(autofillFieldData.fieldQualifier, formFieldElement.value);
   }
 
   /**
@@ -1750,6 +1834,9 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     globalThis.addEventListener(EVENTS.MESSAGE, this.handleWindowMessageEvent);
     globalThis.document.addEventListener(EVENTS.VISIBILITYCHANGE, this.handleVisibilityChangeEvent);
     globalThis.addEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
+    globalThis.addEventListener("pagehide", this.flushCapturedLogin);
+    // pointerdown runs before the page's click handler navigates to the next login step.
+    globalThis.addEventListener("pointerdown", this.flushCapturedLogin, true);
     this.setOverlayRepositionEventListeners();
   };
 

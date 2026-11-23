@@ -217,6 +217,35 @@ describe("OverlayNotificationsBackground", () => {
       ).toBeUndefined();
     });
 
+    it("stores a submission that arrived before the tab was registered", async () => {
+      const earlySender = mock<chrome.runtime.MessageSender>({
+        tab: { id: 2, url: "https://example.com/login" },
+        url: "https://example.com/login",
+        origin: "https://example.com",
+      });
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/login",
+          username: "ada",
+          password: "secret",
+        },
+        earlySender,
+      );
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(2)).toBeUndefined();
+
+      sendMockExtensionMessage(
+        { command: "collectPageDetailsResponse", details: pageDetails },
+        earlySender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(2)).toEqual(
+        expect.objectContaining({ username: "ada", password: "secret" }),
+      );
+    });
+
     it("ignores the store request if the form submission does not include a username, password, or newPassword", () => {
       sendMockExtensionMessage(
         {
@@ -255,6 +284,59 @@ describe("OverlayNotificationsBackground", () => {
         password: "password",
         newPassword: "newPassword",
       });
+    });
+
+    it("combines a username captured on the first step with the password submitted on the second", async () => {
+      const originSender = mock<chrome.runtime.MessageSender>({
+        tab: { id: sender.tab.id, url: "https://example.com/password" },
+        origin: "https://example.com",
+      });
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/username",
+          username: "ada",
+          password: "",
+          newPassword: "",
+        },
+        originSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["notificationFallbackTimeout"]).toBeNull();
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/password",
+          username: "",
+          password: "secret",
+          newPassword: "",
+        },
+        originSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(sender.tab.id)).toEqual(
+        {
+          uri: "https://example.com/password",
+          username: "ada",
+          password: "secret",
+          newPassword: "",
+        },
+      );
+    });
+
+    it("does not reuse a username after the save prompt has been offered", () => {
+      overlayNotificationsBackground["capturedUsernames"].set(sender.tab.id, {
+        origin: "https://example.com",
+        username: "ada",
+        expiresAt: Date.now() + 60_000,
+      });
+
+      overlayNotificationsBackground["clearCompletedWebRequest"]("request-1", sender.tab.id);
+
+      expect(overlayNotificationsBackground["capturedUsernames"].has(sender.tab.id)).toBe(false);
     });
 
     it("overrides previously stored modified login cipher form data with a subsequent store request", async () => {

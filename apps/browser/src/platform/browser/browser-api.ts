@@ -890,13 +890,35 @@ export class BrowserApi {
    * Firefox where no native managed manifest is installed. Callers decide whether that is
    * exceptional; on most installations it is the normal case.
    */
+  /**
+   * How long a managed-storage read may block extension startup. Chromium can leave
+   * `chrome.storage.managed.get` pending forever when an extension declares
+   * `storage.managed_schema` (bitwarden/clients#24182, #13299). Bootstrap awaits this read
+   * before migrations, so an unsettled call leaves the popup on its spinner.
+   */
+  private static readonly managedStorageTimeoutMs = 3000;
+
   static getManagedStorage(): Promise<Record<string, unknown> | undefined> {
     if (chrome.storage?.managed == null) {
       return Promise.resolve(undefined);
     }
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        reject(new Error("Managed storage read timed out"));
+      }, BrowserApi.managedStorageTimeoutMs);
+
       chrome.storage.managed.get(null, (items) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
         if (chrome.runtime.lastError) {
           return reject(chrome.runtime.lastError);
         }

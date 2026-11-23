@@ -1,3 +1,5 @@
+import "../../../../../platform/i18n/force-zh-cn";
+
 // FIXME: Remove when updating file. Eslint update
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require("./menu-container.scss");

@@ -136,11 +136,15 @@ export class AutofillComponent implements OnInit {
   protected fillAssistFeatureEnabled$: Observable<boolean> = this.configService.getFeatureFlag$(
     FeatureFlag.FillAssistTargetingRules,
   );
-  /** Safari cannot answer HTTP auth challenges from an extension, so the setting is never offered there. */
+  /**
+   * Safari cannot answer HTTP auth challenges from an extension, so the setting is never offered
+   * there. Elsewhere the setting is offered unless the server explicitly turns the flag off.
+   * A server that omits `enable-basic-auth-response` still offers it (bitwarden/clients#17324).
+   */
   protected basicAuthResponseSettingIsAvailable$: Observable<boolean> =
     this.platformUtilsService.isSafari()
       ? of(false)
-      : this.configService.getFeatureFlag$(FeatureFlag.EnableBasicAuthResponse);
+      : this.autofillSettingsService.httpAuthenticationAvailable$;
 
   protected autofillOnPageLoadForm = new FormGroup({
     autofillOnPageLoad: new FormControl(),

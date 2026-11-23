@@ -26,6 +26,12 @@
   "createAccount": {
     "message": "创建账户"
   },
+  "welcomeToBitwarden": {
+    "message": "欢迎使用 Bitwarden"
+  },
+  "createYourAccountOrLogIn": {
+    "message": "创建账户或登录"
+  },
   "newToBitwarden": {
     "message": "Bitwarden 新手吗？"
   },
@@ -3837,14 +3843,14 @@
     "message": "复制 Send 链接",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
-  "removePassword": {
-    "message": "移除密码"
+  "removeAuth": {
+    "message": "移除密码或邮箱验证"
   },
   "delete": {
     "message": "删除"
   },
-  "removedPassword": {
-    "message": "密码已移除"
+  "removedAuth": {
+    "message": "已移除密码或邮箱验证"
   },
   "deletedSend": {
     "message": "Send 已删除",
@@ -3857,8 +3863,28 @@
   "disabled": {
     "message": "已禁用"
   },
-  "removePasswordConfirmation": {
-    "message": "确定要移除此密码吗？"
+  "removeAuthConfirmation": {
+    "message": "确定要移除此 Send 的密码或邮箱验证要求吗？"
+  },
+  "removePassword": {
+    "message": "移除密码"
+  },
+  "removeEmailVerification": {
+    "message": "移除邮箱验证"
+  },
+  "removedPassword": {
+    "message": "密码已移除"
+  },
+  "removedEmailVerification": {
+    "message": "已移除邮箱验证"
+  },
+  "removeSendPasswordConfirmation": {
+    "message": "确定要移除此 Send 的密码要求吗？",
+    "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
+  },
+  "removeSendEmailVerificationConfirmation": {
+    "message": "确定要移除此 Send 的邮箱验证要求吗？",
+    "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "deleteSend": {
     "message": "删除 Send",
@@ -6705,9 +6731,6 @@
   "copyAddress": {
     "message": "复制地址"
   },
-  "myItems": {
-    "message": "我的项目"
-  },
   "myItemsV2": {
     "message": "我的项目"
   },
@@ -7052,12 +7075,13 @@
       }
     }
   },
-  "appUri": {
-    "message": "App (URI)"
+  "desktopApp": {
+    "message": "桌面应用",
+    "description": "Label for a field that shows an application installed on the computer that the item is paired with."
   },
-  "appUriCount": {
-    "message": "App (URI) $COUNT$",
-    "description": "Label for an input field that contains an app URI. The input field is part of a list of fields, and the count indicates the position of the field in the list.",
+  "desktopAppCount": {
+    "message": "桌面应用 $COUNT$",
+    "description": "Label for a field that shows an application installed on the computer that the item is paired with. The field is part of a list of fields, and the count indicates the position of the field in the list.",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -8443,8 +8467,8 @@
     "message": "此 Send 将在设置的删除日期自动过期",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
-  "errorImportingMyItemsMultiCollection": {
-    "message": "您不能将属于多个集合的项目导入到「我的项目」"
+  "errorImportingMyItemsMultiCollectionV2": {
+    "message": "无法将属于多个集合的项目导入“我的项目”"
   },
   "cannotSaveItemNoConfirmedOrgs": {
     "message": "无法保存项目。您必须先通过组织确认才能保存项目。"
@@ -8865,6 +8889,430 @@
   },
   "httpAuthenticationTurnedOffNotice": {
     "message": "此项目已开启主密码二次验证，因此浏览器登录自动填充提示功能被关闭。请保存此条目以保留此更改。"
+  },
+  "pamStartLeaseErrorWindowNotStarted": {
+    "message": "已批准的访问时段尚未开始。"
+  },
+  "pamStartLeaseErrorWindowEnded": {
+    "message": "已批准的访问时段已经结束。"
+  },
+  "pamStartLeaseErrorNotApproved": {
+    "message": "此请求尚未获得批准。"
+  },
+  "pamStartLeaseErrorNoLongerActivatable": {
+    "message": "此请求已无法再激活。"
+  },
+  "pamStartLeaseErrorAlreadyUsed": {
+    "message": "此请求的访问权限已使用，不再有效。"
+  },
+  "pamStartLeaseErrorSingleActiveAccess": {
+    "message": "同一时间只能有 1 位用户对此项目拥有活动访问权限。请在当前访问结束后再试。"
+  },
+  "pamStartLeaseErrorNetworkNotPermitted": {
+    "message": "当前网络不允许访问此项目。"
+  },
+  "pamStartLeaseErrorTimeNotPermitted": {
+    "message": "当前时间不允许访问此项目。"
+  },
+  "pamStartLeaseErrorNotPermitted": {
+    "message": "现在不允许访问此项目。"
+  },
+  "requestAccessModalAlreadyApproved": {
+    "message": "你已有一项已批准的此项目请求。"
+  },
+  "requestAccessModalAlreadyPending": {
+    "message": "你已有一项待处理的此项目请求。"
+  },
+  "pamLeaseExpires": {
+    "message": "于 $DATE$ $TIME$ 到期",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "Nov 3, 2026"
+      },
+      "time": {
+        "content": "$2",
+        "example": "4:15 pm"
+      }
+    }
+  },
+  "pamLeaseExpiresToday": {
+    "message": "今天 $TIME$ 到期",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "4:15 pm"
+      }
+    }
+  },
+  "pamStartLeaseButton": {
+    "message": "开始访问"
+  },
+  "pamStartLeaseSuccess": {
+    "message": "访问已开始。"
+  },
+  "pamStartLeaseError": {
+    "message": "无法开始访问。"
+  },
+  "pamEndLeaseButton": {
+    "message": "结束访问"
+  },
+  "pamEndLeaseTitle": {
+    "message": "结束访问？"
+  },
+  "pamEndLeaseConfirm": {
+    "message": "这将立即撤销你的访问权限。此操作无法撤销。"
+  },
+  "pamEndLeaseSuccess": {
+    "message": "访问已结束。"
+  },
+  "pamExtendLeaseButtonV2": {
+    "message": "延长访问"
+  },
+  "pamExtendLeaseDialogTitle": {
+    "message": "延长访问"
+  },
+  "pamExtendLeaseDurationLabel": {
+    "message": "延长时长"
+  },
+  "pamExtendLeaseReasonLabel": {
+    "message": "原因"
+  },
+  "pamExtendLeaseSuccess": {
+    "message": "访问已延长。"
+  },
+  "pamExtendLeaseError": {
+    "message": "无法延长访问。"
+  },
+  "pamExtendLeaseEnded": {
+    "message": "访问在延长前已经结束。该请求已记入历史记录。"
+  },
+  "pamAccessBadgePrivileged": {
+    "message": "特权"
+  },
+  "pamAccessBadgePending": {
+    "message": "等待批准"
+  },
+  "pamAccessBadgeUnavailable": {
+    "message": "不可用"
+  },
+  "pamAccessBadgeReady": {
+    "message": "可以使用"
+  },
+  "pamAccessBadgeTimeLeft": {
+    "message": "剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "18m"
+      }
+    }
+  },
+  "pamAccessBadgeEndingSoon": {
+    "message": "即将结束 • 剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "4m"
+      }
+    }
+  },
+  "pamAccessBadgeEnded": {
+    "message": "会话已结束"
+  },
+  "pamActiveLeaseBannerTitleV2": {
+    "message": "访问进行中 • 剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "20 days"
+      }
+    }
+  },
+  "pamActiveLeaseBannerEndingSoonTitleV2": {
+    "message": "即将结束 • 剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "4 minutes"
+      }
+    }
+  },
+  "pamPendingRequestBannerHeading": {
+    "message": "访问请求等待批准"
+  },
+  "pamPendingSubmittedJustNow": {
+    "message": "刚刚提交"
+  },
+  "pamPendingSubmittedAgo": {
+    "message": "提交于 $WHEN$",
+    "placeholders": {
+      "when": {
+        "content": "$1",
+        "example": "5 minutes ago"
+      }
+    }
+  },
+  "pamPrivilegedCredentialsHeading": {
+    "message": "特权凭据"
+  },
+  "pamLicenseNeededTooltip": {
+    "message": "需要特权控制许可证",
+    "description": "Tooltip on the disabled Request access button of a member without a Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamRequestToUse": {
+    "message": "申请使用"
+  },
+  "pamUnavailableToRequest": {
+    "message": "无法申请",
+    "description": "Subtitle of a vault row for a privileged item that cannot be requested right now, for example because another member holds it."
+  },
+  "pamExtendAccessMenuItem": {
+    "message": "延长访问",
+    "description": "Overflow menu action on a vault row that extends the member's active access to a privileged item."
+  },
+  "pamAccessBadgeLessThanMinuteLeft": {
+    "message": "剩余不到 1 分钟",
+    "description": "Badge for a vault item whose access ends in under a minute."
+  },
+  "controlledAccess": {
+    "message": "受控访问"
+  },
+  "pamControlledAccessFilterActive": {
+    "message": "使用中"
+  },
+  "pamControlledAccessFilterEndingSoon": {
+    "message": "即将结束"
+  },
+  "pamEndedBannerHeading": {
+    "message": "你的访问已结束"
+  },
+  "pamEndedBannerBody": {
+    "message": "此凭据的租约已到期。访问结束后，该凭据现在将被轮换。"
+  },
+  "pamUnavailableBannerHeading": {
+    "message": "你现在无法申请访问"
+  },
+  "pamUnavailableBannerBody": {
+    "message": "此凭据的访问规则不允许从当前网络或在当前时间提出申请。"
+  },
+  "pamApprovedRequestBannerHeadingV2": {
+    "message": "可以使用"
+  },
+  "pamApprovedAccessUntilToday": {
+    "message": "你可以在今天 $TIME$ 之前访问此凭据。",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "4:45 PM"
+      }
+    }
+  },
+  "pamApprovedAccessUntil": {
+    "message": "你可以在 $DATE$ $TIME$ 之前访问此凭据。",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "4:45 PM"
+      },
+      "date": {
+        "content": "$2",
+        "example": "Nov 6, 2026"
+      }
+    }
+  },
+  "pamRequestAccessBannerBody": {
+    "message": "在授予访问权限之前，凭据会被隐藏。"
+  },
+  "pamRequestAccessBannerHeading": {
+    "message": "你可以申请访问"
+  },
+  "pamUnlicensedBannerHeadingV2": {
+    "message": "使用此项目需要特权控制许可证",
+    "description": "Heading of the message shown on a privileged item to a member who has no Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamUnlicensedBannerRequestUnavailable": {
+    "message": "未获得许可时无法申请访问。",
+    "description": "Explains to a member without a Privileged Controls license why no request button is offered on a privileged item."
+  },
+  "pamUnlicensedBannerBodyV2": {
+    "message": "请让管理员激活你的许可证。",
+    "description": "Body of the message shown on a privileged item to a member who has no Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamLeaseErrorUnlicensed": {
+    "message": "需要特权控制许可证。请让管理员激活你的许可证。",
+    "description": "Toast shown when starting or extending privileged access fails because the member has no Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamRequestAccessBannerMaxDuration": {
+    "message": "最长访问 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "1 day"
+      }
+    }
+  },
+  "pamRequestAccessBannerMaxDurationAutomatic": {
+    "message": "最长访问 $DURATION$，满足条件即可立即批准",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "1 day"
+      }
+    }
+  },
+  "pamRequestAccessButton": {
+    "message": "申请访问"
+  },
+  "pamRequestSlotTaken": {
+    "message": "当前已有其他人正在访问此项目。你可以申请访问，但要等对方结束后才能开始。"
+  },
+  "pamRequestSlotTakenUntil": {
+    "message": "当前已有其他人正在访问此项目。你可以申请访问，但要到 $TIME$ 才能开始。",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "8/31/26, 10:52 AM"
+      }
+    }
+  },
+  "pendingStateCancelRequest": {
+    "message": "取消请求"
+  },
+  "pamKeepRequest": {
+    "message": "保留请求"
+  },
+  "pamCancelRequestTitle": {
+    "message": "取消访问请求"
+  },
+  "pamCancelRequestPendingConfirm": {
+    "message": "这将在审批人决定之前撤回你的请求。你可以随时重新提交。"
+  },
+  "pamCancelRequestApprovedConfirm": {
+    "message": "这将放弃已经批准的访问权限。你可以重新提交请求，但需要再次批准。"
+  },
+  "pamCancelRequestCanceledToast": {
+    "message": "请求已取消"
+  },
+  "pendingStateCancelError": {
+    "message": "无法取消请求。"
+  },
+  "requestAccessModalSubmitV2": {
+    "message": "发送请求"
+  },
+  "requestAccessModalDurationV2": {
+    "message": "你需要使用多长时间？"
+  },
+  "requestAccessModalDurationHint": {
+    "message": "批准后你会收到通知。只有在你开始使用此凭据后，时间才会开始倒计时。"
+  },
+  "requestAccessModalDetailsHeading": {
+    "message": "请求详情"
+  },
+  "requestAccessModalStartDate": {
+    "message": "开始日期"
+  },
+  "requestAccessModalStart": {
+    "message": "开始时间"
+  },
+  "requestAccessModalEndDate": {
+    "message": "结束日期"
+  },
+  "requestAccessModalEnd": {
+    "message": "结束时间"
+  },
+  "requestAccessModalEndNotAfterStart": {
+    "message": "结束时间必须晚于开始时间。"
+  },
+  "requestAccessModalStartNow": {
+    "message": "$TIME$（现在）",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "10:57 AM"
+      }
+    }
+  },
+  "requestAccessModalCustomOption": {
+    "message": "自定义时间…"
+  },
+  "requestAccessModalCustomEndOption": {
+    "message": "自定义结束日期和时间…"
+  },
+  "requestAccessModalShowStartPresets": {
+    "message": "显示建议的开始时间"
+  },
+  "requestAccessModalShowEndPresets": {
+    "message": "返回建议时长"
+  },
+  "requestAccessModalDurationUntil": {
+    "message": "$DURATION$，直到 $END$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "4 hours"
+      },
+      "end": {
+        "content": "$2",
+        "example": "2:57 PM"
+      }
+    }
+  },
+  "requestAccessModalWindowSummary": {
+    "message": "申请 $DURATION$ 的访问：$START$ – $END$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "2 days, 22 hours"
+      },
+      "start": {
+        "content": "$2",
+        "example": "Tue, Sep 29, 10:57 AM"
+      },
+      "end": {
+        "content": "$3",
+        "example": "Thu, Oct 1, 9:00 AM"
+      }
+    }
+  },
+  "requestAccessModalWindowInPast": {
+    "message": "申请的时段已经结束。请选择更晚的日期或时间。"
+  },
+  "requestAccessModalWindowExceedsMax": {
+    "message": "时段不能超过 $DURATION$。",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "30 minutes"
+      }
+    }
+  },
+  "requestAccessModalReasonRequiredV2": {
+    "message": "你为什么需要它？"
+  },
+  "requestAccessModalReasonOptionalV2": {
+    "message": "你为什么需要它？"
+  },
+  "requestAccessModalReasonPlaceholderV2": {
+    "message": "例如：季度审计，需要运行几条只读查询"
+  },
+  "requestAccessModalAutomaticReasonHintV2": {
+    "message": "审批人可见，并会写入审计日志。"
+  },
+  "requestAccessModalHumanReasonHintV2": {
+    "message": "审批人可见，并会写入审计日志。"
+  },
+  "requestAccessModalGenericError": {
+    "message": "无法申请访问。请重试。"
+  },
+  "requestAccessModalAlreadyActive": {
+    "message": "你已经拥有此项目的活动访问权限。"
+  },
+  "requestAccessModalApprovedSuccessV2": {
+    "message": "访问已批准。选择“开始访问”即可开始。"
+  },
+  "requestAccessModalRequestCreatedSuccessV2": {
+    "message": "已申请访问"
   },
   "authenticator": {
     "message": "验证器"
