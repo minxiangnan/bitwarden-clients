@@ -60,7 +60,7 @@ describe("authenticator otpauth", () => {
     expect(isValidTotpSecret("short")).toBe(false);
   });
 
-  it("filters by search and favorites, with favorites first", () => {
+  it("filters by search and favorites, ordered by sortOrder", () => {
     const other = { ...entry, id: "2", name: "Work", issuer: "Mail", favorite: true, sortOrder: 2 };
     const notes = { ...entry, id: "3", name: "Bank", notes: "backup" };
 
@@ -71,8 +71,8 @@ describe("authenticator otpauth", () => {
       filterAuthenticatorEntries([entry, other, notes], "", true).map((item) => item.id),
     ).toEqual(["2"]);
     expect(filterAuthenticatorEntries([entry, other], "", false).map((item) => item.id)).toEqual([
-      "2",
       "1",
+      "2",
     ]);
     expect(filterAuthenticatorEntries([notes], "backup", false)).toHaveLength(1);
   });

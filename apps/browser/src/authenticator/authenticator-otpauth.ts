@@ -127,6 +127,17 @@ function boundedInteger(
   return value;
 }
 
+/** List order. Up and down swap neighbors in this order, so favorites stay a filter rather than a sort key. */
+export function compareAuthenticatorEntries(
+  a: Pick<AuthenticatorEntryView, "sortOrder" | "name">,
+  b: Pick<AuthenticatorEntryView, "sortOrder" | "name">,
+): number {
+  if (a.sortOrder !== b.sortOrder) {
+    return a.sortOrder - b.sortOrder;
+  }
+  return a.name.localeCompare(b.name);
+}
+
 export function filterAuthenticatorEntries(
   entries: AuthenticatorEntryView[],
   query: string,
@@ -145,13 +156,5 @@ export function filterAuthenticatorEntries(
         entry.notes.toLowerCase().includes(term)
       );
     })
-    .sort((a, b) => {
-      if (a.favorite !== b.favorite) {
-        return a.favorite ? -1 : 1;
-      }
-      if (a.sortOrder !== b.sortOrder) {
-        return a.sortOrder - b.sortOrder;
-      }
-      return a.name.localeCompare(b.name);
-    });
+    .sort(compareAuthenticatorEntries);
 }

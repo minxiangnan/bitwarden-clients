@@ -780,6 +780,10 @@ const safeProviders: SafeProvider[] = [
       AutoUnlockService,
       MessageSender,
       MessageListener,
+      ApiService,
+      EncryptService,
+      LegacyCompatKeyService,
+      KeyGenerationService,
     ],
   }),
   safeProvider({

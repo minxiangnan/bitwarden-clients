@@ -29,7 +29,7 @@ import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
 import { EncString, EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 
-import { parseOtpAuthUri } from "../authenticator-otpauth";
+import { compareAuthenticatorEntries, parseOtpAuthUri } from "../authenticator-otpauth";
 import {
   AuthenticatorAlgorithm,
   AuthenticatorEntryRequest,
@@ -228,9 +228,7 @@ export class AuthenticatorService {
 
   /** Swaps sortOrder with the neighboring entry. Undecryptable entries are left unchanged. */
   async move(id: string, direction: -1 | 1): Promise<void> {
-    const ordered = [...this.stateSubject.value.entries].sort(
-      (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-    );
+    const ordered = [...this.stateSubject.value.entries].sort(compareAuthenticatorEntries);
     const index = ordered.findIndex((entry) => entry.id === id);
     const neighbor = ordered[index + direction];
     const current = ordered[index];

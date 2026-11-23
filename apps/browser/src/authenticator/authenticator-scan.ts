@@ -11,22 +11,30 @@ type QrDetector = new (options: { formats: string[] }) => {
  * canvases first, then a screenshot. Screenshots use jsQR when BarcodeDetector is missing.
  */
 export async function scanCurrentTabForOtpauth(): Promise<string | null> {
+  // Start the capture during the click. A later await drops the user gesture activeTab needs.
+  const shotPromise = BrowserApi.captureVisibleTab().catch(() => "");
   const tab = await BrowserApi.getTabFromCurrentWindow();
-  if (tab?.id == null) {
-    return null;
-  }
-
-  try {
-    const fromPage = await BrowserApi.executeFunctionInTab(tab.id, scanPageForOtpauth);
-    if (typeof fromPage === "string" && fromPage.startsWith("otpauth://")) {
-      return fromPage;
+  if (tab?.id != null) {
+    try {
+      const fromPage = await BrowserApi.executeFunctionInTab(tab.id, scanPageForOtpauth);
+      const png = pageResultPng(fromPage);
+      if (png) {
+        const decoded = await detectOtpauthInImage(png);
+        if (decoded) {
+          return decoded;
+        }
+      }
+      const uri = otpauthFromPageResult(fromPage);
+      if (uri) {
+        return uri;
+      }
+    } catch {
+      // The page may refuse injection. The screenshot path below still applies.
     }
-  } catch {
-    // The page may refuse injection. The screenshot path below still applies.
   }
 
   try {
-    const dataUrl = await BrowserApi.captureVisibleTab();
+    const dataUrl = await shotPromise;
     if (!dataUrl) {
       return null;
     }
@@ -34,6 +42,27 @@ export async function scanCurrentTabForOtpauth(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+type PageImage = { data: number[]; width: number; height: number };
+
+/** Turns the injected page result into an otpauth URI. */
+export function otpauthFromPageResult(result: unknown): string | null {
+  if (typeof result === "string" && result.startsWith("otpauth://")) {
+    return result;
+  }
+  if (!isPageImage(result)) {
+    return null;
+  }
+  return readOtpauthFromImageData(Uint8ClampedArray.from(result.data), result.width, result.height);
+}
+
+function isPageImage(value: unknown): value is PageImage {
+  if (value == null || typeof value !== "object") {
+    return false;
+  }
+  const image = value as PageImage;
+  return Array.isArray(image.data) && image.width > 0 && image.height > 0;
 }
 
 export function barcodeDetectorAvailable(): boolean {
@@ -53,38 +82,88 @@ export function readOtpauthFromImageData(
   return null;
 }
 
-async function scanPageForOtpauth(): Promise<string | null> {
-  const Detector = (globalThis as { BarcodeDetector?: QrDetector }).BarcodeDetector;
-  if (typeof Detector !== "function") {
+function pageResultPng(result: unknown): string | null {
+  if (result == null || typeof result !== "object") {
     return null;
   }
-  const detector = new Detector({ formats: ["qr_code"] });
+  const png = (result as { png?: unknown }).png;
+  return typeof png === "string" && png.startsWith("data:image/") ? png : null;
+}
+
+/**
+ * Injected into the tab. It must not be `async`: the extension bundle downlevels
+ * async to a helper that does not exist on the page.
+ */
+function scanPageForOtpauth(): Promise<string | PageImage | { png: string } | null> {
+  const Detector = (globalThis as { BarcodeDetector?: QrDetector }).BarcodeDetector;
   const nodes = Array.from(document.querySelectorAll("img, canvas"));
-  for (const node of nodes) {
-    try {
-      const codes = await detector.detect(node as CanvasImageSource);
-      for (const code of codes) {
-        if (typeof code.rawValue === "string" && code.rawValue.startsWith("otpauth://")) {
-          return code.rawValue;
-        }
+  const raster = (): { png: string } | null => {
+    for (const node of nodes) {
+      const source = node as HTMLImageElement | HTMLCanvasElement;
+      const width = source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+      const height = source instanceof HTMLImageElement ? source.naturalHeight : source.height;
+      if (width < 21 || height < 21 || width > 2000 || height > 2000) {
+        continue;
       }
-    } catch {
-      // One unreadable image does not stop the rest of the page.
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (context == null) {
+        continue;
+      }
+      try {
+        context.drawImage(source, 0, 0);
+        return { png: canvas.toDataURL("image/png") };
+      } catch {
+        // A tainted canvas is skipped. The screenshot fallback still applies.
+      }
     }
+    return null;
+  };
+
+  if (typeof Detector !== "function") {
+    return Promise.resolve(raster());
   }
-  return null;
+  const detector = new Detector({ formats: ["qr_code"] });
+  return nodes
+    .reduce<Promise<string | null>>(
+      (pending, node) =>
+        pending.then((found): Promise<string | null> | string => {
+          if (found) {
+            return found;
+          }
+          return detector
+            .detect(node as CanvasImageSource)
+            .then((codes): string | null => {
+              for (const code of codes) {
+                if (typeof code.rawValue === "string" && code.rawValue.startsWith("otpauth://")) {
+                  return code.rawValue;
+                }
+              }
+              return null;
+            })
+            .catch((): null => null);
+        }),
+      Promise.resolve(null),
+    )
+    .then((found) => found ?? raster());
 }
 
 async function detectOtpauthInImage(src: string): Promise<string | null> {
   const image = await loadImage(src);
   if (barcodeDetectorAvailable()) {
-    const Detector = (globalThis as { BarcodeDetector?: QrDetector }).BarcodeDetector;
-    if (typeof Detector === "function") {
-      const codes = await new Detector({ formats: ["qr_code"] }).detect(image);
-      const value = codes.find((code) => code.rawValue?.startsWith("otpauth://"))?.rawValue;
-      if (value) {
-        return value;
+    try {
+      const Detector = (globalThis as { BarcodeDetector?: QrDetector }).BarcodeDetector;
+      if (typeof Detector === "function") {
+        const codes = await new Detector({ formats: ["qr_code"] }).detect(image);
+        const value = codes.find((code) => code.rawValue?.startsWith("otpauth://"))?.rawValue;
+        if (value) {
+          return value;
+        }
       }
+    } catch {
+      // BarcodeDetector can reject a data URL. jsQR still reads the pixels.
     }
   }
   const canvas = document.createElement("canvas");

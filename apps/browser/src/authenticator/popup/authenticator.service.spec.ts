@@ -300,6 +300,42 @@ describe("AuthenticatorService", () => {
     );
   });
 
+  it("swaps sortOrder with the neighbor above", async () => {
+    const row = (id: string, name: string, sortOrder: number) =>
+      ({
+        id,
+        name: `enc:${name}`,
+        issuer: null,
+        secret: "enc:SECRET",
+        notes: null,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        favorite: id === "b",
+        sortOrder,
+        revisionDate: "",
+        creationDate: "",
+        object: "authenticatorEntry",
+      }) as never;
+    api.list.mockResolvedValue([row("b", "Bea", 2), row("a", "Ada", 1)]);
+    api.update.mockResolvedValue({} as never);
+    const service = createService();
+
+    await service.refresh(userId);
+    await service.move("b", -1);
+
+    expect(api.update).toHaveBeenNthCalledWith(
+      1,
+      "b",
+      expect.objectContaining({ sortOrder: 1, favorite: true }),
+    );
+    expect(api.update).toHaveBeenNthCalledWith(
+      2,
+      "a",
+      expect.objectContaining({ sortOrder: 2, favorite: false }),
+    );
+  });
+
   it("reads a raw vault TOTP secret into an import draft", () => {
     const draft = draftFromCipher({
       id: "c1",
