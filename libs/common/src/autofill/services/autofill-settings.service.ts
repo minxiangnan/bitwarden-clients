@@ -462,13 +462,24 @@ export class AutofillSettingsService implements AutofillSettingsServiceAbstracti
   }
 
   /**
-   * Whether the {@link FeatureFlag.EnableBasicAuthResponse} flag is on. Both the user setting
-   * ({@link resolvedEnableBasicAuthResponse$}) and logins' own settings are gated on this.
+   * Whether HTTP authentication responses are allowed.
+   *
+   * An explicit `false` from the server keeps the feature off. A server that does not send
+   * {@link FeatureFlag.EnableBasicAuthResponse} at all, which includes current Vaultwarden,
+   * keeps the documented behavior: one matching login can answer the browser prompt.
+   * See https://github.com/bitwarden/clients/issues/17324 and
+   * https://github.com/bitwarden/clients/issues/23874.
    */
   private httpAuthenticationFeatureEnabled$(): Observable<boolean> {
-    return this.configService
-      .getFeatureFlag$(FeatureFlag.EnableBasicAuthResponse)
-      .pipe(map((featureFlag) => featureFlag === true));
+    return this.configService.serverConfig$.pipe(
+      map((config) => {
+        const flag = config?.featureStates?.[FeatureFlag.EnableBasicAuthResponse];
+        if (flag == null) {
+          return true;
+        }
+        return flag === true;
+      }),
+    );
   }
 
   async setEnableBasicAuthResponse(newValue: boolean): Promise<void> {
