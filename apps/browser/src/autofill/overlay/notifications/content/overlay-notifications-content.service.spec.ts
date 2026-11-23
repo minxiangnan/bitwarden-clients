@@ -69,7 +69,7 @@ describe("OverlayNotificationsContentService", () => {
       expect(closeNotificationBarSpy).toHaveBeenCalled();
     });
 
-    it("creates the notification bar elements and appends them to the body within a shadow root", async () => {
+    it("creates the notification bar on the document element so a body replacement cannot remove it", async () => {
       sendMockExtensionMessage({
         command: "openNotificationBar",
         data: {
@@ -82,8 +82,12 @@ describe("OverlayNotificationsContentService", () => {
       expect(overlayNotificationsContentService["notificationBarElement"]).toMatchSnapshot();
 
       const rootElement = overlayNotificationsContentService["notificationBarRootElement"];
-      expect(bodyAppendChildSpy).toHaveBeenCalledWith(rootElement);
-      expect(rootElement?.tagName).toBe("BIT-NOTIFICATION-BAR-ROOT");
+      expect(rootElement?.parentElement).toBe(globalThis.document.documentElement);
+      expect(globalThis.document.body.contains(rootElement)).toBe(false);
+      expect(rootElement?.tagName).toBe("BWZH-NOTIFICATION-BAR-ROOT");
+
+      globalThis.document.body.innerHTML = "<h1>Welcome</h1>";
+      expect(rootElement?.isConnected).toBe(true);
 
       expect(document.getElementById("bwzh-notification-bar")).toBeNull();
       expect(document.querySelector("#bwzh-notification-bar-iframe")).toBeNull();

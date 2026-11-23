@@ -767,13 +767,27 @@ export default class NotificationBackground {
      * if an update has been made.
      */
     if (authStatus === AuthenticationStatus.Locked) {
-      if (!newPasswordFieldHasValue) {
-        return false;
+      // A changed-password field still queues the update prompt. A normal login
+      // (current password, no new-password field) used to be dropped while locked,
+      // so the bar never appeared after unlock.
+      if (newPasswordFieldHasValue) {
+        await this.pushChangePasswordToQueue(null, loginDomain, newPasswordFieldValue, tab, true);
+        return true;
       }
-      // This needs to be the call that includes the full form data
-      await this.pushChangePasswordToQueue(null, loginDomain, newPasswordFieldValue, tab, true);
-
-      return true;
+      if (currentPasswordFieldHasValue && newLoginNotificationIsEnabled) {
+        await this.pushAddLoginToQueue(
+          loginDomain,
+          {
+            username: usernameFieldValue,
+            url: data.uri,
+            password: currentPasswordFieldValue,
+          },
+          tab,
+          true,
+        );
+        return true;
+      }
+      return false;
     }
 
     const ciphersForURL: CipherView[] = await this.fillCipherPolicy.ciphersForUrl(

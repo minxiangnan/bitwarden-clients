@@ -178,11 +178,10 @@ export class OverlayNotificationsContentService implements OverlayNotificationsC
       this.createNotificationBarElement();
 
       this.setupInitNotificationBarMessageListener(initData);
-      if (this.notificationBarRootElement) {
-        globalThis.document.body.appendChild(this.notificationBarRootElement);
-      }
+      this.attachNotificationBar();
       return;
     }
+    this.attachNotificationBar();
     this.currentNotificationBarType = initData.type ?? null;
     this.sendMessageToNotificationBarIframe({
       command: "initNotificationBar",
@@ -301,6 +300,19 @@ export class OverlayNotificationsContentService implements OverlayNotificationsC
     if (this.notificationBarIframeElement) {
       globalThis.addEventListener("message", handleInitNotificationBarMessage);
     }
+  }
+
+  /**
+   * Keeps the bar on <html>, not <body>. A SPA that replaces document.body
+   * after fetch used to delete the bar in the same turn it appeared.
+   */
+  private attachNotificationBar() {
+    const root = this.notificationBarRootElement;
+    const parent = globalThis.document.documentElement;
+    if (!root || !parent || root.parentElement === parent) {
+      return;
+    }
+    parent.appendChild(root);
   }
 
   /**

@@ -924,7 +924,7 @@ describe("NotificationBackground", () => {
         expectSkippedCheckingNotification();
       });
 
-      it("skips checking if a notification should trigger if the vault is locked and there is no value for the `newPassword` field", async () => {
+      it("queues an add-login prompt when the vault is locked and a current password was entered", async () => {
         const formEntryData: ModifyLoginCipherFormData = {
           newPassword: "",
           password: "Beeblebrox4Prez",
@@ -932,16 +932,22 @@ describe("NotificationBackground", () => {
           username: "ADent",
         };
 
-        const storedCiphersForURL = [
-          mock<CipherView>({ login: { username: "ADent", password: "I<3VogonPoetry" } }),
-        ];
-
         activeAccountStatusMock$.next(AuthenticationStatus.Locked);
-        getAllDecryptedForUrlSpy.mockResolvedValueOnce(storedCiphersForURL);
 
         await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-        expectSkippedCheckingNotification();
+        expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+        expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+        expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+          mockFormattedURI,
+          {
+            username: formEntryData.username,
+            url: formEntryData.uri,
+            password: formEntryData.password,
+          },
+          tab,
+          true,
+        );
       });
 
       describe("when `username` and `password` and `newPassword` fields are filled, ", () => {
@@ -1826,12 +1832,23 @@ describe("NotificationBackground", () => {
           username: "",
         };
 
-        it("and the user vault is locked, do not trigger an unlock notification", async () => {
+        it("and the user vault is locked, queue an add-login prompt", async () => {
           activeAccountStatusMock$.next(AuthenticationStatus.Locked);
 
           await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-          expectSkippedCheckingNotification();
+          expect(getAllDecryptedForUrlSpy).not.toHaveBeenCalled();
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
+            mockFormattedURI,
+            {
+              username: null,
+              url: formEntryData.uri,
+              password: formEntryData.password,
+            },
+            tab,
+            true,
+          );
         });
 
         it("and cipher update candidates only match `password`, do not trigger a notification (nothing to change)", async () => {

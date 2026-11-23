@@ -7,7 +7,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { FillCipherPolicy } from "../services/abstractions/fill-cipher-policy";
-import { generateDomainMatchPatterns, isInvalidResponseStatusCode } from "../utils";
+import { generateDomainMatchPatterns } from "../utils";
 
 import {
   ActiveFormSubmissionRequests,
@@ -170,9 +170,17 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       return;
     }
     if (!this.websiteOriginsWithFields.has(tabId)) {
-      // collectPageDetailsResponse registers the tab. A submit that wins that race used to be
-      // dropped, so the save prompt never opened. Hold the latest submission until registration.
-      this.pendingLoginFormData.set(tabId, { message, sender });
+      // A React page often never qualifies its inputs, so collectPageDetailsResponse
+      // never registers the tab and this submission used to sit here forever.
+      // A password (or a password merged with an earlier username) registers the tab
+      // itself. A username alone still waits, so the first step of a two-step login
+      // does not open a prompt.
+      const pending = this.pendingLoginFormData.get(tabId);
+      const merged = this.mergePendingSubmission(pending?.message, message);
+      this.pendingLoginFormData.set(tabId, { message: merged, sender });
+      if (await this.ensureTabRegisteredForSubmission(tabId, merged, sender)) {
+        this.flushPendingLoginFormData(tabId);
+      }
       return;
     }
 
@@ -297,11 +305,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    * that are not from the tabs that have fillable form fields.
    */
   private generateRequestFilter(): chrome.webRequest.RequestFilter {
-    const websiteOrigins = Array.from(this.websiteOriginsWithFields.values());
-    const urls: string[] = [];
-    websiteOrigins.forEach((origins) => urls.push(...origins));
+    // Login calls often leave the page host (api.example.com, an auth provider).
+    // A host-only filter never sees them, so the save prompt never opens.
+    // The handlers still require a tab that captured a password.
     return {
-      urls,
+      urls: ["<all_urls>"],
       types: ["main_frame", "sub_frame", "xmlhttprequest"],
     };
   }
@@ -479,8 +487,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       return;
     }
 
-    if (isInvalidResponseStatusCode(details.statusCode)) {
-      this.clearNotificationFallbackTimeout();
+    // 302 is how a classic form (GitLab) finishes. 401/422 is how a SPA
+    // reports a rejected login. Both are a completed submit, and the prompt
+    // should still appear. Only a cancelled request (0) or a 5xx keeps the
+    // click fallback alive instead of opening the bar on a failed request.
+    if (!this.submissionStatusShouldPrompt(details.statusCode)) {
       return;
     }
 
@@ -727,6 +738,64 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    *
    * @param tabId - The id of the tab that was removed
    */
+  /**
+   * A missing status is treated as success so callers that do not set one still prompt.
+   * 2xx, 3xx, and 4xx are completed attempts. 0 and 5xx are not.
+   */
+  private submissionStatusShouldPrompt(statusCode: number | undefined): boolean {
+    if (typeof statusCode !== "number") {
+      return true;
+    }
+    return statusCode > 0 && statusCode < 500;
+  }
+
+  private mergePendingSubmission(
+    previous: OverlayNotificationsExtensionMessage | undefined,
+    next: OverlayNotificationsExtensionMessage,
+  ): OverlayNotificationsExtensionMessage {
+    if (!previous) {
+      return next;
+    }
+    return {
+      ...next,
+      uri: next.uri || previous.uri,
+      username: next.username || previous.username,
+      password: next.password || previous.password,
+      newPassword: next.newPassword || previous.newPassword,
+    };
+  }
+
+  /**
+   * Registers a tab that reported a password before page details did.
+   * Returns false when the prompt is disabled, the site is excluded, or the
+   * sender has no URL to match.
+   */
+  private async ensureTabRegisteredForSubmission(
+    tabId: number,
+    message: OverlayNotificationsExtensionMessage,
+    sender: chrome.runtime.MessageSender,
+  ): Promise<boolean> {
+    if (this.websiteOriginsWithFields.has(tabId)) {
+      return true;
+    }
+    if (!message.password && !message.newPassword) {
+      return false;
+    }
+    if (!(await this.isAddLoginOrChangePasswordNotificationEnabled())) {
+      return false;
+    }
+    if (await this.isSenderFromExcludedDomain(sender)) {
+      return false;
+    }
+    const patterns = this.getSenderUrlMatchPatterns(sender);
+    if (!patterns.size) {
+      return false;
+    }
+    this.websiteOriginsWithFields.set(tabId, patterns);
+    this.setupWebRequestsListeners();
+    return true;
+  }
+
   private flushPendingLoginFormData(tabId: number) {
     const pending = this.pendingLoginFormData.get(tabId);
     this.pendingLoginFormData.delete(tabId);

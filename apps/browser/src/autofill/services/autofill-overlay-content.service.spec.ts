@@ -1696,6 +1696,40 @@ describe("AutofillOverlayContentService", () => {
           jest.useRealTimers();
         });
 
+        it("reads a username from a label when the input has no autocomplete attribute", () => {
+          const label = document.createElement("label");
+          label.textContent = "Username or email address";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = "ada@example.com";
+          label.appendChild(input);
+          document.body.appendChild(label);
+
+          expect(autofillOverlayContentService["getFormFieldData"]().username).toBe(
+            "ada@example.com",
+          );
+
+          label.remove();
+        });
+
+        it("flushes the login fields when the page calls history.pushState", () => {
+          const input = document.createElement("input");
+          input.type = "password";
+          input.value = "secret";
+          document.body.appendChild(input);
+          autofillOverlayContentService["installHistoryFlush"]();
+
+          globalThis.history.pushState({}, "", "/app");
+
+          expect(sendExtensionMessageSpy).toHaveBeenCalledWith(
+            "formFieldSubmitted",
+            expect.objectContaining({ password: "secret" }),
+          );
+          input.remove();
+          autofillOverlayContentService["removeHistoryFlush"]();
+          globalThis.history.pushState({}, "", "/");
+        });
+
         it("sends a `formFieldSubmitted` message to the background on submission of the form", async () => {
           await autofillOverlayContentService.setupOverlayListeners(
             autofillFieldElement,

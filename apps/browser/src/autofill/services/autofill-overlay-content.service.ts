@@ -224,6 +224,8 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     globalThis.removeEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
     globalThis.removeEventListener("pagehide", this.flushCapturedLogin);
     globalThis.removeEventListener("pointerdown", this.flushCapturedLogin, true);
+    globalThis.removeEventListener("keydown", this.flushCapturedLoginOnEnter, true);
+    this.removeHistoryFlush();
     this.removeOverlayRepositionEventListeners();
     this.removeRebuildSubFrameOffsetsListeners();
     this.removeSubFrameFocusOutListeners();
@@ -759,18 +761,15 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       username:
         current.username ||
         this.lastNonEmptyLoginFields.username ||
-        this.liveLoginFieldValue([
-          'input[autocomplete="username"]',
-          'input[autocomplete="email"]',
-          'input[type="email"]',
-          'input[name="username" i]',
-        ]),
+        this.liveUsernameFromPage(),
       password:
         current.password ||
         this.lastNonEmptyLoginFields.password ||
         this.liveLoginFieldValue([
           'input[autocomplete="current-password"]',
           'input[type="password"]:not([autocomplete="new-password"])',
+          'input[name="password" i]',
+          'input[name*="password" i]:not([autocomplete="new-password"])',
         ]),
       newPassword:
         current.newPassword ||
@@ -791,6 +790,48 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
         if (field.value) {
           return field.value;
         }
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Reads a username from fields a React page never marks with autocomplete.
+   * Labels such as "Username or email address" and names such as "user[login]" count.
+   */
+  private liveUsernameFromPage(): string {
+    const hinted = this.liveLoginFieldValue([
+      'input[autocomplete="username"]',
+      'input[autocomplete="email"]',
+      'input[type="email"]',
+      'input[name="username" i]',
+      'input[name*="user" i]',
+      'input[name*="login" i]',
+      'input[name*="email" i]',
+      'input[id*="user" i]',
+      'input[id*="email" i]',
+      'input[placeholder*="email" i]',
+      'input[placeholder*="user" i]',
+      'input[aria-label*="email" i]',
+      'input[aria-label*="user" i]',
+    ]);
+    if (hinted) {
+      return hinted;
+    }
+
+    const inputs = globalThis.document.querySelectorAll<HTMLInputElement>(
+      'input[type="text"], input[type="email"], input:not([type])',
+    );
+    for (const field of inputs) {
+      if (!field.value || field.disabled || field.type === "password") {
+        continue;
+      }
+      const labelText = Array.from(field.labels ?? [])
+        .map((node) => node.textContent ?? "")
+        .join(" ");
+      const hint = `${field.name} ${field.id} ${field.placeholder} ${field.getAttribute("aria-label") ?? ""} ${labelText}`;
+      if (/user|email|e-mail|login|account|用户|邮箱|账号|帐号/i.test(hint)) {
+        return field.value;
       }
     }
     return "";
@@ -1835,10 +1876,57 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     globalThis.document.addEventListener(EVENTS.VISIBILITYCHANGE, this.handleVisibilityChangeEvent);
     globalThis.addEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
     globalThis.addEventListener("pagehide", this.flushCapturedLogin);
-    // pointerdown runs before the page's click handler navigates to the next login step.
+    // pointerdown and Enter run before the page's handler clears the fields or calls fetch.
     globalThis.addEventListener("pointerdown", this.flushCapturedLogin, true);
+    globalThis.addEventListener("keydown", this.flushCapturedLoginOnEnter, true);
+    this.installHistoryFlush();
     this.setOverlayRepositionEventListeners();
   };
+
+  private flushCapturedLoginOnEnter = (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      this.flushCapturedLogin();
+    }
+  };
+
+  private originalPushState: History["pushState"] | null = null;
+
+  private originalReplaceState: History["replaceState"] | null = null;
+
+  /**
+   * A SPA login often calls history.pushState in the same turn that it removes the fields.
+   * Flush first so the username and password are already in the background.
+   */
+  private installHistoryFlush() {
+    if (this.originalPushState || !globalThis.history) {
+      return;
+    }
+    const history = globalThis.history;
+    this.originalPushState = history.pushState.bind(history);
+    this.originalReplaceState = history.replaceState.bind(history);
+    const flush = this.flushCapturedLogin;
+    const pushState = this.originalPushState;
+    const replaceState = this.originalReplaceState;
+    history.pushState = ((...args: Parameters<History["pushState"]>) => {
+      flush();
+      return pushState(...args);
+    }) as History["pushState"];
+    history.replaceState = ((...args: Parameters<History["replaceState"]>) => {
+      flush();
+      return replaceState(...args);
+    }) as History["replaceState"];
+  }
+
+  private removeHistoryFlush() {
+    if (this.originalPushState) {
+      globalThis.history.pushState = this.originalPushState;
+      this.originalPushState = null;
+    }
+    if (this.originalReplaceState) {
+      globalThis.history.replaceState = this.originalReplaceState;
+      this.originalReplaceState = null;
+    }
+  }
 
   /**
    * Handles window messages that are sent to the current frame. Will trigger a
