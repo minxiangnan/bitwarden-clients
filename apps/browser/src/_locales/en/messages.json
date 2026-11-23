@@ -9439,5 +9439,83 @@
   },
   "authenticatorMoveDown": {
     "message": "Move down"
+  },
+  "mcpAccess": {
+    "message": "MCP access"
+  },
+  "mcpAccessHelp": {
+    "message": "After creating a token, open an authenticator entry, turn on MCP access, and set an alias. An AI client can read only those current codes."
+  },
+  "mcpAllowRead": {
+    "message": "Allow MCP to read this code"
+  },
+  "mcpAlias": {
+    "message": "Alias"
+  },
+  "mcpAliasHint": {
+    "message": "For example, gitlab"
+  },
+  "mcpAllowHelp": {
+    "message": "When this is on, an AI client can read this code by its alias."
+  },
+  "mcpCreate": {
+    "message": "Create token"
+  },
+  "mcpRotate": {
+    "message": "Rotate token"
+  },
+  "mcpRevoke": {
+    "message": "Revoke token"
+  },
+  "mcpCopy": {
+    "message": "Copy token"
+  },
+  "mcpToken": {
+    "message": "Access token"
+  },
+  "mcpTokenOnce": {
+    "message": "This token is shown only once. Copy it into Claude or Cursor now. After you leave this page it cannot be shown again; rotate it if you lose it."
+  },
+  "mcpTokenCopied": {
+    "message": "Token copied"
+  },
+  "mcpNoServer": {
+    "message": "This server does not have MCP turned on."
+  },
+  "mcpNeedToken": {
+    "message": "Create a token first in Settings → MCP access."
+  },
+  "mcpAliasRequired": {
+    "message": "Enter an alias."
+  },
+  "mcpAliasInvalid": {
+    "message": "Start the alias with a letter or number. Then use only letters, numbers, dots, underscores, and hyphens."
+  },
+  "mcpEnabledStatus": {
+    "message": "Token is active. $COUNT$ codes are shared.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "mcpRotateConfirm": {
+    "message": "Rotating invalidates the current token immediately. Entries that can be decrypted are shared again. The others need Allow MCP turned on once more."
+  },
+  "mcpRevokeConfirm": {
+    "message": "After revoke, MCP can no longer read the codes you had shared."
+  },
+  "mcpActionError": {
+    "message": "The MCP action failed. Check the connection and try again."
+  },
+  "mcpRewrapMissed": {
+    "message": "Turn Allow MCP on again for: $NAMES$",
+    "placeholders": {
+      "names": {
+        "content": "$1",
+        "example": "gitlab"
+      }
+    }
   }
 }

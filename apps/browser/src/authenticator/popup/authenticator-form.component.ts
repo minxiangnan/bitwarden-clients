@@ -13,6 +13,7 @@ import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.c
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
 import { isValidTotpSecret, normalizeTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
 import { scanCurrentTabForOtpauth } from "../authenticator-scan";
+import { normalizeAlias } from "../mcp/mcp-crypto";
 import {
   AuthenticatorAlgorithm,
   AuthenticatorAlgorithms,
@@ -25,6 +26,7 @@ import {
 } from "../authenticator.models";
 
 import { AuthenticatorDraft, AuthenticatorService, draftFromView } from "./authenticator.service";
+import { McpAccessService } from "./mcp-access.service";
 
 @Component({
   selector: "app-authenticator-form",
@@ -48,6 +50,8 @@ export class AuthenticatorFormComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly toast = inject(ToastService);
+  private readonly mcp = inject(McpAccessService);
+  private mcpWasEnabled = false;
 
   protected readonly algorithms = [
     AuthenticatorAlgorithms.Sha1,
@@ -91,6 +95,8 @@ export class AuthenticatorFormComponent implements OnInit {
     ],
     notes: [""],
     favorite: [false],
+    mcpEnabled: [false],
+    mcpAlias: [""],
   });
 
   private readonly entryId = signal<string | null>(null);
@@ -119,6 +125,11 @@ export class AuthenticatorFormComponent implements OnInit {
     }
     this.form.patchValue(draftFromView(entry));
     this.otpType.set(entry.digits === MIN_AUTHENTICATOR_DIGITS ? "steam" : "totp");
+    const grant = await this.mcp.findAuthenticator(id);
+    if (grant) {
+      this.mcpWasEnabled = true;
+      this.form.patchValue({ mcpEnabled: true, mcpAlias: grant.alias });
+    }
   }
 
   protected setOtpType(value: string): void {
@@ -165,10 +176,38 @@ export class AuthenticatorFormComponent implements OnInit {
     if (!draft.name.trim()) {
       draft.name = await this.defaultName();
     }
+    const mcpEnabled = this.form.controls.mcpEnabled.value;
+    const alias = normalizeAlias(this.form.controls.mcpAlias.value);
+    if (mcpEnabled && alias == null) {
+      this.errorKey.set(
+        this.form.controls.mcpAlias.value.trim() ? "mcpAliasInvalid" : "mcpAliasRequired",
+      );
+      return;
+    }
+    if (mcpEnabled && !(await this.mcp.hasToken())) {
+      this.errorKey.set("mcpNeedToken");
+      return;
+    }
     this.saving.set(true);
     this.errorKey.set(null);
     try {
-      await this.authenticator.save(draft, this.entryId() ?? undefined);
+      const savedId = await this.authenticator.save(draft, this.entryId() ?? undefined);
+      const entryId = this.entryId() ?? savedId;
+      if (mcpEnabled && alias && entryId) {
+        await this.mcp.upsertAuthenticator({
+          sourceId: entryId,
+          alias,
+          secret: draft.secret,
+          issuer: draft.issuer.trim(),
+          account: draft.name.trim(),
+          algorithm: draft.algorithm,
+          digits: draft.digits,
+          period: draft.period,
+          steam: this.otpType() === "steam",
+        });
+      } else if (!mcpEnabled && this.mcpWasEnabled && entryId) {
+        await this.mcp.disableAuthenticator(entryId);
+      }
       await this.router.navigate(["/tabs/authenticator"]);
     } catch {
       this.errorKey.set("authenticatorSaveError");

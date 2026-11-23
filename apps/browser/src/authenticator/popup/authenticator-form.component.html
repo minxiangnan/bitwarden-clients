@@ -36,6 +36,20 @@
       ></textarea>
     </bit-form-field>
 
+    <div class="tw-rounded-xl tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-p-3">
+      <label class="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-main">
+        <input type="checkbox" formControlName="mcpEnabled" />
+        {{ "mcpAllowRead" | i18n }}
+      </label>
+      @if (form.controls.mcpEnabled.value) {
+        <bit-form-field class="tw-mt-3">
+          <bit-label>{{ "mcpAlias" | i18n }}</bit-label>
+          <input bitInput type="text" formControlName="mcpAlias" [placeholder]="'mcpAliasHint' | i18n" />
+        </bit-form-field>
+        <p class="tw-mb-0 tw-text-sm tw-text-muted">{{ "mcpAllowHelp" | i18n }}</p>
+      }
+    </div>
+
     <button
       type="button"
       class="tw-self-start tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"

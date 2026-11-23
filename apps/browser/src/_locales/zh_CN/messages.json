@@ -9439,5 +9439,83 @@
   },
   "authenticatorMoveDown": {
     "message": "下移"
+  },
+  "mcpAccess": {
+    "message": "MCP 访问"
+  },
+  "mcpAccessHelp": {
+    "message": "创建令牌后，在验证器条目里打开「允许 MCP 读取」并填写别名。AI 只能读取这些条目的当前验证码。"
+  },
+  "mcpAllowRead": {
+    "message": "允许 MCP 读取"
+  },
+  "mcpAlias": {
+    "message": "别名"
+  },
+  "mcpAliasHint": {
+    "message": "例如 gitlab"
+  },
+  "mcpAllowHelp": {
+    "message": "打开后，AI 可以用这个别名读取本条的当前验证码。"
+  },
+  "mcpCreate": {
+    "message": "创建令牌"
+  },
+  "mcpRotate": {
+    "message": "轮换令牌"
+  },
+  "mcpRevoke": {
+    "message": "吊销令牌"
+  },
+  "mcpCopy": {
+    "message": "复制令牌"
+  },
+  "mcpToken": {
+    "message": "访问令牌"
+  },
+  "mcpTokenOnce": {
+    "message": "令牌只显示这一次。请立刻复制到 Claude 或 Cursor。离开本页后无法再查看，丢失只能轮换。"
+  },
+  "mcpTokenCopied": {
+    "message": "已复制令牌"
+  },
+  "mcpNoServer": {
+    "message": "这台服务器没有打开 MCP。"
+  },
+  "mcpNeedToken": {
+    "message": "请先到「设置 → MCP 访问」创建令牌。"
+  },
+  "mcpAliasRequired": {
+    "message": "请填写别名。"
+  },
+  "mcpAliasInvalid": {
+    "message": "别名以字母或数字开头，只能包含字母、数字、点、下划线和连字符。"
+  },
+  "mcpEnabledStatus": {
+    "message": "令牌已生效，已放行 $COUNT$ 条。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "mcpRotateConfirm": {
+    "message": "轮换后当前令牌立即失效。能解密的条目会自动重新放行，其余需要再打开一次「允许 MCP 读取」。"
+  },
+  "mcpRevokeConfirm": {
+    "message": "吊销后，已放行的验证码都不能再通过 MCP 读取。"
+  },
+  "mcpActionError": {
+    "message": "MCP 操作失败，请检查网络后重试。"
+  },
+  "mcpRewrapMissed": {
+    "message": "这些别名需要重新打开「允许 MCP 读取」：$NAMES$",
+    "placeholders": {
+      "names": {
+        "content": "$1",
+        "example": "gitlab"
+      }
+    }
   }
 }
