@@ -8,9 +8,8 @@ import { ButtonModule, ItemModule, ToastService } from "@bitwarden/components";
 import { GeneratorModule } from "@bitwarden/generator-components";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
 
-import { PasswordPresets } from "../../../authenticator/password-presets";
-
 import { CurrentAccountComponent } from "../../../auth/popup/account-switching/current-account.component";
+import { PasswordPresets } from "../../../authenticator/password-presets";
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";

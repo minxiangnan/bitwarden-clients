@@ -31,7 +31,6 @@ import {
 import {
   LoginComponent,
   LoginDecryptionOptionsComponent,
-  LoginSecondaryContentComponent,
   LoginViaAuthRequestComponent,
   NewDeviceVerificationComponent,
   PasswordHintComponent,
@@ -59,9 +58,9 @@ import { AccountSecurityComponent } from "../auth/popup/settings/account-securit
 import { ChangePasswordPageComponent } from "../auth/popup/settings/change-password-page.component";
 import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/extension-device-management.component";
 import { AuthenticatorFormComponent } from "../authenticator/popup/authenticator-form.component";
-import { AuthenticatorToolsComponent } from "../authenticator/popup/authenticator-tools.component";
 import { AuthenticatorHelpComponent } from "../authenticator/popup/authenticator-help.component";
 import { AuthenticatorListComponent } from "../authenticator/popup/authenticator-list.component";
+import { AuthenticatorToolsComponent } from "../authenticator/popup/authenticator-tools.component";
 import { PasswordHealthComponent } from "../authenticator/popup/password-health.component";
 import { AutofillToolsComponent } from "../autofill/popup/autofill-tools/autofill-tools.component";
 import { autofillToolsDevFlagGuard } from "../autofill/popup/autofill-tools/autofill-tools.guard";

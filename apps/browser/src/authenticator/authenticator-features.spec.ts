@@ -75,7 +75,7 @@ describe("authenticator notes metadata", () => {
   it("round-trips host, tags, and kind inside the encrypted notes", () => {
     const notes = joinAuthenticatorNotes(
       "desk",
-      { kind: "hotp", host: "GitHub.com", tags: ["工作", "工作"], counter: 3 },
+      { kind: "hotp", host: "GitHub.com", tags: ["工作", "工作"], counter: 3, deletedAt: null },
       6,
     );
     const split = splitAuthenticatorNotes(notes);

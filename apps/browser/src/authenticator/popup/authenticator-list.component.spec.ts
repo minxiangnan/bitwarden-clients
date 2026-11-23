@@ -62,13 +62,13 @@ describe("AuthenticatorListComponent", () => {
     expect(authenticator.setFavorite).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores a second delete while the first is still running", () => {
-    const { fixture, authenticator } = setup();
+  it("opens the tools page for import and trash", () => {
+    const { fixture } = setup();
+    const router = TestBed.inject(Router);
 
-    void fixture.componentInstance["remove"](entry);
-    void fixture.componentInstance["remove"](entry);
+    fixture.componentInstance["openTools"]();
 
-    expect(authenticator.remove).toHaveBeenCalledTimes(1);
+    expect(router.navigate).toHaveBeenCalledWith(["/authenticator-tools"]);
   });
 
   it("does not edit an entry that could not be decrypted", () => {

@@ -160,6 +160,7 @@ import {
 } from "@bitwarden/common/platform/abstractions/storage.service";
 import { SystemService as SystemServiceAbstraction } from "@bitwarden/common/platform/abstractions/system.service";
 import { ActionsService } from "@bitwarden/common/platform/actions/actions-service";
+import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import { IpcService } from "@bitwarden/common/platform/ipc";
 import {
   IntraprocessMessageSender,
@@ -201,7 +202,6 @@ import { DefaultSyncService } from "@bitwarden/common/platform/sync/internal";
 import { SystemNotificationsService } from "@bitwarden/common/platform/system-notifications/";
 import { SystemNotificationEvent } from "@bitwarden/common/platform/system-notifications/system-notifications.service";
 import { UnsupportedSystemNotificationsService } from "@bitwarden/common/platform/system-notifications/unsupported-system-notifications.service";
-import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import { DefaultThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
 import { ProviderService as ProviderServiceAbstraction } from "@bitwarden/common/provider";
 import { ProviderService } from "@bitwarden/common/provider/services/provider.service";
@@ -337,6 +337,9 @@ import {
 
 import { ExtensionAuthRequestAnsweringService } from "../auth/services/auth-request-answering/extension-auth-request-answering.service";
 import { AuthStatusBadgeUpdaterService } from "../auth/services/auth-status-badge-updater.service";
+import { createAuthenticatorTotpLookup } from "../authenticator/authenticator-autofill";
+import { steamCode } from "../authenticator/authenticator-codes";
+import { clipboardClearMs } from "../authenticator/clipboard-delay";
 import { AutofillOrchestrator } from "../autofill/background/abstractions/autofill-orchestrator";
 import { OverlayNotificationsBackground as OverlayNotificationsBackgroundInterface } from "../autofill/background/abstractions/overlay-notifications.background";
 import {
@@ -373,9 +376,6 @@ import { AutofillBadgeUpdaterService } from "../autofill/services/autofill-badge
 import { DefaultAutofillLifecycleService } from "../autofill/services/autofill-lifecycle.service";
 import { AutofillTriageService } from "../autofill/services/autofill-triage.service";
 import AutofillService from "../autofill/services/autofill.service";
-import { createAuthenticatorTotpLookup } from "../authenticator/authenticator-autofill";
-import { steamCode } from "../authenticator/authenticator-codes";
-import { clipboardClearMs } from "../authenticator/clipboard-delay";
 import { ClipboardNotificationBadgeUpdaterService } from "../autofill/services/clipboard-notification-badge-updater.service";
 import { DefaultFillCipherPolicy } from "../autofill/services/default-fill-cipher-policy";
 import { InlineMenuFieldQualificationService } from "../autofill/services/inline-menu-field-qualification.service";

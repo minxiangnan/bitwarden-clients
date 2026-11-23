@@ -104,6 +104,8 @@ export abstract class AutofillService {
    * {@link AutofillOrchestrator} to request an autofill!
    */
   doAutoFill!: (options: AutoFillOptions) => Promise<FillResult>;
+  /** Supplies a TOTP seed from the authenticator list when the login has none. */
+  setAuthenticatorTotpLookup!: (lookup: (url: string) => Promise<string | null>) => void;
   /** Non-null asserted. */
   setAutoFillOnPageLoadOrgPolicy!: () => Promise<void>;
   /** Non-null asserted. */

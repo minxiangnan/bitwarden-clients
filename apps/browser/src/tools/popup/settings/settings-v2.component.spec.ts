@@ -124,7 +124,7 @@ describe("SettingsV2Component", () => {
     return acct;
   }
 
-  it("shows the premium callout when user does NOT have premium", async () => {
+  it("does not show the premium callout", async () => {
     mockBillingState.hasPremiumFromAnySource$.mockReturnValue(of(false));
     pushActiveAccount();
 
@@ -134,7 +134,7 @@ describe("SettingsV2Component", () => {
 
     const el: HTMLElement = fixture.nativeElement;
 
-    expect(el.querySelector("bit-callout")).toBeTruthy();
+    expect(el.querySelector("bit-callout")).toBeNull();
   });
 
   it("hides the premium callout when user HAS premium", async () => {

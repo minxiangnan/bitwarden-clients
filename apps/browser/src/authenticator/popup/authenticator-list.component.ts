@@ -59,7 +59,11 @@ export class AuthenticatorListComponent {
   protected readonly busyId = signal<string | null>(null);
 
   private readonly state = toSignal(this.authenticator.state$, {
-    initialValue: { status: "loading" as const, entries: [] as AuthenticatorEntryView[] },
+    initialValue: {
+      status: "loading" as const,
+      entries: [] as AuthenticatorEntryView[],
+      syncedAt: null as string | null,
+    },
   });
 
   protected readonly status = computed(() => this.state().status);

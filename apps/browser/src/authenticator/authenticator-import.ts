@@ -279,7 +279,7 @@ function decodeOtpParameters(bytes: Uint8Array): ImportedAuthenticator | null {
   let counter = 0;
   walkProtobuf(bytes, (field, wire, value) => {
     if (field === 1 && value instanceof Uint8Array) {
-      secret = value;
+      secret = new Uint8Array(value);
     } else if (field === 2 && value instanceof Uint8Array) {
       name = decodeUtf8(value);
     } else if (field === 3 && value instanceof Uint8Array) {

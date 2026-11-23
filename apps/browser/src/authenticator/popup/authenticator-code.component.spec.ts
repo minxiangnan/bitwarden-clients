@@ -24,7 +24,7 @@ describe("AuthenticatorCodeComponent", () => {
     undecryptable: false,
   } satisfies AuthenticatorEntryView;
 
-  it("uses the floored TOTP step for the countdown", () => {
+  it("uses the floored TOTP step for the countdown", async () => {
     const totpService = {
       getCode$: () => of({ code: "123456", period: 30 }),
     };
@@ -36,6 +36,8 @@ describe("AuthenticatorCodeComponent", () => {
 
     const fixture = TestBed.createComponent(AuthenticatorCodeComponent);
     fixture.componentRef.setInput("entry", entry);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain("123 456");

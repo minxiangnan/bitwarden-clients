@@ -1,5 +1,14 @@
+import { webcrypto } from "node:crypto";
+
 import "@bitwarden/ui-common/setup-jest";
 import { addCustomMatchers } from "@bitwarden/common/spec";
+
+if (!globalThis.crypto?.subtle) {
+  Object.defineProperty(globalThis, "crypto", {
+    value: webcrypto,
+    configurable: true,
+  });
+}
 
 addCustomMatchers();
 

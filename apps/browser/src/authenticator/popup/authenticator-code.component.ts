@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, Component, effect, inject, input, output } from "@angular/core";
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
-import { from, map, of, switchMap, timer } from "rxjs";
+import { from, map, of, startWith, switchMap, timer } from "rxjs";
 
 import { TotpService } from "@bitwarden/common/vault/abstractions/totp.service";
 
@@ -75,23 +75,26 @@ export class AuthenticatorCodeComponent {
         return timer(0, 1000).pipe(switchMap(() => from(this.localCode(entry, kind))));
       }
       return this.totpService.getCode$(toOtpAuthUri(entry)).pipe(
-        switchMap((response) =>
-          from(nextTotpCode(entry, Date.now()).catch(() => null)).pipe(
-            map((next) => {
-              const period = response.period || entry.period || 30;
-              const elapsed = Math.floor(Date.now() / 1000) % period;
-              const seconds = period - elapsed;
-              return {
-                code: response.code,
-                formatted: formatAuthenticatorCode(response.code),
-                nextFormatted: next ? formatAuthenticatorCode(next) : "",
-                seconds,
-                low: seconds <= 7,
-                offset: Math.round((elapsed / period) * 69),
-              };
-            }),
-          ),
-        ),
+        switchMap((response) => {
+          const period = response.period || entry.period || 30;
+          const elapsed = Math.floor(Date.now() / 1000) % period;
+          const seconds = period - elapsed;
+          const current = {
+            code: response.code,
+            formatted: formatAuthenticatorCode(response.code),
+            nextFormatted: "",
+            seconds,
+            low: seconds <= 7,
+            offset: Math.round((elapsed / period) * 69),
+          };
+          return from(nextTotpCode(entry, Date.now()).catch((): null => null)).pipe(
+            map((next) => ({
+              ...current,
+              nextFormatted: next ? formatAuthenticatorCode(next) : "",
+            })),
+            startWith(current),
+          );
+        }),
       );
     }),
   );
@@ -99,7 +102,14 @@ export class AuthenticatorCodeComponent {
   private async localCode(
     entry: AuthenticatorEntryView,
     kind: typeof AuthenticatorKinds.Steam | typeof AuthenticatorKinds.Hotp,
-  ) {
+  ): Promise<{
+    code: string;
+    formatted: string;
+    nextFormatted: string;
+    seconds: number;
+    low: boolean;
+    offset: number;
+  }> {
     const now = Date.now();
     if (kind === AuthenticatorKinds.Steam) {
       const code = (await steamCode(entry.secret, now)) ?? "";

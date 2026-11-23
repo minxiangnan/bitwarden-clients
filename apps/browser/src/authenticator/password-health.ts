@@ -72,7 +72,7 @@ export function classifyPasswords(items: PasswordHealthInput[]): PasswordHealthR
   }
   return items
     .filter((item) => item.password)
-    .map((item) => ({
+    .map((item): PasswordHealthRow => ({
       id: item.id,
       name: item.name || item.username || "登录",
       username: item.username,
@@ -83,7 +83,7 @@ export function classifyPasswords(items: PasswordHealthInput[]): PasswordHealthR
 }
 
 export async function sha1Hex(password: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(password));
+  const digest = await globalThis.crypto.subtle.digest("SHA-1", new TextEncoder().encode(password));
   return [...new Uint8Array(digest)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("")

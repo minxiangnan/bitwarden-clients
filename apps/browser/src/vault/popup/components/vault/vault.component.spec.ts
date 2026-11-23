@@ -1375,17 +1375,10 @@ describe("VaultComponent", () => {
       configSvc.getFeatureFlag$.mockImplementation((_flag: string) => of(false));
     });
 
-    it("opens the dialog when the nudge is active and onboarding was already dismissed", fakeAsync(() => {
+    it("does not open the new-experience dialog; this fork has no onboarding interstitial", fakeAsync(() => {
       initVault();
 
-      expect(newExperienceDialogSpy).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({
-          userId: "user-1",
-          lightImgSrc: expect.stringContaining("new-experience.light.png"),
-          darkImgSrc: expect.stringContaining("new-experience.dark.png"),
-        }),
-      );
+      expect(newExperienceDialogSpy).not.toHaveBeenCalled();
     }));
 
     it("leaves dismissing the nudge to the dialog's actions", fakeAsync(() => {
@@ -1431,12 +1424,12 @@ describe("VaultComponent", () => {
       expect(newExperienceDialogSpy).not.toHaveBeenCalled();
     }));
 
-    it("starts the vault tour when the user chooses to explore", fakeAsync(() => {
+    it("does not start the vault tour from a new-experience dialog", fakeAsync(() => {
       newExperienceDialogSpy.mockResolvedValue(NewExperienceDialogResult.Explore);
 
       initVault();
 
-      expect(vaultTourSvc.start).toHaveBeenCalledWith("user-1");
+      expect(vaultTourSvc.start).not.toHaveBeenCalled();
     }));
 
     it("does not start the vault tour when the dialog is dismissed", fakeAsync(() => {
