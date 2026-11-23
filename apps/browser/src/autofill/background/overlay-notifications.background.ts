@@ -28,6 +28,10 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private modifyLoginCipherFormData: ModifyLoginCipherFormDataForTab = new Map();
   private clearLoginCipherFormDataSubject: Subject<void> = new Subject();
   private notificationFallbackTimeout: number | NodeJS.Timeout | null = null;
+  private pendingLoginFormData = new Map<
+    number,
+    { message: OverlayNotificationsExtensionMessage; sender: chrome.runtime.MessageSender }
+  >();
   /**
    * Username typed on an earlier step of the same tab and origin. Kept separately from the
    * submission buffer so a password-only second step can still be saved.
@@ -75,13 +79,15 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     message: OverlayNotificationsExtensionMessage,
     sender: chrome.runtime.MessageSender,
   ) {
-    if (await this.shouldInitAddLoginOrChangePasswordNotification(message, sender)) {
+    const shouldInit = await this.shouldInitAddLoginOrChangePasswordNotification(message, sender);
+    if (shouldInit) {
       const tabId = sender.tab?.id;
       if (tabId === undefined) {
         return;
       }
       this.websiteOriginsWithFields.set(tabId, this.getSenderUrlMatchPatterns(sender));
       this.setupWebRequestsListeners();
+      this.flushPendingLoginFormData(tabId);
     }
   }
 
@@ -160,7 +166,13 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     sender: chrome.runtime.MessageSender,
   ) => {
     const tabId = sender.tab?.id;
-    if (tabId === undefined || !this.websiteOriginsWithFields.has(tabId)) {
+    if (tabId === undefined) {
+      return;
+    }
+    if (!this.websiteOriginsWithFields.has(tabId)) {
+      // collectPageDetailsResponse registers the tab. A submit that wins that race used to be
+      // dropped, so the save prompt never opened. Hold the latest submission until registration.
+      this.pendingLoginFormData.set(tabId, { message, sender });
       return;
     }
 
@@ -653,6 +665,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   ) => {
     this.activeFormSubmissionRequests.delete(requestId);
     this.modifyLoginCipherFormData.delete(tabId);
+    this.capturedUsernames.delete(tabId);
     this.websiteOriginsWithFields.delete(tabId);
     this.setupWebRequestsListeners();
   };
@@ -714,9 +727,18 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    *
    * @param tabId - The id of the tab that was removed
    */
+  private flushPendingLoginFormData(tabId: number) {
+    const pending = this.pendingLoginFormData.get(tabId);
+    this.pendingLoginFormData.delete(tabId);
+    if (pending) {
+      void this.storeModifiedLoginFormData(pending.message, pending.sender);
+    }
+  }
+
   private handleTabRemoved = (tabId: number) => {
     this.modifyLoginCipherFormData.delete(tabId);
     this.capturedUsernames.delete(tabId);
+    this.pendingLoginFormData.delete(tabId);
     if (this.websiteOriginsWithFields.has(tabId)) {
       this.websiteOriginsWithFields.delete(tabId);
       this.setupWebRequestsListeners();
@@ -731,6 +753,21 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    * @param changeInfo - The change info of the tab
    */
   private handleTabUpdated = (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
+    if (changeInfo.url) {
+      const pending = this.pendingLoginFormData.get(tabId);
+      if (pending) {
+        let nextOrigin = "";
+        try {
+          nextOrigin = new URL(changeInfo.url).origin;
+        } catch {
+          nextOrigin = "";
+        }
+        if (!nextOrigin || nextOrigin !== this.senderOrigin(pending.sender)) {
+          this.pendingLoginFormData.delete(tabId);
+        }
+      }
+    }
+
     if (changeInfo.status !== "loading" || !changeInfo.url) {
       return;
     }

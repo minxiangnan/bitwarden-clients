@@ -223,6 +223,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     );
     globalThis.removeEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
     globalThis.removeEventListener("pagehide", this.flushCapturedLogin);
+    globalThis.removeEventListener("pointerdown", this.flushCapturedLogin, true);
     this.removeOverlayRepositionEventListeners();
     this.removeRebuildSubFrameOffsetsListeners();
     this.removeSubFrameFocusOutListeners();
@@ -755,11 +756,45 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     };
     return {
       uri: globalThis.document.URL,
-      username: current.username || this.lastNonEmptyLoginFields.username,
-      password: current.password || this.lastNonEmptyLoginFields.password,
-      newPassword: current.newPassword || this.lastNonEmptyLoginFields.newPassword,
+      username:
+        current.username ||
+        this.lastNonEmptyLoginFields.username ||
+        this.liveLoginFieldValue([
+          'input[autocomplete="username"]',
+          'input[autocomplete="email"]',
+          'input[type="email"]',
+          'input[name="username" i]',
+        ]),
+      password:
+        current.password ||
+        this.lastNonEmptyLoginFields.password ||
+        this.liveLoginFieldValue([
+          'input[autocomplete="current-password"]',
+          'input[type="password"]:not([autocomplete="new-password"])',
+        ]),
+      newPassword:
+        current.newPassword ||
+        this.lastNonEmptyLoginFields.newPassword ||
+        this.liveLoginFieldValue(['input[autocomplete="new-password"]']),
     };
   };
+
+  /**
+   * Reads a login value straight from the DOM. Field qualification can lag a
+   * navigation, and the two-step password page still needs the username that is
+   * on screen when the user continues.
+   */
+  private liveLoginFieldValue(selectors: string[]): string {
+    for (const selector of selectors) {
+      const fields = globalThis.document.querySelectorAll<HTMLInputElement>(selector);
+      for (const field of fields) {
+        if (field.value) {
+          return field.value;
+        }
+      }
+    }
+    return "";
+  }
 
   /**
    * Sends the latest login fields to the background. Called when a field is filled, when the
@@ -789,10 +824,9 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       return;
     }
     this.lastNonEmptyLoginFields[qualifier] = value;
-    if (this.loginCaptureTimer != null) {
-      return;
-    }
-    this.loginCaptureTimer = setTimeout(() => this.flushCapturedLogin(), 200);
+    // A delayed flush is lost when the next click navigates before the timer fires,
+    // which drops the username on a two-step login.
+    this.flushCapturedLogin();
   }
 
   /**
@@ -1801,6 +1835,8 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     globalThis.document.addEventListener(EVENTS.VISIBILITYCHANGE, this.handleVisibilityChangeEvent);
     globalThis.addEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
     globalThis.addEventListener("pagehide", this.flushCapturedLogin);
+    // pointerdown runs before the page's click handler navigates to the next login step.
+    globalThis.addEventListener("pointerdown", this.flushCapturedLogin, true);
     this.setOverlayRepositionEventListeners();
   };
 

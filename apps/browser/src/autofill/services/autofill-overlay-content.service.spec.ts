@@ -1688,7 +1688,6 @@ describe("AutofillOverlayContentService", () => {
           autofillOverlayContentService["storeQualifiedUserFilledField"](input, field);
 
           expect(autofillOverlayContentService["getFormFieldData"]().username).toBe("ada");
-          jest.advanceTimersByTime(200);
 
           expect(sendExtensionMessageSpy).toHaveBeenCalledWith(
             "formFieldSubmitted",
