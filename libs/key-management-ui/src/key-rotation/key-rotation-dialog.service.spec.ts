@@ -102,6 +102,27 @@ describe("KeyRotationDialogService", () => {
       expect(mockLogoutService.logout).not.toHaveBeenCalled();
     });
 
+    it("re-encrypts authenticator entries when the new user key arrives after rotation resolves", async () => {
+      const oldKey = new SymmetricCryptoKey(new Uint8Array(64).fill(1));
+      const newKey = new SymmetricCryptoKey(new Uint8Array(64).fill(2));
+      const key$ = new BehaviorSubject(oldKey);
+      (TestBed.inject(KeyService) as MockProxy<KeyService>).userKey$.mockReturnValue(
+        key$ as never,
+      );
+      mockUserKeyRotationService.rotateUserKey.mockImplementation(async () => {
+        setTimeout(() => key$.next(newKey), 20);
+        return true;
+      });
+      const api = TestBed.inject(ApiService) as MockProxy<ApiService>;
+      api.send.mockResolvedValue({ data: [], object: "list" });
+
+      const result = await sut.rotateKeys(masterPassword, mockUserId);
+
+      expect(result).toBe(true);
+      expect(api.send).toHaveBeenCalledWith("GET", "/authenticator", null, true, true);
+      expect(mockLogoutService.logout).toHaveBeenCalledWith(mockUserId, "userKeyRotation");
+    });
+
     it("shows error toast when proof of decryption fails", async () => {
       mockMasterPasswordUnlockService.proofOfDecryption.mockResolvedValue(false);
 

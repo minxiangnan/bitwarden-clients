@@ -1,5 +1,5 @@
 import { inject, Injectable } from "@angular/core";
-import { firstValueFrom } from "rxjs";
+import { catchError, filter, firstValueFrom, of, timeout } from "rxjs";
 
 import { UserDecryptionOptionsServiceAbstraction } from "@bitwarden/auth/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
@@ -169,7 +169,7 @@ export class KeyRotationDialogService {
     userId: UserId,
     oldUserKey: UserKey | null,
   ): Promise<void> {
-    const newUserKey = await firstValueFrom(this.keyService.userKey$(userId));
+    const newUserKey = await this.userKeyAfterRotation(userId, oldUserKey);
     if (oldUserKey == null || newUserKey == null || sameKeyBytes(oldUserKey, newUserKey)) {
       return;
     }
@@ -183,6 +183,27 @@ export class KeyRotationDialogService {
     } catch (error) {
       this.logService.error(`Authenticator entries still need re-encryption: ${error}`);
     }
+  }
+
+  /**
+   * `rotate_user_keys` can resolve before the new key is written to `userKey$`.
+   * Wait briefly for a different key so the authenticator PUT is not skipped.
+   */
+  private async userKeyAfterRotation(
+    userId: UserId,
+    oldUserKey: UserKey | null,
+  ): Promise<UserKey | null> {
+    const immediate = await firstValueFrom(this.keyService.userKey$(userId));
+    if (oldUserKey == null || immediate == null || !sameKeyBytes(oldUserKey, immediate)) {
+      return immediate;
+    }
+    return await firstValueFrom(
+      this.keyService.userKey$(userId).pipe(
+        filter((key): key is UserKey => key != null && !sameKeyBytes(oldUserKey, key)),
+        timeout({ first: 2000 }),
+        catchError(() => of(immediate)),
+      ),
+    );
   }
 
   async hasLegacyCipherAttachments(userId: UserId): Promise<boolean> {
