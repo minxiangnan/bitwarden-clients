@@ -23,7 +23,7 @@
           {{ "autofillVerb" | i18n }}
         </button>
       }
-      @if (allows(RestrictedCipherAction.Share)) {
+      @if (showSend && allows(RestrictedCipherAction.Share)) {
         <app-share-button
           [cipher]="cipher"
           class="tw-mt-4"

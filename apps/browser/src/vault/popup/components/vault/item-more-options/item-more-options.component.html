@@ -51,7 +51,7 @@
           </a>
         }
       }
-      @if (!isLocked && allows(RestrictedCipherAction.Share)) {
+      @if (showSend && !isLocked && allows(RestrictedCipherAction.Share)) {
         <a bitMenuItem *appShareLinkMenuItem="cipher; let share = share" (click)="share()">
           {{ "shareViaLink" | i18n }}
         </a>

@@ -68,6 +68,7 @@ import { PopupFooterComponent } from "../../../../../platform/popup/layout/popup
 import { PopupHeaderComponent } from "../../../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../../../platform/popup/layout/popup-page.component";
 import { PopupRouterCacheService } from "../../../../../platform/popup/view-cache/popup-router-cache.service";
+import { SHOW_SEND } from "../../../../../tools/popup/send-v2/send-visibility";
 import { BrowserViewPasswordHistoryService } from "../../../services/browser-view-password-history.service";
 import {
   ROUTES_AFTER_EDIT_DELETION,
@@ -130,6 +131,7 @@ export class ViewComponent {
   /** The stored copy, which stays restricted while {@link cipher} is its revealed view. */
   private storedCipher: CipherView;
   protected readonly RestrictedCipherAction = RestrictedCipherAction;
+  protected readonly showSend = SHOW_SEND;
   private readonly revealedCipherService = inject(RevealedCipherService);
   organization$: Observable<Organization>;
   canDeleteCipher$: Observable<boolean>;

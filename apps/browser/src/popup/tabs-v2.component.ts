@@ -28,6 +28,7 @@ import {
 import { AuthenticatorActive, AuthenticatorInactive } from "../authenticator/authenticator-icons";
 import { AuthenticatorService } from "../authenticator/popup/authenticator.service";
 import { HealthAccessService } from "../dirt/health/popup/services/health-access.service";
+import { SHOW_SEND } from "../tools/popup/send-v2/send-visibility";
 import { VaultPopupListTableFiltersService } from "../vault/popup/services/vault-popup-list-table-filters.service";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -120,7 +121,7 @@ export class TabsV2Component {
                 } as BottomNavigationButton,
               ]
             : []),
-          ...(sendEnabled
+          ...(SHOW_SEND && sendEnabled
             ? [
                 {
                   label: "send",

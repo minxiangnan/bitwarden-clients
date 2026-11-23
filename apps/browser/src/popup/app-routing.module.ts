@@ -95,6 +95,7 @@ import { importUpgradeRequiredGuard } from "../tools/popup/guards/import-upgrade
 import { SendAddEditComponent as SendAddEditV2Component } from "../tools/popup/send-v2/add-edit/send-add-edit.component";
 import { SendCreatedComponent } from "../tools/popup/send-v2/send-created/send-created.component";
 import { SendV2Component } from "../tools/popup/send-v2/send-v2.component";
+import { sendVisibleGuard } from "../tools/popup/send-v2/send-visibility";
 import { AboutPageV2Component } from "../tools/popup/settings/about-page/about-page-v2.component";
 import { ExportBrowserV2Component } from "../tools/popup/settings/export/export-browser-v2.component";
 import { ImportBrowserV2Component } from "../tools/popup/settings/import/import-browser-v2.component";
@@ -441,25 +442,29 @@ const routes: Routes = [
   {
     path: "add-send",
     component: SendAddEditV2Component,
-    canActivate: [authGuard, filePickerPopoutGuard()],
+    canActivate: [authGuard, sendVisibleGuard, filePickerPopoutGuard()],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "edit-send",
     component: SendAddEditV2Component,
-    canActivate: [authGuard],
+    canActivate: [authGuard, sendVisibleGuard],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "send-created",
     component: SendCreatedComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, sendVisibleGuard],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "share-item",
     component: ShareItemComponent,
-    canActivate: [authGuard, canAccessFeature(FeatureFlag.PM34203TemporaryItemSharing)],
+    canActivate: [
+      authGuard,
+      sendVisibleGuard,
+      canAccessFeature(FeatureFlag.PM34203TemporaryItemSharing),
+    ],
     // Above "view-cipher"
     data: { elevation: 4 } satisfies RouteDataProperties,
   },
@@ -871,7 +876,7 @@ const routes: Routes = [
       {
         path: "send",
         component: SendV2Component,
-        canActivate: [authGuard],
+        canActivate: [authGuard, sendVisibleGuard],
         data: { elevation: 0 } satisfies RouteDataProperties,
       },
       {

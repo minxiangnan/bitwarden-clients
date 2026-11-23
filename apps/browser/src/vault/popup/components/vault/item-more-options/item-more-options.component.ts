@@ -55,6 +55,7 @@ import {
   Vfo1I18nPipe,
 } from "@bitwarden/vault";
 
+import { SHOW_SEND } from "../../../../../tools/popup/send-v2/send-visibility";
 import { VaultPopupAutofillService } from "../../../services/vault-popup-autofill.service";
 import { AddEditQueryParams } from "../add-edit/add-edit.component";
 import {
@@ -98,6 +99,7 @@ const BUILT_IN_ACTION_IDS: ReadonlySet<string> = new Set([
   ],
 })
 export class ItemMoreOptionsComponent {
+  protected readonly showSend = SHOW_SEND;
   private _cipher$ = new BehaviorSubject<CipherViewLike>({} as CipherViewLike);
 
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
