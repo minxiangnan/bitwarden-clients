@@ -1676,6 +1676,27 @@ describe("AutofillOverlayContentService", () => {
           form = document.getElementById("validFormId") as HTMLFormElement;
         });
 
+        it("reports a username after the field is cleared", () => {
+          jest.useFakeTimers();
+          const input = document.createElement("input") as ElementWithOpId<FillableFormFieldElement>;
+          input.value = "ada";
+          const field = createAutofillFieldMock({
+            fieldQualifier: AutofillFieldQualifier.username,
+          });
+          autofillOverlayContentService["storeQualifiedUserFilledField"](input, field);
+          input.value = "";
+          autofillOverlayContentService["storeQualifiedUserFilledField"](input, field);
+
+          expect(autofillOverlayContentService["getFormFieldData"]().username).toBe("ada");
+          jest.advanceTimersByTime(200);
+
+          expect(sendExtensionMessageSpy).toHaveBeenCalledWith(
+            "formFieldSubmitted",
+            expect.objectContaining({ username: "ada" }),
+          );
+          jest.useRealTimers();
+        });
+
         it("sends a `formFieldSubmitted` message to the background on submission of the form", async () => {
           await autofillOverlayContentService.setupOverlayListeners(
             autofillFieldElement,

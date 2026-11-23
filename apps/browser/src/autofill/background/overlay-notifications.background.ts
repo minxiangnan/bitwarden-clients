@@ -28,6 +28,16 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private modifyLoginCipherFormData: ModifyLoginCipherFormDataForTab = new Map();
   private clearLoginCipherFormDataSubject: Subject<void> = new Subject();
   private notificationFallbackTimeout: number | NodeJS.Timeout | null = null;
+  /**
+   * Username typed on an earlier step of the same tab and origin. Kept separately from the
+   * submission buffer so a password-only second step can still be saved.
+   * https://github.com/bitwarden/clients/issues/320
+   */
+  private capturedUsernames = new Map<
+    number,
+    { origin: string; username: string; expiresAt: number }
+  >();
+  private readonly capturedUsernameTtlMs = 2 * 60 * 1000;
   private readonly formSubmissionRequestMethods: Set<string> = new Set(["POST", "PUT", "PATCH"]);
   private readonly extensionMessageHandlers: OverlayNotificationsExtensionMessageHandlers = {
     generatedPasswordFilled: ({ message, sender }) =>
@@ -167,6 +177,19 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
 
     this.clearLoginCipherFormDataSubject.next();
     const formData = { uri, username, password, newPassword };
+    const origin = this.senderOrigin(sender);
+    if (formData.username) {
+      this.capturedUsernames.set(tabId, {
+        origin,
+        username: formData.username,
+        expiresAt: Date.now() + this.capturedUsernameTtlMs,
+      });
+    } else {
+      const remembered = this.capturedUsername(tabId, origin);
+      if (remembered) {
+        formData.username = remembered;
+      }
+    }
 
     const existingModifyLoginData = this.modifyLoginCipherFormData.get(tabId);
     if (existingModifyLoginData) {
@@ -178,6 +201,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     this.modifyLoginCipherFormData.set(tabId, formData);
 
     this.clearNotificationFallbackTimeout();
+    // A username by itself is not a login to save. Prompting now would discard it
+    // before the password step. The captured username is combined when the password arrives.
+    if (!formData.password && !formData.newPassword) {
+      return;
+    }
     this.notificationFallbackTimeout = setTimeout(() => {
       const modifyLoginData = this.modifyLoginCipherFormData.get(tabId);
       if (modifyLoginData) {
@@ -330,8 +358,33 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       return false;
     }
 
-    return false;
+    // Username-only, or any other incomplete capture, still needs the fields read
+    // from the page when a request is submitted without a form event.
+    return true;
   };
+
+  private senderOrigin(sender: chrome.runtime.MessageSender): string {
+    if (sender.origin) {
+      return sender.origin;
+    }
+    try {
+      return sender.tab?.url ? new URL(sender.tab.url).origin : "";
+    } catch {
+      return "";
+    }
+  }
+
+  private capturedUsername(tabId: number, origin: string): string {
+    const saved = this.capturedUsernames.get(tabId);
+    if (saved == null || saved.expiresAt < Date.now()) {
+      this.capturedUsernames.delete(tabId);
+      return "";
+    }
+    if (origin && saved.origin && saved.origin !== origin) {
+      return "";
+    }
+    return saved.username;
+  }
 
   /**
    * Determines whether the request is happening after a form submission. This is identified by a GET
@@ -663,6 +716,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    */
   private handleTabRemoved = (tabId: number) => {
     this.modifyLoginCipherFormData.delete(tabId);
+    this.capturedUsernames.delete(tabId);
     if (this.websiteOriginsWithFields.has(tabId)) {
       this.websiteOriginsWithFields.delete(tabId);
       this.setupWebRequestsListeners();

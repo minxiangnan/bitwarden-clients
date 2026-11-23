@@ -257,6 +257,47 @@ describe("OverlayNotificationsBackground", () => {
       });
     });
 
+    it("combines a username captured on the first step with the password submitted on the second", async () => {
+      const originSender = mock<chrome.runtime.MessageSender>({
+        tab: { id: sender.tab.id, url: "https://example.com/password" },
+        origin: "https://example.com",
+      });
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/username",
+          username: "ada",
+          password: "",
+          newPassword: "",
+        },
+        originSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["notificationFallbackTimeout"]).toBeNull();
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/password",
+          username: "",
+          password: "secret",
+          newPassword: "",
+        },
+        originSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(sender.tab.id)).toEqual(
+        {
+          uri: "https://example.com/password",
+          username: "ada",
+          password: "secret",
+          newPassword: "",
+        },
+      );
+    });
+
     it("overrides previously stored modified login cipher form data with a subsequent store request", async () => {
       sendMockExtensionMessage(
         {
