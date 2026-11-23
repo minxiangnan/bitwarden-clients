@@ -12,6 +12,7 @@ import { ExtensionCommand } from "@bitwarden/common/autofill/constants";
 import { DomainSettingsService } from "@bitwarden/common/autofill/services/domain-settings.service";
 import { UserNotificationSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/user-notification-settings.service";
 import { ProductTierType } from "@bitwarden/common/billing/enums";
+import { UriMatchStrategy } from "@bitwarden/common/models/domain/domain-service";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
@@ -1016,6 +1017,7 @@ describe("NotificationBackground", () => {
             formEntryData.uri,
             userId,
             CipherUse.SavePrompt,
+            { defaultMatch: UriMatchStrategy.Host },
           );
 
           expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
@@ -1955,7 +1957,7 @@ describe("NotificationBackground", () => {
           username: "BBaggins",
         };
 
-        it("and cipher update candidates only match `password`, trigger an update cipher notification with those candidates", async () => {
+        it("and the username is not stored for this host, offer to save even if another cipher has the same password", async () => {
           const storedCiphersForURL = [
             mock<CipherView>({
               id: "cipher-id-1",
@@ -1976,28 +1978,33 @@ describe("NotificationBackground", () => {
 
           await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
-          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
-          expect(pushChangePasswordToQueueSpy).toHaveBeenCalledWith(
-            ["cipher-id-1", "cipher-id-2"],
+          expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledWith(
             mockFormattedURI,
-            formEntryData.password,
+            {
+              password: formEntryData.password,
+              url: formEntryData.uri,
+              username: formEntryData.username,
+            },
             sender.tab,
           );
         });
 
-        it("and cipher update candidates only match `password`, do not trigger an update cipher notification if the update cipher notification setting is disabled", async () => {
+        it("does not open a second bar for the same username and password in the tab", async () => {
+          activeAccountStatusMock$.next(AuthenticationStatus.Unlocked);
+          getAllDecryptedForUrlSpy.mockResolvedValue([]);
+
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+          await notificationBackground.triggerCipherNotification(formEntryData, tab);
+
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("still offers to save a new username when the update-password prompt is disabled", async () => {
           const storedCiphersForURL = [
             mock<CipherView>({
               id: "cipher-id-1",
               login: { username: "FBaggins", password: "ShyerH1re" },
-            }),
-            mock<CipherView>({
-              id: "cipher-id-2",
-              login: { username: "PTook", password: "ShyerH1re" },
-            }),
-            mock<CipherView>({
-              id: "cipher-id-3",
-              login: { username: "FrodoB", password: "UShallKnotPassword" },
             }),
           ];
 
@@ -2008,7 +2015,7 @@ describe("NotificationBackground", () => {
           await notificationBackground.triggerCipherNotification(formEntryData, tab);
 
           expect(pushChangePasswordToQueueSpy).not.toHaveBeenCalled();
-          expect(pushAddLoginToQueueSpy).not.toHaveBeenCalled();
+          expect(pushAddLoginToQueueSpy).toHaveBeenCalled();
         });
 
         it("and cipher update candidates only match `username`, trigger an update cipher notification with those candidates", async () => {
@@ -2745,7 +2752,7 @@ describe("NotificationBackground", () => {
           });
         });
 
-        it("updates the cipher password if the queue message was locked and an existing cipher has the same username as the message", async () => {
+        it("after unlock, shows an update bar instead of writing when the stored password differs", async () => {
           const tab = createChromeTabMock({ id: 1, url: "https://example.com" });
           const sender = mock<chrome.runtime.MessageSender>({ tab });
           const message: NotificationBackgroundExtensionMessage = {
@@ -2777,16 +2784,15 @@ describe("NotificationBackground", () => {
             queueMessage.data.uri,
             userId,
             CipherUse.SavePrompt,
+            { defaultMatch: UriMatchStrategy.Host },
           );
-          expect(updatePasswordSpy).toHaveBeenCalledWith(
-            cipherView,
-            queueMessage.data.password,
-            message.edit,
-            sender.tab,
-            "testId",
-          );
-          expect(editItemSpy).not.toHaveBeenCalled();
+          expect(updatePasswordSpy).not.toHaveBeenCalled();
           expect(createWithServerSpy).not.toHaveBeenCalled();
+          expect(
+            notificationBackground["notificationQueue"].some(
+              (item) => item.type === NotificationType.ChangePassword,
+            ),
+          ).toBe(true);
         });
 
         it("opens an editItem window and closes the notification bar if the edit value is within the passed message when attempting to update an existing cipher", async () => {
