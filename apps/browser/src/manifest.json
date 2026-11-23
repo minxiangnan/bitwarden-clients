@@ -4,7 +4,7 @@
   "short_name": "Bitwarden",
   "version": "2026.11.0",
   "description": "__MSG_extDesc__",
-  "default_locale": "en",
+  "default_locale": "zh_CN",
   "author": "Bitwarden Inc.",
   "homepage_url": "https://bitwarden.com",
   "icons": {

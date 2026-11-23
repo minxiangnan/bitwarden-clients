@@ -24,7 +24,7 @@ function parseParameters() {
     parentUrl = decodeURIComponent(parentUrl);
   }
 
-  locale = getQsParam("locale") ?? "en";
+  locale = getQsParam("locale") ?? "zh-CN";
 
   const version = getQsParam("v");
 
@@ -66,7 +66,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     localeService = new TranslationService(locale, "locales");
   } catch {
     error("Failed to load the provided locale " + locale);
-    localeService = new TranslationService("en", "locales");
+    localeService = new TranslationService("zh-CN", "locales");
   }
 
   await localeService.init();

@@ -1,3 +1,4 @@
+import "../../platform/i18n/force-zh-cn";
 import { EventSecurity } from "../utils/event-security";
 import { WebmapperCommand } from "../webmapper/messaging";
 

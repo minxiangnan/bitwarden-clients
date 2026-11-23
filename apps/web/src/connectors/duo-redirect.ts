@@ -25,7 +25,7 @@ window.addEventListener("load", async () => {
     throw new Error("state is null");
   }
 
-  localeService = new TranslationService(navigator.language, "locales");
+  localeService = new TranslationService("zh-CN", "locales");
   await localeService.init();
 
   if (client === "web") {
