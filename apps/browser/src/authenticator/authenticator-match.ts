@@ -55,6 +55,7 @@ export function bestAuthenticatorForUrl(
   const matches = entries.filter(
     (entry) =>
       !entry.undecryptable &&
+      !entry.deletedAt &&
       entryKind(entry) !== AuthenticatorKinds.Hotp &&
       entryMatchesHost(entry, hostname),
   );

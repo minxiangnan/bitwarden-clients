@@ -48,6 +48,29 @@ export class AuthenticatorToolsComponent {
     initialValue: { status: "loading" as const, entries: [] },
   });
   protected readonly readOnly = computed(() => this.state().status === "offline");
+  protected readonly trash = computed(() =>
+    this.state().entries.filter((entry) => entry.deletedAt && !entry.undecryptable),
+  );
+
+  protected async restore(entryId: string): Promise<void> {
+    const entry = this.state().entries.find((item) => item.id === entryId);
+    if (!entry) {
+      return;
+    }
+    try {
+      await this.authenticator.restore(entry);
+    } catch {
+      this.failSave();
+    }
+  }
+
+  protected async purge(entryId: string): Promise<void> {
+    try {
+      await this.authenticator.remove(entryId);
+    } catch {
+      this.failSave();
+    }
+  }
 
   protected help(): void {
     void this.router.navigate(["/authenticator-help"]);

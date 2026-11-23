@@ -9,8 +9,8 @@ import { AUTHENTICATOR_SYNC_SNAPSHOT } from "@bitwarden/common/vault/services/ke
 // eslint-disable-next-line no-restricted-imports
 import { EncString, EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 
-import { kindFromStored, splitAuthenticatorNotes } from "./authenticator-meta";
 import { bestAuthenticatorForUrl, totpSeedForEntry } from "./authenticator-match";
+import { kindFromStored, splitAuthenticatorNotes } from "./authenticator-meta";
 import {
   AuthenticatorEntryView,
   DEFAULT_AUTHENTICATOR_DIGITS,
@@ -92,6 +92,7 @@ async function decryptEntry(
     host: split.meta.host,
     tags: split.meta.tags,
     counter: split.meta.counter,
+    deletedAt: split.meta.deletedAt,
   };
 }
 

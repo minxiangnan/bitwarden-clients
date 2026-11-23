@@ -9470,6 +9470,21 @@
   "authenticatorCopyAction": {
     "message": "Copy verification code"
   },
+  "authenticatorTrash": {
+    "message": "Code trash"
+  },
+  "authenticatorTrashHelp": {
+    "message": "Deleted codes stay here until you restore them. Permanent delete removes them from the server."
+  },
+  "authenticatorTrashEmpty": {
+    "message": "Trash is empty."
+  },
+  "authenticatorRestore": {
+    "message": "Restore"
+  },
+  "authenticatorTrashPermanent": {
+    "message": "Delete permanently"
+  },
   "passwordHealthClear": {
     "message": "Nothing needs attention."
   },

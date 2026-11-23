@@ -1,5 +1,4 @@
 import { hotpFromKey, steamCode, totpCode } from "./authenticator-codes";
-import { clipboardClearMs } from "./clipboard-delay";
 import { buildAuthenticatorExport } from "./authenticator-export";
 import { decodeMigrationPayload, parseAuthenticatorImport } from "./authenticator-import";
 import { bestAuthenticatorForUrl, entryMatchesHost } from "./authenticator-match";
@@ -10,6 +9,7 @@ import {
 } from "./authenticator-meta";
 import { rememberRecentId } from "./authenticator-ui-state";
 import { AuthenticatorEntryView } from "./authenticator.models";
+import { clipboardClearMs } from "./clipboard-delay";
 import {
   classifyPasswords,
   exposedCountFromRange,
@@ -82,15 +82,31 @@ describe("authenticator notes metadata", () => {
 
     expect(split.text).toBe("desk");
     expect(split.hasTrailer).toBe(true);
-    expect(split.meta).toEqual({ kind: "hotp", host: "github.com", tags: ["工作"], counter: 3 });
+    expect(split.meta).toEqual({
+      kind: "hotp",
+      host: "github.com",
+      tags: ["工作"],
+      counter: 3,
+      deletedAt: null,
+    });
   });
 
   it("keeps a 5-digit TOTP distinct from an older Steam entry", () => {
-    const plain = joinAuthenticatorNotes("x", { kind: "totp", host: "", tags: [], counter: 0 }, 6);
+    const plain = joinAuthenticatorNotes(
+      "x",
+      { kind: "totp", host: "", tags: [], counter: 0, deletedAt: null },
+      6,
+    );
     expect(plain).toBe("x");
-    expect(kindFromStored({ kind: "totp", host: "", tags: [], counter: 0 }, false, 5)).toBe("steam");
+    expect(
+      kindFromStored({ kind: "totp", host: "", tags: [], counter: 0, deletedAt: null }, false, 5),
+    ).toBe("steam");
 
-    const totpFive = joinAuthenticatorNotes("x", { kind: "totp", host: "", tags: [], counter: 0 }, 5);
+    const totpFive = joinAuthenticatorNotes(
+      "x",
+      { kind: "totp", host: "", tags: [], counter: 0, deletedAt: null },
+      5,
+    );
     const split = splitAuthenticatorNotes(totpFive);
     expect(kindFromStored(split.meta, split.hasTrailer, 5)).toBe("totp");
   });
@@ -98,15 +114,20 @@ describe("authenticator notes metadata", () => {
 
 describe("authenticator import and export", () => {
   it("reads otpauth lines, Aegis, 2FAS, Bitwarden JSON, and CSV", () => {
-    expect(parseAuthenticatorImport("otpauth://totp/GitHub:ada?secret=WQIQ25BRKZYCJVYP").entries).toEqual([
-      expect.objectContaining({ issuer: "GitHub", secret: "WQIQ25BRKZYCJVYP" }),
-    ]);
+    expect(
+      parseAuthenticatorImport("otpauth://totp/GitHub:ada?secret=WQIQ25BRKZYCJVYP").entries,
+    ).toEqual([expect.objectContaining({ issuer: "GitHub", secret: "WQIQ25BRKZYCJVYP" })]);
     expect(
       parseAuthenticatorImport(
         JSON.stringify({
           db: {
             entries: [
-              { type: "totp", name: "ada", issuer: "GitHub", info: { secret: "WQIQ25BRKZYCJVYP", algo: "SHA1", digits: 6, period: 30 } },
+              {
+                type: "totp",
+                name: "ada",
+                issuer: "GitHub",
+                info: { secret: "WQIQ25BRKZYCJVYP", algo: "SHA1", digits: 6, period: 30 },
+              },
             ],
           },
         }),
@@ -118,13 +139,23 @@ describe("authenticator import and export", () => {
     expect(
       parseAuthenticatorImport(
         JSON.stringify({
-          services: [{ name: "GitHub", secret: "WQIQ25BRKZYCJVYP", otp: { account: "ada", issuer: "GitHub", tokenType: "TOTP" } }],
+          services: [
+            {
+              name: "GitHub",
+              secret: "WQIQ25BRKZYCJVYP",
+              otp: { account: "ada", issuer: "GitHub", tokenType: "TOTP" },
+            },
+          ],
         }),
       ).entries[0],
     ).toEqual(expect.objectContaining({ name: "ada", issuer: "GitHub" }));
     expect(
       parseAuthenticatorImport(
-        JSON.stringify({ items: [{ name: "Mail", login: { totp: "otpauth://totp/Mail:ada?secret=WQIQ25BRKZYCJVYP" } }] }),
+        JSON.stringify({
+          items: [
+            { name: "Mail", login: { totp: "otpauth://totp/Mail:ada?secret=WQIQ25BRKZYCJVYP" } },
+          ],
+        }),
       ).entries[0].name,
     ).toBe("ada");
     expect(
@@ -175,16 +206,18 @@ describe("matching a code to the current site", () => {
 
     const inferred = entry({ host: "", issuer: "GitHub" });
     expect(bestAuthenticatorForUrl([inferred], "https://github.com/login")?.id).toBe("1");
-    expect(bestAuthenticatorForUrl([inferred], "https://github.com.evil.test/")?.id).toBeUndefined();
+    expect(
+      bestAuthenticatorForUrl([inferred], "https://github.com.evil.test/")?.id,
+    ).toBeUndefined();
   });
 
   it("does not guess when two codes match the same host", () => {
     const first = entry({ id: "1", host: "github.com" });
     const second = entry({ id: "2", name: "Bea", host: "github.com" });
     expect(bestAuthenticatorForUrl([first, second], "https://github.com")).toBeNull();
-    expect(bestAuthenticatorForUrl([{ ...first, favorite: true }, second], "https://github.com")?.id).toBe(
-      "1",
-    );
+    expect(
+      bestAuthenticatorForUrl([{ ...first, favorite: true }, second], "https://github.com")?.id,
+    ).toBe("1");
   });
 });
 
@@ -204,9 +237,12 @@ describe("password health and presets", () => {
   });
 
   it("reads a k-anonymity range and only requests the hash prefix", async () => {
-    expect(exposedCountFromRange("0018A45C4D1DEF81644B54AB7F969B88D65:1\n", "0018A45C4D1DEF81644B54AB7F969B88D65")).toBe(
-      1,
-    );
+    expect(
+      exposedCountFromRange(
+        "0018A45C4D1DEF81644B54AB7F969B88D65:1\n",
+        "0018A45C4D1DEF81644B54AB7F969B88D65",
+      ),
+    ).toBe(1);
     const seen: string[] = [];
     const counts = await lookupExposedCounts(["password"], async (prefix) => {
       seen.push(prefix);

@@ -17,13 +17,13 @@ import { PopupPageComponent } from "../../platform/popup/layout/popup-page.compo
 import { parseAuthenticatorImport } from "../authenticator-import";
 import { filterAuthenticatorEntries, parseOtpAuthUri } from "../authenticator-otpauth";
 import { scanCurrentTabForOtpauth } from "../authenticator-scan";
-import { clipboardClearMs } from "../clipboard-delay";
 import { AuthenticatorGroup } from "../authenticator-ui-state";
 import { AuthenticatorEntryView } from "../authenticator.models";
+import { clipboardClearMs } from "../clipboard-delay";
 
 import { AuthenticatorCodeComponent } from "./authenticator-code.component";
-import { AuthenticatorService } from "./authenticator.service";
 import { AuthenticatorUiService } from "./authenticator-ui.service";
+import { AuthenticatorService } from "./authenticator.service";
 
 @Component({
   selector: "app-authenticator-list",
@@ -47,7 +47,9 @@ export class AuthenticatorListComponent {
   private readonly platformUtils = inject(PlatformUtilsService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
-  private readonly autofillSettings = inject(AutofillSettingsServiceAbstraction, { optional: true });
+  private readonly autofillSettings = inject(AutofillSettingsServiceAbstraction, {
+    optional: true,
+  });
   protected readonly ui = inject(AuthenticatorUiService);
   private readonly codes = new Map<string, string>();
 
@@ -67,7 +69,7 @@ export class AuthenticatorListComponent {
   protected readonly recentOnly = this.ui.recentOnly;
   protected readonly visible = computed(() => {
     const filtered = filterAuthenticatorEntries(
-      this.state().entries,
+      this.state().entries.filter((entry) => !entry.deletedAt),
       this.query(),
       this.favoritesOnly(),
       this.ui.sort(),
@@ -147,7 +149,10 @@ export class AuthenticatorListComponent {
         this.toast.showToast({
           variant: saved > 0 ? "success" : "error",
           title: null,
-          message: this.i18n.t(saved > 0 ? "authenticatorImported" : "authenticatorImportEmpty", String(saved)),
+          message: this.i18n.t(
+            saved > 0 ? "authenticatorImported" : "authenticatorImportEmpty",
+            String(saved),
+          ),
         });
         return;
       }

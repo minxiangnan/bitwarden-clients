@@ -8,14 +8,14 @@ import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/components";
 
+import { BrowserApi } from "../../platform/browser/browser-api";
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
-import { parseTagList, AuthenticatorKinds } from "../authenticator-meta";
 import { parseAuthenticatorImport } from "../authenticator-import";
+import { parseTagList, AuthenticatorKinds } from "../authenticator-meta";
 import { isValidTotpSecret, normalizeTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
 import { scanCurrentTabForOtpauth } from "../authenticator-scan";
-import { BrowserApi } from "../../platform/browser/browser-api";
 import {
   AuthenticatorAlgorithm,
   AuthenticatorAlgorithms,
@@ -268,7 +268,11 @@ export class AuthenticatorFormComponent implements OnInit {
     }
     this.saving.set(true);
     try {
-      await this.authenticator.remove(id);
+      const state = await firstValueFrom(this.authenticator.state$);
+      const entry = state.entries.find((item) => item.id === id);
+      if (entry) {
+        await this.authenticator.moveToTrash(entry);
+      }
       await this.router.navigate(["/tabs/authenticator"]);
     } catch {
       this.toast.showToast({
@@ -299,10 +303,7 @@ export class AuthenticatorFormComponent implements OnInit {
   private async acceptInput(value: string, saveNow: boolean): Promise<void> {
     const trimmed = value.trim();
     const bulk = parseAuthenticatorImport(trimmed);
-    if (
-      trimmed.toLowerCase().startsWith("otpauth-migration://") ||
-      bulk.entries.length > 1
-    ) {
+    if (trimmed.toLowerCase().startsWith("otpauth-migration://") || bulk.entries.length > 1) {
       if (bulk.encrypted) {
         this.errorKey.set("authenticatorImportEncrypted");
         return;

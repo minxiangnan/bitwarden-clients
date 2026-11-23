@@ -9470,6 +9470,21 @@
   "authenticatorCopyAction": {
     "message": "复制验证码"
   },
+  "authenticatorTrash": {
+    "message": "验证码回收站"
+  },
+  "authenticatorTrashHelp": {
+    "message": "删除的验证码先留在这里，可以恢复。彻底删除才会从服务器去掉。"
+  },
+  "authenticatorTrashEmpty": {
+    "message": "回收站是空的。"
+  },
+  "authenticatorRestore": {
+    "message": "恢复"
+  },
+  "authenticatorTrashPermanent": {
+    "message": "彻底删除"
+  },
   "passwordHealthClear": {
     "message": "没有发现需要处理的密码。"
   },

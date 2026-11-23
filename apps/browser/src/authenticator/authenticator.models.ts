@@ -44,6 +44,7 @@ export type AuthenticatorEntryView = {
   host?: string;
   tags?: string[];
   counter?: number;
+  deletedAt?: string | null;
 };
 
 /** camelCase body for POST and PUT. Name, issuer, secret, and notes are EncStrings. */

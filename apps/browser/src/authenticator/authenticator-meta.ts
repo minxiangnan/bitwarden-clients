@@ -12,12 +12,14 @@ export type AuthenticatorMeta = {
   host: string;
   tags: string[];
   counter: number;
+  /** Set when the entry is in the trash. Null means it is in the live list. */
+  deletedAt: string | null;
 };
 
 const SENTINEL = "[[bwmeta:1]]";
 
 export function defaultAuthenticatorMeta(): AuthenticatorMeta {
-  return { kind: AuthenticatorKinds.Totp, host: "", tags: [], counter: 0 };
+  return { kind: AuthenticatorKinds.Totp, host: "", tags: [], counter: 0, deletedAt: null };
 }
 
 export function parseTagList(value: string): string[] {
@@ -45,7 +47,8 @@ export function shouldPersistMeta(meta: AuthenticatorMeta, digits: number): bool
     digits === 5 ||
     meta.host !== "" ||
     meta.tags.length > 0 ||
-    meta.counter > 0
+    meta.counter > 0 ||
+    meta.deletedAt != null
   );
 }
 
@@ -106,6 +109,9 @@ function compactMeta(meta: AuthenticatorMeta): Record<string, unknown> {
   if (meta.counter > 0) {
     compact.counter = meta.counter;
   }
+  if (meta.deletedAt) {
+    compact.deletedAt = meta.deletedAt;
+  }
   return compact;
 }
 
@@ -124,8 +130,15 @@ function sanitizeMeta(value: unknown): AuthenticatorMeta {
   if (Array.isArray(record.tags)) {
     meta.tags = parseTagList(record.tags.filter((tag) => typeof tag === "string").join(","));
   }
-  if (typeof record.counter === "number" && Number.isInteger(record.counter) && record.counter > 0) {
+  if (
+    typeof record.counter === "number" &&
+    Number.isInteger(record.counter) &&
+    record.counter > 0
+  ) {
     meta.counter = record.counter;
+  }
+  if (typeof record.deletedAt === "string" && !Number.isNaN(Date.parse(record.deletedAt))) {
+    meta.deletedAt = record.deletedAt;
   }
   return meta;
 }

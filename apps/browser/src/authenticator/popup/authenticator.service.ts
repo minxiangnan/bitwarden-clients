@@ -64,6 +64,7 @@ export type AuthenticatorDraft = {
   host?: string;
   tags?: string[];
   counter?: number;
+  deletedAt?: string | null;
 };
 
 export type VaultTotpImport = {
@@ -95,8 +96,7 @@ export class AuthenticatorService {
   /** True once this server exposes the authenticator API. A 404 keeps the tab hidden. */
   readonly supported$ = this.state$.pipe(
     map(
-      (state) =>
-        state.status === "ready" || state.status === "error" || state.status === "offline",
+      (state) => state.status === "ready" || state.status === "error" || state.status === "offline",
     ),
     distinctUntilChanged(),
   );
@@ -349,6 +349,7 @@ export class AuthenticatorService {
         host: (draft.host ?? "").trim().toLowerCase(),
         tags: draft.tags ?? [],
         counter: draft.counter ?? 0,
+        deletedAt: draft.deletedAt ?? null,
       },
       draft.digits,
     );
@@ -360,7 +361,9 @@ export class AuthenticatorService {
 
   async saveImported(drafts: AuthenticatorDraft[]): Promise<number> {
     const existing = new Set(
-      this.stateSubject.value.entries.map((entry) => entry.secret.replace(/\s+/g, "").toUpperCase()),
+      this.stateSubject.value.entries.map((entry) =>
+        entry.secret.replace(/\s+/g, "").toUpperCase(),
+      ),
     );
     let saved = 0;
     for (const draft of drafts) {
@@ -373,6 +376,14 @@ export class AuthenticatorService {
       saved++;
     }
     return saved;
+  }
+
+  async moveToTrash(entry: AuthenticatorEntryView): Promise<void> {
+    await this.save(draftFromView({ ...entry, deletedAt: new Date().toISOString() }), entry.id);
+  }
+
+  async restore(entry: AuthenticatorEntryView): Promise<void> {
+    await this.save(draftFromView({ ...entry, deletedAt: null }), entry.id);
   }
 
   async advanceHotp(entry: AuthenticatorEntryView): Promise<void> {
@@ -433,6 +444,7 @@ export class AuthenticatorService {
       host: split.meta.host,
       tags: split.meta.tags,
       counter: split.meta.counter,
+      deletedAt: split.meta.deletedAt,
     };
   }
 
@@ -534,6 +546,7 @@ export function draftFromView(entry: AuthenticatorEntryView): AuthenticatorDraft
     host: entry.host ?? "",
     tags: entry.tags ?? [],
     counter: entry.counter ?? 0,
+    deletedAt: entry.deletedAt ?? null,
   };
 }
 
