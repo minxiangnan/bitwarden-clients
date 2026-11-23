@@ -1,9 +1,17 @@
+import { firstValueFrom } from "rxjs";
+
 // EncStrings are the authenticator contract: name, issuer, secret, and notes.
 // eslint-disable-next-line no-restricted-imports
 import { EncString, EncryptService, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 
 import { ApiService } from "../../abstractions/api.service";
+import { InternalMasterPasswordServiceAbstraction } from "../../key-management/master-password/abstractions/master-password.service.abstraction";
+import {
+  MasterKeyWrappedUserKey,
+  MasterPasswordUnlockData,
+} from "../../key-management/master-password/types/master-password.types";
 import { ErrorResponse } from "../../models/response/error.response";
+import { UserId } from "../../types/guid";
 import { MasterKey, UserKey } from "../../types/key";
 import {
   AuthenticatorEntryResponse,
@@ -91,6 +99,56 @@ export async function recoverAuthenticatorKeyRotation(
     masterKey as unknown as SymmetricCryptoKey,
   )) as unknown as UserKey;
   await finishAuthenticatorKeyRotation(apiService, encryptService, oldKey, currentUserKey);
+}
+
+/**
+ * Re-encrypts authenticator entries after `rotate-user-keys` using the account key the server
+ * stored. `userKey$` often still holds the previous key when the POST returns, so the new key is
+ * unwrapped from the profile with the same master password.
+ */
+export async function reencryptAuthenticatorsWithAccountKey(
+  apiService: ApiService,
+  encryptService: EncryptService,
+  masterPasswordService: InternalMasterPasswordServiceAbstraction,
+  oldKey: UserKey,
+  userId: UserId,
+  masterPassword: string,
+): Promise<void> {
+  const status = await readAuthenticatorKeyRotation(apiService);
+  if (status == null || !status.required) {
+    return;
+  }
+  const unlockData = await firstValueFrom(masterPasswordService.masterPasswordUnlockData$(userId));
+  const wrapped = (await apiService.getProfile()).key?.encryptedString;
+  if (unlockData == null || wrapped == null || wrapped === "") {
+    return;
+  }
+  const newKey = await masterPasswordService.unwrapUserKeyFromMasterPasswordUnlockData(
+    masterPassword,
+    new MasterPasswordUnlockData(
+      unlockData.salt,
+      unlockData.kdf,
+      wrapped as MasterKeyWrappedUserKey,
+    ),
+  );
+  if (sameKeyBytes(oldKey, newKey)) {
+    return;
+  }
+  await finishAuthenticatorKeyRotation(apiService, encryptService, oldKey, newKey);
+}
+
+function sameKeyBytes(left: UserKey, right: UserKey): boolean {
+  const a = left.toEncoded();
+  const b = right.toEncoded();
+  if (a.byteLength !== b.byteLength) {
+    return false;
+  }
+  for (let i = 0; i < a.byteLength; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 async function reencryptAuthenticatorEntries(

@@ -1,15 +1,19 @@
 import { inject, Injectable } from "@angular/core";
-import { catchError, filter, firstValueFrom, of, timeout } from "rxjs";
+import { firstValueFrom } from "rxjs";
 
 import { UserDecryptionOptionsServiceAbstraction } from "@bitwarden/auth/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { LogoutService } from "@bitwarden/common/auth/logout";
 import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
+import { InternalMasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { UserKey } from "@bitwarden/common/types/key";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
-import { finishAuthenticatorKeyRotation } from "@bitwarden/common/vault/services/authenticator-rotation";
+import {
+  finishAuthenticatorKeyRotation,
+  reencryptAuthenticatorsWithAccountKey,
+} from "@bitwarden/common/vault/services/authenticator-rotation";
 import { ToastService } from "@bitwarden/components";
 import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
@@ -27,6 +31,7 @@ export class KeyRotationDialogService {
   private readonly i18nService = inject(I18nService);
   private readonly logoutService = inject(LogoutService);
   private readonly masterPasswordUnlockService = inject(MasterPasswordUnlockService);
+  private readonly masterPasswordService = inject(InternalMasterPasswordServiceAbstraction);
   private readonly userDecryptionOptionsService = inject(UserDecryptionOptionsServiceAbstraction);
   private readonly apiService = inject(ApiService);
   private readonly encryptService = inject(EncryptService);
@@ -68,7 +73,7 @@ export class KeyRotationDialogService {
       // already be the new one, so authenticator entries still have to be re-encrypted.
       this.logService.error(error);
     } finally {
-      await this.reencryptAuthenticatorEntries(userId, oldUserKey);
+      await this.reencryptAuthenticatorEntries(userId, oldUserKey, masterPassword);
     }
 
     if (success) {
@@ -168,12 +173,29 @@ export class KeyRotationDialogService {
   private async reencryptAuthenticatorEntries(
     userId: UserId,
     oldUserKey: UserKey | null,
+    masterPassword?: string,
   ): Promise<void> {
-    const newUserKey = await this.userKeyAfterRotation(userId, oldUserKey);
-    if (oldUserKey == null || newUserKey == null || sameKeyBytes(oldUserKey, newUserKey)) {
+    if (oldUserKey == null) {
       return;
     }
     try {
+      if (masterPassword != null) {
+        // The SDK leaves userKey$ on the previous key. The profile holds the new
+        // master-password-wrapped account key as soon as the POST returns.
+        await reencryptAuthenticatorsWithAccountKey(
+          this.apiService,
+          this.encryptService,
+          this.masterPasswordService,
+          oldUserKey,
+          userId,
+          masterPassword,
+        );
+        return;
+      }
+      const newUserKey = await firstValueFrom(this.keyService.userKey$(userId));
+      if (newUserKey == null || sameKeyBytes(oldUserKey, newUserKey)) {
+        return;
+      }
       await finishAuthenticatorKeyRotation(
         this.apiService,
         this.encryptService,
@@ -183,27 +205,6 @@ export class KeyRotationDialogService {
     } catch (error) {
       this.logService.error(`Authenticator entries still need re-encryption: ${error}`);
     }
-  }
-
-  /**
-   * `rotate_user_keys` can resolve before the new key is written to `userKey$`.
-   * Wait briefly for a different key so the authenticator PUT is not skipped.
-   */
-  private async userKeyAfterRotation(
-    userId: UserId,
-    oldUserKey: UserKey | null,
-  ): Promise<UserKey | null> {
-    const immediate = await firstValueFrom(this.keyService.userKey$(userId));
-    if (oldUserKey == null || immediate == null || !sameKeyBytes(oldUserKey, immediate)) {
-      return immediate;
-    }
-    return await firstValueFrom(
-      this.keyService.userKey$(userId).pipe(
-        filter((key): key is UserKey => key != null && !sameKeyBytes(oldUserKey, key)),
-        timeout({ first: 2000 }),
-        catchError(() => of(immediate)),
-      ),
-    );
   }
 
   async hasLegacyCipherAttachments(userId: UserId): Promise<boolean> {
