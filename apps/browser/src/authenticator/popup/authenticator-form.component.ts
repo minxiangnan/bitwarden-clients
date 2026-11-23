@@ -13,7 +13,6 @@ import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.c
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
 import { isValidTotpSecret, normalizeTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
 import { scanCurrentTabForOtpauth } from "../authenticator-scan";
-import { normalizeAlias } from "../mcp/mcp-crypto";
 import {
   AuthenticatorAlgorithm,
   AuthenticatorAlgorithms,
@@ -24,6 +23,7 @@ import {
   MIN_AUTHENTICATOR_DIGITS,
   MIN_AUTHENTICATOR_PERIOD,
 } from "../authenticator.models";
+import { normalizeAlias } from "../mcp/mcp-crypto";
 
 import { AuthenticatorDraft, AuthenticatorService, draftFromView } from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
@@ -51,7 +51,7 @@ export class AuthenticatorFormComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly toast = inject(ToastService);
   private readonly mcp = inject(McpAccessService);
-  private mcpWasEnabled = false;
+  private readonly mcpWasEnabled = signal(false);
 
   protected readonly algorithms = [
     AuthenticatorAlgorithms.Sha1,
@@ -127,7 +127,7 @@ export class AuthenticatorFormComponent implements OnInit {
     this.otpType.set(entry.digits === MIN_AUTHENTICATOR_DIGITS ? "steam" : "totp");
     const grant = await this.mcp.findAuthenticator(id);
     if (grant) {
-      this.mcpWasEnabled = true;
+      this.mcpWasEnabled.set(true);
       this.form.patchValue({ mcpEnabled: true, mcpAlias: grant.alias });
     }
   }
@@ -205,7 +205,7 @@ export class AuthenticatorFormComponent implements OnInit {
           period: draft.period,
           steam: this.otpType() === "steam",
         });
-      } else if (!mcpEnabled && this.mcpWasEnabled && entryId) {
+      } else if (!mcpEnabled && this.mcpWasEnabled() && entryId) {
         await this.mcp.disableAuthenticator(entryId);
       }
       await this.router.navigate(["/tabs/authenticator"]);

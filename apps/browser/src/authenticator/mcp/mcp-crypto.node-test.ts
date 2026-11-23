@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { decodeBase64Url, deriveMcpKey, encodeBase64Url, mcpAad, normalizeAlias, sealField } from "./mcp-crypto";
 
-test("alias rules match the server", () => {
+void test("alias rules match the server", () => {
   assert.equal(normalizeAlias(" GitLab "), "gitlab");
   assert.equal(normalizeAlias("oxy_labs.1"), "oxy_labs.1");
   assert.equal(normalizeAlias("has space"), null);
@@ -11,7 +11,7 @@ test("alias rules match the server", () => {
   assert.equal(normalizeAlias(""), null);
 });
 
-test("sealed field is nonce plus ciphertext and round-trips with the same AAD", async () => {
+void test("sealed field is nonce plus ciphertext and round-trips with the same AAD", async () => {
   const token = "vw_mcp_" + encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
   const salt = encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
   const key = await deriveMcpKey(token, salt);
