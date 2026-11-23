@@ -27,7 +27,7 @@ $error-color-dark: #ee9792;
 
 $muted-blue: #8a877c;
 $muted-grey: #b0aea5;
-$border-color: #d4d1c6;
+$border-color: #e8e6dc;
 
 $border-radius: 8px;
 $focus-outline-color: #c4532a;
@@ -41,7 +41,7 @@ $themes: (
     primaryColor: $brand-primary-light,
     buttonPrimaryColor: $brand-primary-light,
     textContrast: $background-color-light,
-    inputBorderColor: darken($border-color-dark, 2.75%),
+    inputBorderColor: #e8e6dc,
     inputBackgroundColor: $background-color-light,
     borderColor: $border-color,
     focusOutlineColor: $focus-outline-color,

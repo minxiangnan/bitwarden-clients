@@ -452,14 +452,8 @@ function handleWindowMessage(event: MessageEvent) {
   handler({ message });
 }
 
-function getTheme(globalThis: any, theme: NotificationBarIframeInitData["theme"]) {
-  if (theme === ThemeTypes.System) {
-    return globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-      ? ThemeTypes.Dark
-      : ThemeTypes.Light;
-  }
-
-  return theme;
+function getTheme(_globalThis: any, theme: NotificationBarIframeInitData["theme"]) {
+  return theme === ThemeTypes.Dark ? ThemeTypes.Dark : ThemeTypes.Light;
 }
 
 function getResolvedTheme(theme: Theme) {

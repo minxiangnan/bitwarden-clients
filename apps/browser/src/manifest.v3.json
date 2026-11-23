@@ -4,7 +4,7 @@
   "name": "Bitwarden 验证器版",
   "short_name": "验证器版",
   "version": "2026.11.0",
-  "description": "__MSG_extDesc__",
+  "description": "自建密码库和验证器，数据保存在你的服务器上。",
   "default_locale": "zh_CN",
   "author": "Bitwarden Inc.",
   "homepage_url": "https://bitwarden.com",
