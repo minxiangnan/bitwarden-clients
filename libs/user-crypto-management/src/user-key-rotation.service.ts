@@ -1,5 +1,12 @@
+import { firstValueFrom } from "rxjs";
+
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { withPasswordManagerSdk } from "@bitwarden/common/key-management/utils";
 import { SdkService } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
+import { finishAuthenticatorKeyRotation } from "@bitwarden/common/vault/services/authenticator-rotation";
+import { KeyService } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService } from "@bitwarden/legacy-crypto";
 import { LogService } from "@bitwarden/logging";
 import {
   KeyRotationMethod,
@@ -24,6 +31,9 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
     private sdkService: SdkService,
     private logService: LogService,
     private userCryptoDialogService: UserCryptoDialogService,
+    private apiService: ApiService,
+    private encryptService: EncryptService,
+    private keyService: KeyService,
   ) {}
 
   async changePasswordAndRotateUserKey(
@@ -71,7 +81,8 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
       return false;
     }
 
-    return await withPasswordManagerSdk(userId, this.sdkService, async (sdk) => {
+    const oldUserKey = await firstValueFrom(this.keyService.userKey$(userId));
+    const rotated = await withPasswordManagerSdk(userId, this.sdkService, async (sdk) => {
       this.logService.info("[UserKeyRotationService] Re-encrypting user data with new user key...");
       await sdk.user_crypto_management().rotate_user_keys({
         key_rotation_method: keyRotationMethod,
@@ -81,6 +92,28 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
       } as RotateUserKeysRequest);
       return true;
     });
+    if (!rotated || oldUserKey == null) {
+      return rotated;
+    }
+    const newUserKey = await firstValueFrom(this.keyService.userKey$(userId));
+    if (newUserKey == null || oldUserKey.toEncoded() === newUserKey.toEncoded()) {
+      return true;
+    }
+    try {
+      // rotate-user-keys may omit authenticator entries. Re-encrypt them before logout
+      // while the previous user key is still the one captured above.
+      await finishAuthenticatorKeyRotation(
+        this.apiService,
+        this.encryptService,
+        oldUserKey,
+        newUserKey,
+      );
+    } catch (error) {
+      this.logService.error(
+        `[UserKeyRotationService] Authenticator re-encryption was deferred: ${error}`,
+      );
+    }
+    return true;
   }
 
   async verifyTrust(
