@@ -30,6 +30,19 @@ export const VAULT_TIMEOUT = new UserKeyDefinition<VaultTimeout>(
   },
 );
 
+/**
+ * True after the person saves a timeout or timeout action themselves.
+ * Logout keeps it. A missing value means the client default still applies.
+ */
+export const VAULT_TIMEOUT_CHOSEN = new UserKeyDefinition<boolean>(
+  VAULT_TIMEOUT_SETTINGS_DISK_LOCAL,
+  "vaultTimeoutChosen",
+  {
+    deserializer: (chosen) => chosen === true,
+    clearOn: [],
+  },
+);
+
 export const VAULT_TIMEOUT_SUPPRESSED_UNTIL = new UserKeyDefinition<number | null>(
   VAULT_TIMEOUT_SETTINGS_MEMORY,
   "vaultTimeoutSuppressedUntil",

@@ -104,6 +104,15 @@ interface InputPasswordForm {
   rotateUserKey?: FormControl<boolean>;
 }
 
+/** Chinese sentences end with 。. Other locales keep the ASCII period. */
+export function passwordRequirementSentence(
+  message: string,
+  locale: string | null | undefined,
+): string {
+  const end = locale?.toLowerCase().startsWith("zh") ? "。" : ".";
+  return `${message}${end}`;
+}
+
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
@@ -209,6 +218,13 @@ export class InputPasswordComponent implements OnInit {
     } else {
       return this.i18nService.t("characterMinimum", this.minPasswordLength);
     }
+  }
+
+  protected get minPasswordLengthSentence() {
+    return passwordRequirementSentence(
+      this.minPasswordLengthMsg,
+      this.i18nService.translationLocale,
+    );
   }
 
   constructor(

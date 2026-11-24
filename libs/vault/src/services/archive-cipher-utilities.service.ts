@@ -44,6 +44,7 @@ export class ArchiveCipherUtilitiesService {
       content: { key: "archiveItemDialogContent" },
       acceptButtonText: { key: "archiveVerb" },
       type: "info",
+      focusCancel: true,
     });
 
     if (!confirmed) {
