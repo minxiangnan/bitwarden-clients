@@ -78,6 +78,24 @@ export class McpAccessService {
     this.keySalt = null;
   }
 
+  async authenticatorAliases(): Promise<Record<string, string>> {
+    try {
+      const entries = await this.api.listMcpEntries();
+      const aliases: Record<string, string> = {};
+      for (const entry of entries) {
+        if (entry.source === "authenticator" && entry.sourceId && entry.alias) {
+          aliases[entry.sourceId] = entry.alias;
+        }
+      }
+      return aliases;
+    } catch (error) {
+      if (isMcpUnsupported(error) || (error instanceof ErrorResponse && error.statusCode === 404)) {
+        return {};
+      }
+      throw error;
+    }
+  }
+
   async findAuthenticator(sourceId: string): Promise<McpEntrySummary | null> {
     try {
       const entries = await this.api.listMcpEntries();

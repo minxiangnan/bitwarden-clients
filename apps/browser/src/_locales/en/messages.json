@@ -9472,7 +9472,7 @@
     "message": "For example, gitlab"
   },
   "mcpAllowHelp": {
-    "message": "When this is on, an AI client can read this code by its alias."
+    "message": "You can fill the alias now. An AI client can read this code by that name only after the option above is on."
   },
   "mcpCreate": {
     "message": "Create token"

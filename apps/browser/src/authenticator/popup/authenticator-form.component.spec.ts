@@ -10,7 +10,10 @@ import { AuthenticatorService } from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
 
 describe("AuthenticatorFormComponent", () => {
-  function setup(entries: unknown[] = []) {
+  function setup(
+    entries: unknown[] = [],
+    options?: { id?: string | null; grant?: { alias: string } | null },
+  ) {
     TestBed.overrideComponent(AuthenticatorFormComponent, {
       set: { imports: [], template: "" },
     });
@@ -27,7 +30,9 @@ describe("AuthenticatorFormComponent", () => {
         },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: (): string | null => null } } },
+          useValue: {
+            snapshot: { paramMap: { get: (): string | null => options?.id ?? null } },
+          },
         },
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
@@ -42,7 +47,7 @@ describe("AuthenticatorFormComponent", () => {
         {
           provide: McpAccessService,
           useValue: {
-            findAuthenticator: jest.fn(async (): Promise<null> => null),
+            findAuthenticator: jest.fn(async () => options?.grant ?? null),
             hasToken: jest.fn(async (): Promise<boolean> => false),
             upsertAuthenticator: jest.fn(async (): Promise<void> => undefined),
             disableAuthenticator: jest.fn(async (): Promise<void> => undefined),
@@ -53,6 +58,43 @@ describe("AuthenticatorFormComponent", () => {
     const fixture = TestBed.createComponent(AuthenticatorFormComponent);
     return fixture.componentInstance;
   }
+
+  const storedEntry = {
+    id: "entry-1",
+    name: "ada",
+    issuer: "GitLab",
+    secret: "JBSWY3DPEHPK3PXP",
+    algorithm: "SHA1",
+    digits: 6,
+    period: 30,
+    notes: "",
+    favorite: false,
+    sortOrder: 0,
+    revisionDate: "",
+    creationDate: "",
+  };
+
+  it("loads a stored MCP alias onto the edit form", async () => {
+    const component = setup([storedEntry], { id: "entry-1", grant: { alias: "gh" } });
+
+    await component.ngOnInit();
+
+    expect(component["form"].controls.mcpEnabled.value).toBe(true);
+    expect(component["form"].controls.mcpAlias.value).toBe("gh");
+  });
+
+  it("keeps an alias the user already typed", async () => {
+    const component = setup([storedEntry], { id: "entry-1", grant: { alias: "gh" } });
+    component["form"].controls.mcpAlias.setValue("mine");
+    component["form"].controls.mcpAlias.markAsDirty();
+    component["form"].controls.secret.setValue("TYPEDSECRET");
+    component["form"].controls.secret.markAsDirty();
+
+    await component.ngOnInit();
+
+    expect(component["form"].controls.mcpAlias.value).toBe("mine");
+    expect(component["form"].controls.secret.value).toBe("TYPEDSECRET");
+  });
 
   it("does not trash an entry when the confirm dialog is cancelled", async () => {
     const component = setup([

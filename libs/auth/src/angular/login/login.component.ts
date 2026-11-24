@@ -7,6 +7,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  viewChild,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from "@angular/forms";
@@ -118,6 +119,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   ssoRequired = false;
   /** Self-hosted server address shown on the extension's email step. */
   serverUrl = "";
+  private serverUrlTouched = false;
+  private readonly serverUrlField = viewChild<ElementRef<HTMLInputElement>>("serverUrlField");
   serverUrlError = "";
 
   formGroup = this.formBuilder.group(
@@ -186,7 +189,16 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.clientType === ClientType.Browser) {
       this.formGroup.controls.rememberEmail.setValue(true);
       const env = await firstValueFrom(this.environmentService.environment$);
-      this.serverUrl = env.getUrls()?.base ?? "";
+      const remembered = env.getUrls()?.base ?? "";
+      // A live [value] binding writes the previous model back over keystrokes.
+      // Apply the remembered URL once, and only while the field is still untouched.
+      if (!this.serverUrlTouched) {
+        this.serverUrl = remembered;
+        const field = this.serverUrlField()?.nativeElement;
+        if (field) {
+          field.value = remembered;
+        }
+      }
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -741,6 +753,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   protected onServerUrlInput(value: string): void {
+    this.serverUrlTouched = true;
     this.serverUrl = value;
     const verdict = describeServerUrl(value);
     this.serverUrlError =

@@ -106,6 +106,12 @@ export class ExtensionAnonLayoutWrapperComponent implements OnInit {
 
   protected readonly logo = ZhMark;
 
+  constructor() {
+    // Apply the child route before the first change detection. Doing it in
+    // ngOnInit paints the fallback outlet, then destroys it, which is NG0953.
+    this.setAnonLayoutWrapperDataFromRouteData(this.route.snapshot.firstChild?.data ?? null);
+  }
+
   ngOnInit(): void {
     // Set the initial page data on load
     this.setAnonLayoutWrapperDataFromRouteData(this.route.snapshot.firstChild?.data ?? null);
@@ -119,8 +125,12 @@ export class ExtensionAnonLayoutWrapperComponent implements OnInit {
     this.router.events
       .pipe(
         filter((event) => event instanceof NavigationEnd),
-        // reset page data on page changes
-        tap(() => this.state.set(RESET_STATE)),
+        tap(() => {
+          // Keep the outlet that is already on screen until the next route's
+          // data arrives. Resetting it first destroys a live RouterOutlet.
+          const secondaryContentLocation = this.state().secondaryContentLocation;
+          this.state.set({ ...RESET_STATE, secondaryContentLocation });
+        }),
         switchMap(() => this.route.firstChild?.data || of(null)),
         takeUntilDestroyed(this.destroyRef),
       )
