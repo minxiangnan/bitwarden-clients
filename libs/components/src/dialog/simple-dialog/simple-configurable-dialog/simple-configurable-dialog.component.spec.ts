@@ -7,7 +7,9 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { SimpleConfigurableDialogComponent } from "./simple-configurable-dialog.component";
 
 describe("SimpleConfigurableDialogComponent", () => {
-  async function setup(focusCancel: boolean): Promise<ComponentFixture<SimpleConfigurableDialogComponent>> {
+  async function setup(
+    focusCancel: boolean,
+  ): Promise<ComponentFixture<SimpleConfigurableDialogComponent>> {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [SimpleConfigurableDialogComponent],
@@ -51,5 +53,17 @@ describe("SimpleConfigurableDialogComponent", () => {
     const fixture = await setup(false);
 
     expect(button(fixture, "删除").type).toBe("submit");
+    expect(button(fixture, "cancel").type).toBe("button");
+  });
+
+  it("puts cancel before the action for both default buttons", async () => {
+    for (const focusCancel of [true, false]) {
+      const fixture = await setup(focusCancel);
+      const labels = Array.from(fixture.nativeElement.querySelectorAll("button")).map(
+        (item: HTMLButtonElement) => item.textContent?.trim(),
+      );
+
+      expect(labels.indexOf("cancel")).toBeLessThan(labels.indexOf("删除"));
+    }
   });
 });

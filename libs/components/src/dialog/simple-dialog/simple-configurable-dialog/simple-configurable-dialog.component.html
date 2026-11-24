@@ -12,10 +12,22 @@
   <div bitDialogContent>{{ content }}</div>
 
   <ng-container bitDialogFooter>
-    @if (simpleDialogOpts.focusCancel && showCancelButton) {
-      <button type="submit" bitButton bitFormButton buttonType="secondary" appAutofocus>
-        {{ cancelButtonText }}
-      </button>
+    @if (showCancelButton) {
+      @if (simpleDialogOpts.focusCancel) {
+        <button type="submit" bitButton bitFormButton buttonType="secondary" appAutofocus>
+          {{ cancelButtonText }}
+        </button>
+      } @else {
+        <button
+          type="button"
+          bitButton
+          bitFormButton
+          buttonType="secondary"
+          (click)="dialogRef.close(false)"
+        >
+          {{ cancelButtonText }}
+        </button>
+      }
     }
     <button
       [attr.type]="simpleDialogOpts.focusCancel ? 'button' : 'submit'"
@@ -26,17 +38,5 @@
     >
       {{ acceptButtonText }}
     </button>
-
-    @if (showCancelButton && !simpleDialogOpts.focusCancel) {
-      <button
-        type="button"
-        bitButton
-        bitFormButton
-        buttonType="secondary"
-        (click)="dialogRef.close(false)"
-      >
-        {{ cancelButtonText }}
-      </button>
-    }
   </ng-container>
 </form>

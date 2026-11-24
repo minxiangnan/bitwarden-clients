@@ -9472,7 +9472,7 @@
     "message": "例如 gitlab"
   },
   "mcpAllowHelp": {
-    "message": "打开后，AI 可以用这个别名读取本条的当前验证码。"
+    "message": "别名可以现在就填。勾选上面的选项后，AI 才能按这个名字读取当前验证码。"
   },
   "mcpCreate": {
     "message": "创建令牌"

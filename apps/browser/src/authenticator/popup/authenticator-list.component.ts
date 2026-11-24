@@ -12,6 +12,7 @@ import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/pl
 import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/components";
 
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
+import { formatZhDateTime } from "../../platform/popup/format-zh-datetime";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
 import { parseAuthenticatorImport } from "../authenticator-import";
@@ -24,6 +25,7 @@ import { clipboardClearMs } from "../clipboard-delay";
 import { AuthenticatorCodeComponent } from "./authenticator-code.component";
 import { AuthenticatorUiService } from "./authenticator-ui.service";
 import { AuthenticatorService } from "./authenticator.service";
+import { McpAccessService } from "./mcp-access.service";
 
 @Component({
   selector: "app-authenticator-list",
@@ -51,6 +53,8 @@ export class AuthenticatorListComponent {
     optional: true,
   });
   protected readonly ui = inject(AuthenticatorUiService);
+  private readonly mcp = inject(McpAccessService);
+  protected readonly aliases = signal<Record<string, string>>({});
   private readonly codes = new Map<string, string>();
 
   protected readonly query = signal("");
@@ -94,6 +98,15 @@ export class AuthenticatorListComponent {
     const probe = this.authenticator.confirmServer;
     if (typeof probe === "function") {
       void probe.call(this.authenticator);
+    }
+    void this.loadAliases();
+  }
+
+  private async loadAliases(): Promise<void> {
+    try {
+      this.aliases.set(await this.mcp.authenticatorAliases());
+    } catch {
+      this.aliases.set({});
     }
   }
 
@@ -226,7 +239,7 @@ export class AuthenticatorListComponent {
     if (Number.isNaN(time.getTime())) {
       return "";
     }
-    return this.i18n.t("authenticatorSyncedAt", time.toLocaleString());
+    return this.i18n.t("authenticatorSyncedAt", formatZhDateTime(time));
   }
 
   private failSave(): void {

@@ -223,8 +223,17 @@ export class Fido2Background implements Fido2BackgroundInterface {
    * scripts based on the enablePasskeys setting for manifest v3.
    */
   private async updateMv3ContentScriptsRegistration() {
-    if (await this.isPasskeySettingEnabled()) {
-      void BrowserApi.registerContentScriptsMv3([
+    const ids = [Fido2ContentScriptId.PageScript, Fido2ContentScriptId.ContentScript];
+    // Chrome keeps MV3 content scripts across a browser restart. Registering the
+    // same id again rejects with "Duplicate script ID", and that rejection is
+    // reported on the extension errors page even when the caller uses `void`.
+    await this.unregisterFido2Scripts(ids);
+    if (!(await this.isPasskeySettingEnabled())) {
+      return;
+    }
+
+    try {
+      await BrowserApi.registerContentScriptsMv3([
         {
           id: Fido2ContentScriptId.PageScript,
           js: [Fido2ContentScript.PageScript],
@@ -237,13 +246,20 @@ export class Fido2Background implements Fido2BackgroundInterface {
           ...this.sharedRegistrationOptions,
         },
       ]);
-
-      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/duplicate script id/i.test(message)) {
+        this.logService.error(error);
+      }
     }
+  }
 
-    void BrowserApi.unregisterContentScriptsMv3({
-      ids: [Fido2ContentScriptId.PageScript, Fido2ContentScriptId.ContentScript],
-    });
+  private async unregisterFido2Scripts(ids: string[]) {
+    try {
+      await BrowserApi.unregisterContentScriptsMv3({ ids });
+    } catch {
+      // Fresh install, or Chrome already dropped the previous registration.
+    }
   }
 
   /**

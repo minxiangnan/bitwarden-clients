@@ -10,6 +10,7 @@ import { AuthenticatorEntryView } from "../authenticator.models";
 
 import { AuthenticatorListComponent } from "./authenticator-list.component";
 import { AuthenticatorService } from "./authenticator.service";
+import { McpAccessService } from "./mcp-access.service";
 
 describe("AuthenticatorListComponent", () => {
   const entry = {
@@ -29,7 +30,11 @@ describe("AuthenticatorListComponent", () => {
   } satisfies AuthenticatorEntryView;
 
   function setup() {
-    const state$ = new BehaviorSubject({ status: "ready" as const, entries: [entry] });
+    const state$ = new BehaviorSubject({
+      status: "ready" as const,
+      entries: [entry],
+      syncedAt: null as string | null,
+    });
     const authenticator = {
       state$,
       setFavorite: jest.fn(() => new Promise<void>(() => undefined)),
@@ -46,7 +51,11 @@ describe("AuthenticatorListComponent", () => {
         { provide: Router, useValue: { navigate: jest.fn() } },
         { provide: PlatformUtilsService, useValue: { copyToClipboard: jest.fn() } },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
-        { provide: I18nService, useValue: { t: (key: string) => key } },
+        { provide: I18nService, useValue: { t: (key: string, value?: string) => value ?? key } },
+        {
+          provide: McpAccessService,
+          useValue: { authenticatorAliases: jest.fn(async () => ({ "1": "gh" })) },
+        },
       ],
     });
     const fixture = TestBed.createComponent(AuthenticatorListComponent);
@@ -78,5 +87,20 @@ describe("AuthenticatorListComponent", () => {
     fixture.componentInstance["edit"]({ ...entry, undecryptable: true });
 
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it("shows the MCP alias and a zh-CN sync time", async () => {
+    const { fixture, authenticator } = setup();
+    authenticator.state$.next({
+      status: "ready",
+      entries: [entry],
+      syncedAt: "2026-11-24T08:29:08",
+    });
+    fixture.detectChanges();
+
+    await Promise.resolve();
+
+    expect(fixture.componentInstance["aliases"]()).toEqual({ "1": "gh" });
+    expect(fixture.componentInstance["syncedLabel"]()).toBe("2026/11/24 08:29:08");
   });
 });

@@ -1,5 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  inject,
+  OnInit,
+  signal,
+} from "@angular/core";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
@@ -64,6 +71,7 @@ export class AuthenticatorFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly mcp = inject(McpAccessService);
   private readonly dialogService = inject(DialogService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly mcpWasEnabled = signal(false);
 
   protected readonly algorithms = [
@@ -139,7 +147,7 @@ export class AuthenticatorFormComponent implements OnInit {
       return;
     }
     const draft = draftFromView(entry);
-    this.form.patchValue({
+    this.patchIfClean({
       name: draft.name,
       issuer: draft.issuer,
       secret: draft.secret,
@@ -162,8 +170,22 @@ export class AuthenticatorFormComponent implements OnInit {
     const grant = await this.mcp.findAuthenticator(id);
     if (grant) {
       this.mcpWasEnabled.set(true);
-      this.form.patchValue({ mcpEnabled: true, mcpAlias: grant.alias });
+      this.patchIfClean({ mcpEnabled: true, mcpAlias: grant.alias });
     }
+    // The load is async. OnPush will not repaint the checkbox or alias unless asked.
+    this.changeDetector.markForCheck();
+  }
+
+  /** A late load must not replace a field the user already started typing in. */
+  private patchIfClean(values: Record<string, unknown>) {
+    const next: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(values)) {
+      const control = this.form.get(key);
+      if (control && !control.dirty) {
+        next[key] = value;
+      }
+    }
+    this.form.patchValue(next);
   }
 
   protected setOtpType(value: string): void {

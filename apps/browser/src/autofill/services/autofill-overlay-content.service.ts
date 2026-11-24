@@ -65,6 +65,7 @@ import {
   identityQualifiers,
   targetedFormCategoryFillTypes,
 } from "./autofill-constants";
+import { installProgrammaticLoginCapture } from "./programmatic-login-capture";
 
 export class AutofillOverlayContentService implements AutofillOverlayContentServiceInterface {
   pageDetailsUpdateRequired = false;
@@ -225,6 +226,8 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     globalThis.removeEventListener("pagehide", this.flushCapturedLogin);
     globalThis.removeEventListener("pointerdown", this.flushCapturedLogin, true);
     globalThis.removeEventListener("keydown", this.flushCapturedLoginOnEnter, true);
+    this.uninstallProgrammaticCapture?.();
+    this.uninstallProgrammaticCapture = null;
     this.removeHistoryFlush();
     this.removeOverlayRepositionEventListeners();
     this.removeRebuildSubFrameOffsetsListeners();
@@ -759,9 +762,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     return {
       uri: globalThis.document.URL,
       username:
-        current.username ||
-        this.lastNonEmptyLoginFields.username ||
-        this.liveUsernameFromPage(),
+        current.username || this.lastNonEmptyLoginFields.username || this.liveUsernameFromPage(),
       password:
         current.password ||
         this.lastNonEmptyLoginFields.password ||
@@ -789,6 +790,10 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       for (const field of fields) {
         if (field.value) {
           return field.value;
+        }
+        const remembered = field.dataset?.zhLastValue;
+        if (remembered) {
+          return remembered;
         }
       }
     }
@@ -1882,6 +1887,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     // pointerdown and Enter run before the page's handler clears the fields or calls fetch.
     globalThis.addEventListener("pointerdown", this.flushCapturedLogin, true);
     globalThis.addEventListener("keydown", this.flushCapturedLoginOnEnter, true);
+    this.installProgrammaticCapture();
     this.installHistoryFlush();
     this.setOverlayRepositionEventListeners();
   };
@@ -1891,6 +1897,18 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       this.flushCapturedLogin();
     }
   };
+
+  private uninstallProgrammaticCapture: (() => void) | null = null;
+
+  private installProgrammaticCapture() {
+    if (this.uninstallProgrammaticCapture) {
+      return;
+    }
+    this.uninstallProgrammaticCapture = installProgrammaticLoginCapture(
+      globalThis.document,
+      this.flushCapturedLogin,
+    );
+  }
 
   private originalPushState: History["pushState"] | null = null;
 

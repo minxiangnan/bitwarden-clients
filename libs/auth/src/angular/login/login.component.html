@@ -4,11 +4,11 @@
       <bit-form-field>
         <bit-label>服务器 URL</bit-label>
         <input
+          #serverUrlField
           id="server-url"
           type="text"
           bitInput
           data-testid="login-server-url"
-          [value]="serverUrl"
           (input)="onServerUrlInput($any($event.target).value)"
           placeholder="https://vault.example.com"
         />

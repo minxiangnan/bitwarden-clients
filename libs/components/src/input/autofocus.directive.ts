@@ -84,7 +84,15 @@ export class AutofocusDirective implements AfterContentChecked {
     const el = this.getElement();
 
     if (el) {
-      if (document.activeElement !== el) {
+      const active = document.activeElement;
+      // A popup often does not own document focus. Re-focusing on every check
+      // pulls the caret out of the field the user is typing in and drops keys.
+      if (active instanceof HTMLElement && active !== el && this.isTextEntry(active)) {
+        this.focused = true;
+        return;
+      }
+
+      if (active !== el) {
         el.focus();
       }
 
@@ -97,6 +105,14 @@ export class AutofocusDirective implements AfterContentChecked {
        */
       this.focused = el === document.activeElement && document.hasFocus();
     }
+  }
+
+  private isTextEntry(el: HTMLElement): boolean {
+    if (el.isContentEditable) {
+      return true;
+    }
+    const tag = el.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
   }
 
   private getElement(): HTMLElement | undefined {
