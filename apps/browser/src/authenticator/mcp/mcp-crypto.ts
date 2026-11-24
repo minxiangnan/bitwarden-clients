@@ -7,7 +7,7 @@
  * aad = utf8("v1|{field}|{userId}|{source}|{sourceId}|{alias}")
  */
 
-const HKDF_INFO = new TextEncoder().encode("vaultwarden-mcp-totp-v1");
+const HKDF_INFO: Uint8Array<ArrayBuffer> = new TextEncoder().encode("vaultwarden-mcp-totp-v1");
 
 export function normalizeAlias(raw: string): string | null {
   const alias = raw.trim().toLowerCase();
@@ -26,7 +26,7 @@ export function mcpAad(
   sourceId: string,
   alias: string,
   field: string,
-): Uint8Array {
+): Uint8Array<ArrayBuffer> {
   return new TextEncoder().encode(`v1|${field}|${userId}|${source}|${sourceId}|${alias}`);
 }
 
@@ -38,7 +38,7 @@ export function encodeBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-export function decodeBase64Url(value: string): Uint8Array {
+export function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const pad = value.length % 4 === 0 ? "" : "=".repeat(4 - (value.length % 4));
   const binary = atob(value.replace(/-/g, "+").replace(/_/g, "/") + pad);
   const out = new Uint8Array(binary.length);
@@ -66,7 +66,11 @@ export async function deriveMcpKey(token: string, saltB64: string): Promise<Cryp
   );
 }
 
-export async function sealField(key: CryptoKey, aad: Uint8Array, plaintext: string): Promise<string> {
+export async function sealField(
+  key: CryptoKey,
+  aad: Uint8Array<ArrayBuffer>,
+  plaintext: string,
+): Promise<string> {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
   const cipher = new Uint8Array(
     await crypto.subtle.encrypt(

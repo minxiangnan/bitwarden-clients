@@ -9704,5 +9704,8 @@
   },
   "passwordPresetCopied": {
     "message": "Generated from the preset and copied"
+  },
+  "mcpHotpUnsupported": {
+    "message": "HOTP cannot be read over MCP. The counter changes on every use, so copy it in the extension."
   }
 }

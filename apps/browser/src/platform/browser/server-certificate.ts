@@ -1,3 +1,5 @@
+import { BrowserApi } from "./browser-api";
+
 const CERT_ERROR = "CERT";
 
 /**
@@ -24,15 +26,15 @@ export function serverCertificateUntrusted(url: string): Promise<boolean> {
         return;
       }
       settled = true;
-      chrome.webRequest.onErrorOccurred.removeListener(listener);
+      BrowserApi.removeListener(chrome.webRequest.onErrorOccurred, listener);
       resolve(untrusted);
     };
-    const listener = (details: { error?: string }) => {
+    const listener = (details: chrome.webRequest.WebResponseErrorDetails) => {
       if (details.error?.includes(CERT_ERROR)) {
         finish(true);
       }
     };
-    chrome.webRequest.onErrorOccurred.addListener(listener, { urls: [pattern] });
+    BrowserApi.addListener(chrome.webRequest.onErrorOccurred, listener, { urls: [pattern] });
     fetch(url, { method: "GET" }).then(
       () => finish(false),
       () => setTimeout(() => finish(false), 400),

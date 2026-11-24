@@ -9704,5 +9704,8 @@
   },
   "passwordPresetCopied": {
     "message": "已按预设生成并复制"
+  },
+  "mcpHotpUnsupported": {
+    "message": "HOTP 不能通过 MCP 读取。计数器每次使用都会变，请在扩展里复制。"
   }
 }

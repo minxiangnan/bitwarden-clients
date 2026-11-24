@@ -37,10 +37,10 @@ describe("AuthenticatorFormComponent", () => {
         {
           provide: McpAccessService,
           useValue: {
-            findAuthenticator: jest.fn(async () => null),
-            hasToken: jest.fn(async () => false),
-            upsertAuthenticator: jest.fn(async () => undefined),
-            disableAuthenticator: jest.fn(async () => undefined),
+            findAuthenticator: jest.fn(async (): Promise<null> => null),
+            hasToken: jest.fn(async (): Promise<boolean> => false),
+            upsertAuthenticator: jest.fn(async (): Promise<void> => undefined),
+            disableAuthenticator: jest.fn(async (): Promise<void> => undefined),
           },
         },
       ],
@@ -124,6 +124,46 @@ describe("AuthenticatorFormComponent", () => {
     expect(component["form"].controls.period.valid).toBe(false);
   });
 
+  it("stores the MCP alias after the entry id comes back", async () => {
+    const component = setup();
+    const authenticator = TestBed.inject(AuthenticatorService);
+    (authenticator.save as jest.Mock).mockResolvedValue("saved-id");
+    const mcp = TestBed.inject(McpAccessService);
+    (mcp.hasToken as jest.Mock).mockResolvedValue(true);
+    component["form"].patchValue({
+      secret: "WQIQ25BRKZYCJVYP",
+      name: "ada",
+      host: "github.com",
+      mcpEnabled: true,
+      mcpAlias: "GitHub",
+    });
+
+    await component["submit"]();
+
+    expect(authenticator.save).toHaveBeenCalledWith(
+      expect.objectContaining({ host: "github.com", kind: "totp", secret: "WQIQ25BRKZYCJVYP" }),
+      undefined,
+    );
+    expect(mcp.upsertAuthenticator).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceId: "saved-id", alias: "github", steam: false }),
+    );
+  });
+
+  it("does not publish an HOTP entry to MCP", async () => {
+    const component = setup();
+    component["otpType"].set("hotp");
+    component["form"].patchValue({
+      secret: "WQIQ25BRKZYCJVYP",
+      mcpEnabled: true,
+      mcpAlias: "bank",
+    });
+
+    await component["submit"]();
+
+    expect(TestBed.inject(AuthenticatorService).save).not.toHaveBeenCalled();
+    expect(component["errorKey"]()).toBe("mcpHotpUnsupported");
+  });
+
   it("disables editing when the entry could not be decrypted", async () => {
     TestBed.resetTestingModule();
     TestBed.overrideComponent(AuthenticatorFormComponent, {
@@ -171,10 +211,10 @@ describe("AuthenticatorFormComponent", () => {
         {
           provide: McpAccessService,
           useValue: {
-            findAuthenticator: jest.fn(async () => null),
-            hasToken: jest.fn(async () => false),
-            upsertAuthenticator: jest.fn(async () => undefined),
-            disableAuthenticator: jest.fn(async () => undefined),
+            findAuthenticator: jest.fn(async (): Promise<null> => null),
+            hasToken: jest.fn(async (): Promise<boolean> => false),
+            upsertAuthenticator: jest.fn(async (): Promise<void> => undefined),
+            disableAuthenticator: jest.fn(async (): Promise<void> => undefined),
           },
         },
       ],

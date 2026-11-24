@@ -704,8 +704,17 @@ export class BrowserApi {
   static addListener<T extends (...args: readonly any[]) => any>(
     event: chrome.events.Event<T>,
     callback: T,
+    filter?: chrome.webRequest.RequestFilter,
   ) {
-    event.addListener(callback);
+    if (filter == null) {
+      event.addListener(callback);
+    } else {
+      (
+        event as chrome.events.Event<T> & {
+          addListener: (callback: T, filter: chrome.webRequest.RequestFilter) => void;
+        }
+      ).addListener(callback, filter);
+    }
 
     if (BrowserApi.isSafariApi && !BrowserApi.isBackgroundPage(self)) {
       BrowserApi.trackedChromeEventListeners.push([event, callback]);

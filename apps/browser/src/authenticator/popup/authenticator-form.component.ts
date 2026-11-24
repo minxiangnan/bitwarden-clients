@@ -6,7 +6,7 @@ import { firstValueFrom } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/components";
+import { ButtonModule, CheckboxModule, FormFieldModule, ToastService } from "@bitwarden/components";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
@@ -38,6 +38,7 @@ import { McpAccessService } from "./mcp-access.service";
     ReactiveFormsModule,
     JslibModule,
     ButtonModule,
+    CheckboxModule,
     FormFieldModule,
     PopupPageComponent,
     PopupHeaderComponent,
@@ -234,6 +235,10 @@ export class AuthenticatorFormComponent implements OnInit {
     }
     const mcpEnabled = this.form.controls.mcpEnabled.value;
     const alias = normalizeAlias(this.form.controls.mcpAlias.value);
+    if (mcpEnabled && this.otpType() === "hotp") {
+      this.errorKey.set("mcpHotpUnsupported");
+      return;
+    }
     if (mcpEnabled && alias == null) {
       this.errorKey.set(
         this.form.controls.mcpAlias.value.trim() ? "mcpAliasInvalid" : "mcpAliasRequired",
@@ -311,6 +316,9 @@ export class AuthenticatorFormComponent implements OnInit {
       const entry = state.entries.find((item) => item.id === id);
       if (entry) {
         await this.authenticator.moveToTrash(entry);
+        if (this.mcpWasEnabled() || this.form.controls.mcpEnabled.value) {
+          await this.mcp.disableAuthenticator(id);
+        }
       }
       await this.router.navigate(["/tabs/authenticator"]);
     } catch {

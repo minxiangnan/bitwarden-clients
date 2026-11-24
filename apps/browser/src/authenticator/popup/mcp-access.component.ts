@@ -10,6 +10,7 @@ import { ButtonModule, CalloutModule, ToastService } from "@bitwarden/components
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
+import { AuthenticatorKinds } from "../authenticator-meta";
 
 import { AuthenticatorService, draftFromView } from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
@@ -152,6 +153,9 @@ export class McpAccessComponent implements OnInit {
         continue;
       }
       const draft = draftFromView(entry);
+      if (draft.kind === AuthenticatorKinds.Hotp || draft.deletedAt) {
+        continue;
+      }
       try {
         await this.mcp.upsertAuthenticator({
           sourceId: entry.id,
@@ -162,7 +166,7 @@ export class McpAccessComponent implements OnInit {
           algorithm: draft.algorithm,
           digits: draft.digits,
           period: draft.period,
-          steam: draft.digits === 5,
+          steam: draft.kind === AuthenticatorKinds.Steam,
         });
       } catch {
         missed.push(item.alias);
