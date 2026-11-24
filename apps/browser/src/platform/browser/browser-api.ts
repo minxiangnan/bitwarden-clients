@@ -704,21 +704,40 @@ export class BrowserApi {
   static addListener<T extends (...args: readonly any[]) => any>(
     event: chrome.events.Event<T>,
     callback: T,
-    filter?: chrome.webRequest.RequestFilter,
   ) {
-    if (filter == null) {
-      event.addListener(callback);
-    } else {
-      (
-        event as chrome.events.Event<T> & {
-          addListener: (callback: T, filter: chrome.webRequest.RequestFilter) => void;
-        }
-      ).addListener(callback, filter);
-    }
+    event.addListener(callback);
 
     if (BrowserApi.isSafariApi && !BrowserApi.isBackgroundPage(self)) {
       BrowserApi.trackedChromeEventListeners.push([event, callback]);
       BrowserApi.setupUnloadListeners();
+    }
+  }
+
+  /** webRequest listeners require a URL filter, which the shared helper cannot express. */
+  static addWebRequestErrorListener(
+    callback: (details: { error?: string }) => void,
+    filter: chrome.webRequest.RequestFilter,
+  ) {
+    const onError = chrome.webRequest.onErrorOccurred;
+    onError.addListener(callback, filter);
+    if (BrowserApi.isSafariApi && !BrowserApi.isBackgroundPage(self)) {
+      BrowserApi.trackedChromeEventListeners.push([
+        onError as unknown as chrome.events.Event<(details: { error?: string }) => void>,
+        callback,
+      ]);
+      BrowserApi.setupUnloadListeners();
+    }
+  }
+
+  static removeWebRequestErrorListener(callback: (details: { error?: string }) => void) {
+    chrome.webRequest.onErrorOccurred.removeListener(callback);
+    if (BrowserApi.isSafariApi && !BrowserApi.isBackgroundPage(self)) {
+      const index = BrowserApi.trackedChromeEventListeners.findIndex(([_event, eventListener]) => {
+        return eventListener == callback;
+      });
+      if (index !== -1) {
+        BrowserApi.trackedChromeEventListeners.splice(index, 1);
+      }
     }
   }
 

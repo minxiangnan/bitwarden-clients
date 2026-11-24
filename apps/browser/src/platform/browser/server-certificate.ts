@@ -26,15 +26,15 @@ export function serverCertificateUntrusted(url: string): Promise<boolean> {
         return;
       }
       settled = true;
-      BrowserApi.removeListener(chrome.webRequest.onErrorOccurred, listener);
+      BrowserApi.removeWebRequestErrorListener(listener);
       resolve(untrusted);
     };
-    const listener = (details: chrome.webRequest.WebResponseErrorDetails) => {
+    const listener = (details: { error?: string }) => {
       if (details.error?.includes(CERT_ERROR)) {
         finish(true);
       }
     };
-    BrowserApi.addListener(chrome.webRequest.onErrorOccurred, listener, { urls: [pattern] });
+    BrowserApi.addWebRequestErrorListener(listener, { urls: [pattern] });
     fetch(url, { method: "GET" }).then(
       () => finish(false),
       () => setTimeout(() => finish(false), 400),
