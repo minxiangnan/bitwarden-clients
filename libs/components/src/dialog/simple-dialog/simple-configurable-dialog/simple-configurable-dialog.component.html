@@ -18,7 +18,7 @@
       </button>
     }
     <button
-      [type]="simpleDialogOpts.focusCancel ? 'button' : 'submit'"
+      [attr.type]="simpleDialogOpts.focusCancel ? 'button' : 'submit'"
       bitButton
       bitFormButton
       [buttonType]="simpleDialogOpts.type === 'danger' ? 'danger' : 'primary'"

@@ -12,11 +12,17 @@ type QrDetector = new (options: { formats: string[] }) => {
  */
 export async function scanCurrentTabForOtpauth(): Promise<string | null> {
   // Start the capture during the click. A later await drops the user gesture activeTab needs.
-  const shotPromise = BrowserApi.captureVisibleTab().catch(() => "");
+  const shotPromise = Promise.race([
+    BrowserApi.captureVisibleTab().catch(() => ""),
+    new Promise<string>((resolve) => globalThis.setTimeout(() => resolve(""), 2500)),
+  ]);
   const tab = await BrowserApi.getTabFromCurrentWindow();
   if (tab?.id != null) {
     try {
-      const fromPage = await BrowserApi.executeFunctionInTab(tab.id, scanPageForOtpauth);
+      const fromPage = await Promise.race([
+        BrowserApi.executeFunctionInTab(tab.id, scanPageForOtpauth),
+        new Promise<null>((resolve) => globalThis.setTimeout(() => resolve(null), 4000)),
+      ]);
       const png = pageResultPng(fromPage);
       if (png) {
         const decoded = await detectOtpauthInImage(png);
@@ -80,9 +86,13 @@ export function readOtpauthFromImageData(
   width: number,
   height: number,
 ): string | null {
-  const code = jsQR(data, width, height);
-  if (code?.data && isAuthenticatorQrPayload(code.data)) {
-    return code.data;
+  try {
+    const code = jsQR(data, width, height);
+    if (code?.data && isAuthenticatorQrPayload(code.data)) {
+      return code.data;
+    }
+  } catch {
+    return null;
   }
   return null;
 }

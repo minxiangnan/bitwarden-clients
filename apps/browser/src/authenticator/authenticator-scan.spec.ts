@@ -36,4 +36,12 @@ describe("readOtpauthFromImageData", () => {
 
     expect(readOtpauthFromImageData(new Uint8ClampedArray(4), 1, 1)).toBeNull();
   });
+
+  it("returns null when the decoder throws", () => {
+    jsQRMock.mockImplementation(() => {
+      throw new Error("bad image");
+    });
+
+    expect(readOtpauthFromImageData(new Uint8ClampedArray(4), 1, 1)).toBeNull();
+  });
 });
