@@ -504,6 +504,36 @@ export class BrowserApi {
    * Uses `chrome.runtime.getContexts()` on MV3 (Chrome/Edge),
    * and falls back to `chrome.extension.getViews()` for MV2 (Firefox) and Safari.
    */
+  /**
+   * True when a vault UI the user is looking at is open: the toolbar popup,
+   * a popped-out window, the side panel, or the extension page in a tab.
+   * Lock keeps that view on the unlock screen instead of reloading it away.
+   */
+  static async isExtensionUiOpen(): Promise<boolean> {
+    if (
+      typeof (chrome.runtime as any).getContexts === "function" &&
+      BrowserApi.isManifestVersion(3)
+    ) {
+      const contexts = await chrome.runtime.getContexts({});
+      return contexts.some((context) => {
+        if (
+          context.contextType === "POPUP" ||
+          context.contextType === "SIDE_PANEL"
+        ) {
+          return true;
+        }
+        return (
+          context.contextType === "TAB" &&
+          (context.documentUrl?.includes("/popup/index.html") ?? false)
+        );
+      });
+    }
+
+    return BrowserApi.getExtensionViews().some((view) =>
+      view.location.href.includes("/popup/index.html"),
+    );
+  }
+
   static async isPopupOpen(): Promise<boolean> {
     if (
       typeof (chrome.runtime as any).getContexts === "function" &&
@@ -987,9 +1017,25 @@ export class BrowserApi {
     return null;
   }
 
-  static captureVisibleTab(): Promise<string> {
+  /**
+   * Captures the visible tab of a window. Pass the website window when the
+   * extension UI is a popped-out window, so the capture is not the extension itself.
+   */
+  static captureVisibleTab(windowId?: number): Promise<string> {
     return new Promise((resolve) => {
-      chrome.tabs.captureVisibleTab(null, { format: "png" }, resolve);
+      const done = (dataUrl?: string) => {
+        if (chrome.runtime.lastError || typeof dataUrl !== "string") {
+          resolve("");
+          return;
+        }
+        resolve(dataUrl);
+      };
+      try {
+        const targetWindow = windowId ?? chrome.windows.WINDOW_ID_CURRENT;
+        chrome.tabs.captureVisibleTab(targetWindow, { format: "png" }, done);
+      } catch {
+        resolve("");
+      }
     });
   }
 

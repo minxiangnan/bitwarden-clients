@@ -238,6 +238,18 @@ export default class BrowserPopupUtils {
   }
 
   /**
+   * Reloads this view onto the unlock screen, keeping the window open.
+   * A full document load drops decrypted vault data that the previous page held.
+   *
+   * @param win - The passed window object.
+   */
+  static showLockScreen(win: Window): void {
+    const next = new URL(win.location.href);
+    next.hash = "#/lock";
+    win.location.replace(next.href);
+  }
+
+  /**
    * Closes the current popup or popout window from inside that window.
    *
    * @param win - The passed window object.
