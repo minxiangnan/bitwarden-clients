@@ -9495,6 +9495,9 @@
   "mcpTokenCopied": {
     "message": "已复制令牌"
   },
+  "mcpTokenRevoked": {
+    "message": "令牌已吊销"
+  },
   "mcpNoServer": {
     "message": "这台服务器没有打开 MCP。"
   },

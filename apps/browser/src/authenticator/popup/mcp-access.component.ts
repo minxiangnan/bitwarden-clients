@@ -93,6 +93,11 @@ export class McpAccessComponent implements OnInit {
       this.revealedToken.set(null);
       this.configured.set(false);
       this.entryCount.set(0);
+      this.toast.showToast({
+        variant: "success",
+        title: null,
+        message: this.i18n.t("mcpTokenRevoked"),
+      });
     } catch {
       this.error.set(this.i18n.t("mcpActionError"));
     } finally {

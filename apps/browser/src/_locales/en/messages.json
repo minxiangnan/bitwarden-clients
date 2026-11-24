@@ -9495,6 +9495,9 @@
   "mcpTokenCopied": {
     "message": "Token copied"
   },
+  "mcpTokenRevoked": {
+    "message": "Token revoked"
+  },
   "mcpNoServer": {
     "message": "This server does not have MCP turned on."
   },
