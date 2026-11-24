@@ -58,6 +58,7 @@ describe("MCP token confirms", () => {
     const openSimpleDialog = jest.fn().mockResolvedValue(false);
     const revokeToken = jest.fn();
     const rotateToken = jest.fn();
+    const showToast = jest.fn();
     TestBed.overrideComponent(McpAccessComponent, { set: { imports: [], template: "" } });
     TestBed.configureTestingModule({
       imports: [McpAccessComponent],
@@ -70,7 +71,7 @@ describe("MCP token confirms", () => {
           provide: AuthenticatorService,
           useValue: { state$: of({ status: "ready", entries: [] }) },
         },
-        { provide: ToastService, useValue: { showToast: jest.fn() } },
+        { provide: ToastService, useValue: { showToast } },
         { provide: I18nService, useValue: { t: (key: string) => key } },
         { provide: DialogService, useValue: { openSimpleDialog } },
         { provide: PlatformUtilsService, useValue: { copyToClipboard: jest.fn() } },
@@ -81,6 +82,7 @@ describe("MCP token confirms", () => {
       openSimpleDialog,
       revokeToken,
       rotateToken,
+      showToast,
     };
   }
 
@@ -98,5 +100,20 @@ describe("MCP token confirms", () => {
       }),
     );
     expect(revokeToken).not.toHaveBeenCalled();
+  });
+
+  it("tells the user the token was revoked", async () => {
+    const { component, openSimpleDialog, revokeToken, showToast } = setup();
+    openSimpleDialog.mockResolvedValue(true);
+    revokeToken.mockResolvedValue(undefined);
+
+    await component["revoke"]();
+
+    expect(revokeToken).toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: null,
+      message: "mcpTokenRevoked",
+    });
   });
 });
