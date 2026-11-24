@@ -46,9 +46,14 @@ export async function scanCurrentTabForOtpauth(): Promise<string | null> {
 
 type PageImage = { data: number[]; width: number; height: number };
 
+export function isAuthenticatorQrPayload(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized.startsWith("otpauth://") || normalized.startsWith("otpauth-migration://");
+}
+
 /** Turns the injected page result into an otpauth URI. */
 export function otpauthFromPageResult(result: unknown): string | null {
-  if (typeof result === "string" && result.startsWith("otpauth://")) {
+  if (typeof result === "string" && isAuthenticatorQrPayload(result)) {
     return result;
   }
   if (!isPageImage(result)) {
@@ -76,10 +81,15 @@ export function readOtpauthFromImageData(
   height: number,
 ): string | null {
   const code = jsQR(data, width, height);
-  if (code?.data.startsWith("otpauth://")) {
+  if (code?.data && isAuthenticatorQrPayload(code.data)) {
     return code.data;
   }
   return null;
+}
+
+/** Reads a QR image the user picked from disk. Runs in the extension page, not the tab. */
+export async function decodeQrPayload(src: string): Promise<string | null> {
+  return detectOtpauthInImage(src);
 }
 
 function pageResultPng(result: unknown): string | null {
@@ -137,7 +147,11 @@ function scanPageForOtpauth(): Promise<string | PageImage | { png: string } | nu
             .detect(node as CanvasImageSource)
             .then((codes): string | null => {
               for (const code of codes) {
-                if (typeof code.rawValue === "string" && code.rawValue.startsWith("otpauth://")) {
+                if (
+                  typeof code.rawValue === "string" &&
+                  (code.rawValue.startsWith("otpauth://") ||
+                    code.rawValue.startsWith("otpauth-migration://"))
+                ) {
                   return code.rawValue;
                 }
               }
@@ -157,7 +171,9 @@ async function detectOtpauthInImage(src: string): Promise<string | null> {
       const Detector = (globalThis as { BarcodeDetector?: QrDetector }).BarcodeDetector;
       if (typeof Detector === "function") {
         const codes = await new Detector({ formats: ["qr_code"] }).detect(image);
-        const value = codes.find((code) => code.rawValue?.startsWith("otpauth://"))?.rawValue;
+        const value = codes.find((code) =>
+          code.rawValue ? isAuthenticatorQrPayload(code.rawValue) : false,
+        )?.rawValue;
         if (value) {
           return value;
         }

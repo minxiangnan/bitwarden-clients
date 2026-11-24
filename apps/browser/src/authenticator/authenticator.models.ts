@@ -3,6 +3,8 @@ import {
   AuthenticatorListResponse,
 } from "@bitwarden/common/vault/models/response/authenticator-entry.response";
 
+import { AuthenticatorKind } from "./authenticator-meta";
+
 export { AuthenticatorEntryResponse, AuthenticatorListResponse };
 
 export const AuthenticatorAlgorithms = Object.freeze({
@@ -37,6 +39,12 @@ export type AuthenticatorEntryView = {
   creationDate: string;
   /** True when name, secret, issuer, or notes could not be decrypted. Do not save this entry. */
   undecryptable: boolean;
+  /** Omitted on older in-memory fixtures. Steam used to be implied by 5 digits. */
+  kind?: AuthenticatorKind;
+  host?: string;
+  tags?: string[];
+  counter?: number;
+  deletedAt?: string | null;
 };
 
 /** camelCase body for POST and PUT. Name, issuer, secret, and notes are EncStrings. */

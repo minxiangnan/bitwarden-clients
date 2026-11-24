@@ -9521,5 +9521,188 @@
         "example": "gitlab"
       }
     }
+  },
+  "authenticatorHelp": {
+    "message": "使用说明"
+  },
+  "authenticatorTools": {
+    "message": "更多"
+  },
+  "authenticatorArrange": {
+    "message": "排序和分组"
+  },
+  "authenticatorArrangeHelp": {
+    "message": "只影响这台浏览器上的查看方式，不会改服务器上的顺序，除非你在编辑页里上移或下移。"
+  },
+  "authenticatorSort": {
+    "message": "排序"
+  },
+  "authenticatorGroup": {
+    "message": "分组"
+  },
+  "authenticatorHide": {
+    "message": "收起"
+  },
+  "authenticatorBackupHelp": {
+    "message": "写成一条加密的安全笔记，和其他登录一起存在服务器上。下载的 JSON 是明文，只用于迁移。"
+  },
+  "authenticatorRecentEmpty": {
+    "message": "还没有最近复制过的验证码。"
+  },
+  "authenticatorCopyAction": {
+    "message": "复制验证码"
+  },
+  "authenticatorTrash": {
+    "message": "验证码回收站"
+  },
+  "authenticatorTrashHelp": {
+    "message": "删除的验证码先留在这里，可以恢复。彻底删除才会从服务器去掉。"
+  },
+  "authenticatorTrashEmpty": {
+    "message": "回收站是空的。"
+  },
+  "authenticatorRestore": {
+    "message": "恢复"
+  },
+  "authenticatorTrashPermanent": {
+    "message": "彻底删除"
+  },
+  "passwordHealthClear": {
+    "message": "没有发现需要处理的密码。"
+  },
+  "passwordHealthBusy": {
+    "message": "正在检查…"
+  },
+  "passwordPresetHint": {
+    "message": "点一下就按这个预设生成并复制。下面可以继续改长度和字符。"
+  },
+  "authenticatorHost": {
+    "message": "网站主机"
+  },
+  "authenticatorHostHint": {
+    "message": "例如 github.com"
+  },
+  "authenticatorUseHost": {
+    "message": "使用当前网站"
+  },
+  "authenticatorTags": {
+    "message": "分组"
+  },
+  "authenticatorTagsHint": {
+    "message": "用逗号分隔，例如 工作, 个人"
+  },
+  "authenticatorCounter": {
+    "message": "计数器"
+  },
+  "authenticatorTypeHotp": {
+    "message": "HOTP"
+  },
+  "authenticatorSortManual": {
+    "message": "手动排序"
+  },
+  "authenticatorSortName": {
+    "message": "按名称"
+  },
+  "authenticatorSortIssuer": {
+    "message": "按发行方"
+  },
+  "authenticatorGroupNone": {
+    "message": "不分组"
+  },
+  "authenticatorGroupIssuer": {
+    "message": "按发行方分组"
+  },
+  "authenticatorGroupTag": {
+    "message": "按分组标签"
+  },
+  "authenticatorOffline": {
+    "message": "服务器暂时连不上。正在显示上次同步的验证码，现在只能查看和复制。"
+  },
+  "authenticatorSyncedAt": {
+    "message": "已同步 $TIME$",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "2026/11/23 14:00"
+      }
+    }
+  },
+  "authenticatorImportHint": {
+    "message": "粘贴 otpauth 链接、Google 迁移链接，或 Aegis、2FAS、Bitwarden 的导出内容"
+  },
+  "authenticatorImportPaste": {
+    "message": "导入粘贴的内容"
+  },
+  "authenticatorImportFile": {
+    "message": "从图片或文件导入"
+  },
+  "authenticatorImportEmpty": {
+    "message": "没有读到可导入的验证码。"
+  },
+  "authenticatorImportEncrypted": {
+    "message": "这个备份是加密的。请在原来的应用里导出未加密的 JSON。"
+  },
+  "authenticatorImported": {
+    "message": "已导入 $COUNT$ 条",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "authenticatorExport": {
+    "message": "导出 JSON"
+  },
+  "authenticatorExportWarning": {
+    "message": "导出的文件包含明文密钥，只适合迁移。加密副本在服务器上。"
+  },
+  "authenticatorBackup": {
+    "message": "备份到保险库"
+  },
+  "authenticatorBackupSaved": {
+    "message": "已写入一条加密的安全笔记。"
+  },
+  "authenticatorRecent": {
+    "message": "最近使用"
+  },
+  "authenticatorNext": {
+    "message": "下一段"
+  },
+  "commandCopySiteTotp": {
+    "message": "复制当前网站的验证码"
+  },
+  "passwordHealth": {
+    "message": "密码健康"
+  },
+  "passwordHealthHelp": {
+    "message": "在这台浏览器里检查太短、太简单和重复的密码。泄露检查只发送密码哈希的前 5 位。"
+  },
+  "passwordHealthLocal": {
+    "message": "检查弱密码和重复"
+  },
+  "passwordHealthExposed": {
+    "message": "检查是否泄露"
+  },
+  "passwordHealthWeak": {
+    "message": "弱"
+  },
+  "passwordHealthReused": {
+    "message": "重复"
+  },
+  "passwordHealthLeaked": {
+    "message": "泄露"
+  },
+  "passwordPresetStrong": {
+    "message": "20 位强密码"
+  },
+  "passwordPresetPin": {
+    "message": "6 位数字"
+  },
+  "passwordPresetPhrase": {
+    "message": "5 词口令"
+  },
+  "passwordPresetCopied": {
+    "message": "已按预设生成并复制"
   }
 }

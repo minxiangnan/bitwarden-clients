@@ -36,7 +36,7 @@ describe("AutofillSettingsService", () => {
       featureStates: { [FeatureFlag.EnableBasicAuthResponse]: true },
     });
     configService = mock<ConfigService>();
-    configService.serverConfig$ = serverConfig$;
+    configService.serverConfig$ = serverConfig$ as unknown as typeof configService.serverConfig$;
 
     // Only the resolved basic auth response state reads single-user state, so
     // each user's stored setting is supplied here as its own stream.

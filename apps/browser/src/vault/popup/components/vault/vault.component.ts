@@ -69,7 +69,6 @@ import {
   ALL_ITEMS_SCOPE,
   DecryptionFailureDialogComponent,
   DefaultVaultItemsTransferService,
-  NewExperienceDialogResult,
   NewExperienceDialogService,
   offersVaultChoice,
   resolveVaultScope,
@@ -120,10 +119,6 @@ const VaultState = {
 } as const;
 
 type VaultState = UnionOfValues<typeof VaultState>;
-
-// Resolved against the popup document at the extension root, not this file.
-const NEW_EXPERIENCE_LIGHT_IMG = "../../../../images/new-experience/new-experience.light.png";
-const NEW_EXPERIENCE_DARK_IMG = "../../../../images/new-experience/new-experience.dark.png";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection

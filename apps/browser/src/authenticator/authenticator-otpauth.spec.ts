@@ -33,12 +33,16 @@ describe("authenticator otpauth", () => {
       algorithm: "SHA1",
       digits: 6,
       period: 30,
+      kind: "totp",
+      counter: 0,
     });
   });
 
   it("rejects a URI that is not a TOTP secret", () => {
     expect(parseOtpAuthUri("https://example.com")).toBeNull();
-    expect(parseOtpAuthUri("otpauth://hotp/Name?secret=WQIQ25BRKZYCJVYP")).toBeNull();
+    expect(parseOtpAuthUri("otpauth://hotp/Name?secret=WQIQ25BRKZYCJVYP&counter=4")).toEqual(
+      expect.objectContaining({ kind: "hotp", counter: 4, name: "Name" }),
+    );
     expect(parseOtpAuthUri("otpauth://totp/%E0%A4%A?secret=WQIQ25BRKZYCJVYP")).toBeNull();
     expect(parseOtpAuthUri("otpauth://totp/Name?secret=WQIQ25BRKZYCJVYP&digits=4")).toBeNull();
     expect(parseOtpAuthUri("otpauth://totp/Name?secret=WQIQ25BRKZYCJVYP&period=90000")).toBeNull();

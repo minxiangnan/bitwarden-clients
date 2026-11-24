@@ -1,10 +1,10 @@
 import { EVENTS } from "@bitwarden/common/autofill/constants";
 import { ThemeTypes } from "@bitwarden/common/platform/enums";
 
-import { resolveTheme } from "../../../utils/resolve-theme";
 
 import { BrowserApi } from "../../../../platform/browser/browser-api";
 import { sendExtensionMessage, setElementStyles } from "../../../utils";
+import { resolveTheme } from "../../../utils/resolve-theme";
 import {
   BackgroundPortMessageHandlers,
   AutofillInlineMenuIframeService as AutofillInlineMenuIframeServiceInterface,

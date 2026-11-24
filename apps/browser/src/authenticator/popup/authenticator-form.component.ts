@@ -8,9 +8,12 @@ import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/components";
 
+import { BrowserApi } from "../../platform/browser/browser-api";
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
+import { parseAuthenticatorImport } from "../authenticator-import";
+import { parseTagList, AuthenticatorKinds } from "../authenticator-meta";
 import { isValidTotpSecret, normalizeTotpSecret, parseOtpAuthUri } from "../authenticator-otpauth";
 import { scanCurrentTabForOtpauth } from "../authenticator-scan";
 import {
@@ -65,9 +68,10 @@ export class AuthenticatorFormComponent implements OnInit {
   protected readonly maxPeriod = MAX_AUTHENTICATOR_PERIOD;
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  protected readonly confirmDelete = signal(false);
   protected readonly scanning = signal(false);
   protected readonly advancedOpen = signal(false);
-  protected readonly otpType = signal<"totp" | "steam">("totp");
+  protected readonly otpType = signal<"totp" | "steam" | "hotp">("totp");
   protected readonly editing = signal(false);
   protected readonly errorKey = signal<string | null>(null);
   protected readonly titleKey = signal("authenticatorAdd");
@@ -95,6 +99,9 @@ export class AuthenticatorFormComponent implements OnInit {
     ],
     notes: [""],
     favorite: [false],
+    host: [""],
+    tagsText: [""],
+    counter: [0],
     mcpEnabled: [false],
     mcpAlias: [""],
   });
@@ -108,7 +115,6 @@ export class AuthenticatorFormComponent implements OnInit {
     }
     this.entryId.set(id);
     this.editing.set(true);
-    this.advancedOpen.set(true);
     this.titleKey.set("authenticatorEdit");
     this.loading.set(true);
     const state = await firstValueFrom(this.authenticator.state$);
@@ -123,8 +129,27 @@ export class AuthenticatorFormComponent implements OnInit {
       this.form.disable();
       return;
     }
-    this.form.patchValue(draftFromView(entry));
-    this.otpType.set(entry.digits === MIN_AUTHENTICATOR_DIGITS ? "steam" : "totp");
+    const draft = draftFromView(entry);
+    this.form.patchValue({
+      name: draft.name,
+      issuer: draft.issuer,
+      secret: draft.secret,
+      algorithm: draft.algorithm,
+      digits: draft.digits,
+      period: draft.period,
+      notes: draft.notes,
+      favorite: draft.favorite,
+      host: draft.host ?? "",
+      tagsText: (draft.tags ?? []).join(", "),
+      counter: draft.counter ?? 0,
+    });
+    this.otpType.set(
+      draft.kind === AuthenticatorKinds.Steam
+        ? "steam"
+        : draft.kind === AuthenticatorKinds.Hotp
+          ? "hotp"
+          : "totp",
+    );
     const grant = await this.mcp.findAuthenticator(id);
     if (grant) {
       this.mcpWasEnabled.set(true);
@@ -133,7 +158,7 @@ export class AuthenticatorFormComponent implements OnInit {
   }
 
   protected setOtpType(value: string): void {
-    const type = value === "steam" ? "steam" : "totp";
+    const type = value === "steam" ? "steam" : value === "hotp" ? "hotp" : "totp";
     this.otpType.set(type);
     if (type === "steam") {
       this.form.patchValue({
@@ -142,6 +167,18 @@ export class AuthenticatorFormComponent implements OnInit {
       });
     } else if (this.form.controls.digits.value === MIN_AUTHENTICATOR_DIGITS) {
       this.form.controls.digits.setValue(DEFAULT_AUTHENTICATOR_DIGITS);
+    }
+  }
+
+  protected async useCurrentHost(): Promise<void> {
+    const tab = await BrowserApi.getTabFromCurrentWindow();
+    if (!tab?.url) {
+      return;
+    }
+    try {
+      this.form.controls.host.setValue(new URL(tab.url).hostname);
+    } catch {
+      this.form.controls.host.setValue("");
     }
   }
 
@@ -167,7 +204,26 @@ export class AuthenticatorFormComponent implements OnInit {
       }
       this.form.patchValue(parsed);
     }
-    const draft = this.form.getRawValue() satisfies AuthenticatorDraft;
+    const raw = this.form.getRawValue();
+    const draft: AuthenticatorDraft = {
+      name: raw.name,
+      issuer: raw.issuer,
+      secret: raw.secret,
+      algorithm: raw.algorithm,
+      digits: raw.digits,
+      period: raw.period,
+      notes: raw.notes,
+      favorite: raw.favorite,
+      kind:
+        this.otpType() === "steam"
+          ? AuthenticatorKinds.Steam
+          : this.otpType() === "hotp"
+            ? AuthenticatorKinds.Hotp
+            : AuthenticatorKinds.Totp,
+      host: raw.host,
+      tags: parseTagList(raw.tagsText),
+      counter: raw.counter,
+    };
     draft.secret = normalizeTotpSecret(draft.secret);
     if (!isValidTotpSecret(draft.secret)) {
       this.errorKey.set("authenticatorSecretInvalid");
@@ -221,6 +277,53 @@ export class AuthenticatorFormComponent implements OnInit {
     }
   }
 
+  protected async move(direction: -1 | 1): Promise<void> {
+    const id = this.entryId();
+    if (id == null || this.saving()) {
+      return;
+    }
+    this.saving.set(true);
+    try {
+      await this.authenticator.move(id, direction);
+    } catch {
+      this.toast.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18n.t("serverSaveFailed"),
+      });
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  protected async remove(): Promise<void> {
+    const id = this.entryId();
+    if (id == null || this.saving()) {
+      return;
+    }
+    if (!this.confirmDelete()) {
+      this.confirmDelete.set(true);
+      return;
+    }
+    this.saving.set(true);
+    try {
+      const state = await firstValueFrom(this.authenticator.state$);
+      const entry = state.entries.find((item) => item.id === id);
+      if (entry) {
+        await this.authenticator.moveToTrash(entry);
+      }
+      await this.router.navigate(["/tabs/authenticator"]);
+    } catch {
+      this.toast.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18n.t("serverSaveFailed"),
+      });
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   protected async scan(): Promise<void> {
     this.scanning.set(true);
     this.errorKey.set(null);
@@ -238,6 +341,20 @@ export class AuthenticatorFormComponent implements OnInit {
 
   private async acceptInput(value: string, saveNow: boolean): Promise<void> {
     const trimmed = value.trim();
+    const bulk = parseAuthenticatorImport(trimmed);
+    if (trimmed.toLowerCase().startsWith("otpauth-migration://") || bulk.entries.length > 1) {
+      if (bulk.encrypted) {
+        this.errorKey.set("authenticatorImportEncrypted");
+        return;
+      }
+      if (bulk.entries.length === 0) {
+        this.errorKey.set("authenticatorImportEmpty");
+        return;
+      }
+      await this.authenticator.saveImported(bulk.entries);
+      await this.router.navigate(["/tabs/authenticator"]);
+      return;
+    }
     if (trimmed.toLowerCase().startsWith("otpauth://")) {
       const parsed = parseOtpAuthUri(trimmed);
       if (!parsed) {
@@ -245,8 +362,22 @@ export class AuthenticatorFormComponent implements OnInit {
         return;
       }
       this.errorKey.set(null);
-      this.otpType.set(parsed.digits === MIN_AUTHENTICATOR_DIGITS ? "steam" : "totp");
-      this.form.patchValue(parsed);
+      this.otpType.set(
+        parsed.kind === AuthenticatorKinds.Steam
+          ? "steam"
+          : parsed.kind === AuthenticatorKinds.Hotp
+            ? "hotp"
+            : "totp",
+      );
+      this.form.patchValue({
+        name: parsed.name,
+        issuer: parsed.issuer,
+        secret: parsed.secret,
+        algorithm: parsed.algorithm,
+        digits: parsed.digits,
+        period: parsed.period,
+        counter: parsed.counter,
+      });
     } else {
       const secret = normalizeTotpSecret(trimmed);
       this.form.controls.secret.setValue(secret);

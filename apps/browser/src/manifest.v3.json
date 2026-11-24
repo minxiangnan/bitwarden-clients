@@ -136,6 +136,9 @@
     },
     "lock_vault": {
       "description": "__MSG_commandLockVaultDesc__"
+    },
+    "copy_site_totp": {
+      "description": "__MSG_commandCopySiteTotp__"
     }
   },
   "web_accessible_resources": [

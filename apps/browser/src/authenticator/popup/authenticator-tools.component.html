@@ -1,0 +1,200 @@
+<popup-page>
+  <popup-header
+    slot="header"
+    [pageTitle]="'authenticatorTools' | i18n"
+    showBackButton
+  ></popup-header>
+
+  @if (readOnly()) {
+    <p class="tw-mb-4 tw-rounded-lg tw-bg-background-alt tw-p-3 tw-text-sm tw-text-main">
+      {{ "authenticatorOffline" | i18n }}
+    </p>
+  }
+
+  <section class="tw-mb-5">
+    <h2 class="tw-mb-1 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorArrange" | i18n }}
+    </h2>
+    <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorArrangeHelp" | i18n }}</p>
+    <div class="tw-flex tw-flex-col tw-gap-2">
+      <label class="tw-text-sm">
+        <span class="tw-mb-1 tw-block">{{ "authenticatorSort" | i18n }}</span>
+        <select
+          bitInput
+          class="tw-w-full"
+          [value]="ui.sort()"
+          (change)="ui.setSort($any($event.target).value)"
+        >
+          <option value="manual">{{ "authenticatorSortManual" | i18n }}</option>
+          <option value="name">{{ "authenticatorSortName" | i18n }}</option>
+          <option value="issuer">{{ "authenticatorSortIssuer" | i18n }}</option>
+        </select>
+      </label>
+      <label class="tw-text-sm">
+        <span class="tw-mb-1 tw-block">{{ "authenticatorGroup" | i18n }}</span>
+        <select
+          bitInput
+          class="tw-w-full"
+          [value]="ui.group()"
+          (change)="ui.setGroup($any($event.target).value)"
+        >
+          <option value="none">{{ "authenticatorGroupNone" | i18n }}</option>
+          <option value="issuer">{{ "authenticatorGroupIssuer" | i18n }}</option>
+          <option value="tag">{{ "authenticatorGroupTag" | i18n }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="tw-mb-5">
+    <h2 class="tw-mb-1 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorImportPaste" | i18n }}
+    </h2>
+    <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorImportHint" | i18n }}</p>
+    <textarea
+      bitInput
+      rows="4"
+      class="tw-mb-2 tw-w-full"
+      [ngModel]="importText()"
+      (ngModelChange)="importText.set($event)"
+    ></textarea>
+    <div class="tw-flex tw-flex-wrap tw-gap-2">
+      <button
+        type="button"
+        bitButton
+        buttonType="primary"
+        size="small"
+        [disabled]="readOnly()"
+        (click)="importPasted()"
+      >
+        {{ "authenticatorImportPaste" | i18n }}
+      </button>
+      <label
+        class="tw-relative tw-inline-flex tw-cursor-pointer tw-items-center tw-rounded-full tw-border tw-border-solid tw-border-primary-600 tw-px-3 tw-py-1 tw-text-xs tw-text-primary-600"
+      >
+        <input
+          class="tw-absolute tw-size-px tw-overflow-hidden"
+          type="file"
+          accept="image/*,.json,.csv,.txt"
+          [disabled]="readOnly() || importingFile()"
+          (change)="onImportFile($event)"
+        />
+        {{ "authenticatorImportFile" | i18n }}
+      </label>
+    </div>
+  </section>
+
+  <section class="tw-mb-5">
+    <h2 class="tw-mb-1 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorImport" | i18n }}
+    </h2>
+    <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorImportHelp" | i18n }}</p>
+    <button
+      type="button"
+      bitButton
+      buttonType="secondary"
+      size="small"
+      [disabled]="readOnly()"
+      (click)="showVaultImport()"
+    >
+      {{ (showVault() ? "authenticatorHide" : "authenticatorImport") | i18n }}
+    </button>
+    @if (showVault()) {
+      @if (vaultImports().length === 0) {
+        <p class="tw-mt-2 tw-text-sm tw-text-muted">{{ "authenticatorImportNone" | i18n }}</p>
+      } @else {
+        <ul class="tw-m-0 tw-mt-2 tw-list-none tw-p-0">
+          @for (item of vaultImports(); track item.cipherId) {
+            <li class="tw-mb-2 tw-flex tw-items-center tw-justify-between tw-gap-2">
+              <span class="tw-min-w-0 tw-truncate tw-text-sm">
+                {{ item.name }}
+                @if (item.username) {
+                  <span class="tw-text-muted"> · {{ item.username }}</span>
+                }
+              </span>
+              <button type="button" bitButton size="small" (click)="importOne(item.draft)">
+                {{ "authenticatorImportOne" | i18n }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </section>
+
+  <section class="tw-mb-5">
+    <h2 class="tw-mb-1 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorExport" | i18n }}
+    </h2>
+    <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorExportWarning" | i18n }}</p>
+    <button type="button" bitButton buttonType="secondary" size="small" (click)="exportFile()">
+      {{ "authenticatorExport" | i18n }}
+    </button>
+  </section>
+
+  <section class="tw-mb-5">
+    <h2 class="tw-mb-1 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorBackup" | i18n }}
+    </h2>
+    <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorBackupHelp" | i18n }}</p>
+    <button
+      type="button"
+      bitButton
+      buttonType="secondary"
+      size="small"
+      [disabled]="readOnly()"
+      (click)="backupToVault()"
+    >
+      {{ "authenticatorBackup" | i18n }}
+    </button>
+  </section>
+
+  <section class="tw-mb-5">
+    <h2 class="tw-mb-1 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorTrash" | i18n }}
+    </h2>
+    <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorTrashHelp" | i18n }}</p>
+    @if (trash().length === 0) {
+      <p class="tw-text-sm tw-text-muted">{{ "authenticatorTrashEmpty" | i18n }}</p>
+    } @else {
+      <ul class="tw-m-0 tw-list-none tw-p-0">
+        @for (entry of trash(); track entry.id) {
+          <li class="tw-mb-2 tw-flex tw-items-center tw-justify-between tw-gap-2">
+            <span class="tw-min-w-0 tw-truncate tw-text-sm">
+              {{ entry.issuer ? entry.issuer + " · " + entry.name : entry.name }}
+            </span>
+            <span class="tw-flex tw-gap-2">
+              <button
+                type="button"
+                bitButton
+                size="small"
+                [disabled]="readOnly()"
+                (click)="restore(entry.id)"
+              >
+                {{ "authenticatorRestore" | i18n }}
+              </button>
+              <button
+                type="button"
+                bitButton
+                buttonType="danger"
+                size="small"
+                [disabled]="readOnly()"
+                (click)="purge(entry.id)"
+              >
+                {{ "authenticatorTrashPermanent" | i18n }}
+              </button>
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <button
+    type="button"
+    class="tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"
+    (click)="help()"
+  >
+    {{ "authenticatorHelp" | i18n }}
+  </button>
+</popup-page>

@@ -117,6 +117,9 @@ export default class CommandsBackground {
         await this.lockService.lock(activeUserId, LockSource.Manual);
         break;
       }
+      case ExtensionCommand.CopySiteTotp:
+        await this.copySiteTotp(sender ? sender.tab : undefined);
+        break;
       default:
         break;
     }
@@ -165,6 +168,30 @@ export default class CommandsBackground {
         this.main.autofillOrchestrator.autofillActiveTabFromCommand(tab);
         break;
     }
+  }
+
+  private async copySiteTotp(tab?: chrome.tabs.Tab) {
+    if (!tab) {
+      tab = await BrowserApi.getTabFromCurrentWindowId();
+    }
+    if (tab == null) {
+      return;
+    }
+    if ((await this.authService.getAuthStatus()) < AuthenticationStatus.Unlocked) {
+      await openUnlockPopout(tab, () =>
+        this.intraprocessMessageSender.send(ADD_TO_LOCKED_VAULT_PENDING_NOTIFICATIONS, {
+          data: {
+            commandToRetry: {
+              message: { command: ExtensionCommand.CopySiteTotp },
+              [RETRY_SENDER]: { tab },
+            },
+            target: "commands.background",
+          },
+        }),
+      );
+      return;
+    }
+    await this.main.copySiteAuthenticator(tab);
   }
 
   private async openPopup() {
