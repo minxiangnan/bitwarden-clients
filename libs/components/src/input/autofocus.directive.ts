@@ -87,7 +87,14 @@ export class AutofocusDirective implements AfterContentChecked {
       const active = document.activeElement;
       // A popup often does not own document focus. Re-focusing on every check
       // pulls the caret out of the field the user is typing in and drops keys.
-      if (active instanceof HTMLElement && active !== el && this.isTextEntry(active)) {
+      // Leave the field the user is typing in alone. A confirm dialog is the
+      // exception: 取消 has to take focus even if a search box is still active.
+      if (
+        active instanceof HTMLElement &&
+        active !== el &&
+        this.isTextEntry(active) &&
+        el.closest("[role='dialog'], dialog, .cdk-overlay-pane") == null
+      ) {
         this.focused = true;
         return;
       }

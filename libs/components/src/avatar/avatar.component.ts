@@ -56,11 +56,11 @@ const sizeClasses: Record<AvatarSize, string[]> = {
  * dark mode.
  */
 export const defaultAvatarColors: Record<AvatarColor, string> = {
-  teal: "#007c95",
-  coral: "#c71800",
-  brand: "#175ddc",
-  green: "#008236",
-  purple: "#8200db",
+  teal: "#c4532a",
+  coral: "#c4532a",
+  brand: "#c4532a",
+  green: "#a33d22",
+  purple: "#c4532a",
 };
 
 /**
@@ -69,12 +69,27 @@ export const defaultAvatarColors: Record<AvatarColor, string> = {
  * dark mode.
  */
 export const defaultAvatarHoverColors: Record<AvatarColor, string> = {
-  teal: "#006278",
-  coral: "#a81400",
-  brand: "#0d43af",
-  green: "#016630",
-  purple: "#6e11b0",
+  teal: "#a33d22",
+  coral: "#a33d22",
+  brand: "#a33d22",
+  green: "#7c2f1a",
+  purple: "#a33d22",
 };
+
+/** Stored account colors can still be Bitwarden's blue or crimson. Paint those as terracotta. */
+export function themeAvatarColor(color: string): string {
+  const match = color.trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!match) {
+    return "#c4532a";
+  }
+  const value = match[1];
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+  const cool = blue > red + 20 && blue > 90;
+  const crimson = red > 170 && green < 50 && blue < 50;
+  return cool || crimson ? "#c4532a" : `#${value.toLowerCase()}`;
+}
 
 // Typeguard to check if a given color is an AvatarColor
 export function isAvatarColor(color: string | undefined): color is AvatarColor {
@@ -176,11 +191,11 @@ export class AvatarComponent {
     const colorIsCustom = !colorIsAvatarColor && colorIsDefined;
 
     if (colorIsCustom) {
+      const bg = themeAvatarColor(color);
       return {
-        bg: color,
-        // Drop the custom color's saturation and lightness by 10% when hovering
-        bgHover: `hsl(from ${color} h calc(s - 10) calc(l - 10))`,
-        text: Utils.pickTextColorBasedOnBgColor(color, 135, true),
+        bg,
+        bgHover: "#a33d22",
+        text: "#faf9f5",
       };
     } else {
       const chosenAvatarColor = colorIsAvatarColor

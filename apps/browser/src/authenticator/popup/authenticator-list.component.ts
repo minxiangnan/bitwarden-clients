@@ -1,5 +1,12 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -99,7 +106,10 @@ export class AuthenticatorListComponent {
     if (typeof probe === "function") {
       void probe.call(this.authenticator);
     }
-    void this.loadAliases();
+    effect(() => {
+      this.mcp.aliasEpoch();
+      void this.loadAliases();
+    });
   }
 
   private async loadAliases(): Promise<void> {

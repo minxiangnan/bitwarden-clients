@@ -9523,7 +9523,7 @@
     "message": "Rotating invalidates the current token immediately. Entries that can be decrypted are shared again. The others need Allow MCP turned on once more."
   },
   "mcpRevokeConfirm": {
-    "message": "After revoke, MCP can no longer read the codes you had shared."
+    "message": "Revoking turns off MCP access for every shared code and clears its alias. To replace the token and keep those aliases, use Rotate token."
   },
   "mcpActionError": {
     "message": "The MCP action failed. Check the connection and try again."

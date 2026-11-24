@@ -53,6 +53,22 @@ class TestHostComponent {
   readonly other = viewChild.required<ElementRef<HTMLButtonElement>>("other");
 }
 
+// Same reason as TestHostComponent: autofocus retries from ngAfterContentChecked.
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+@Component({
+  template: `
+    <div role="dialog">
+      <input #typed />
+      <button type="button" appAutofocus #target>取消</button>
+    </div>
+  `,
+  imports: [AutofocusDirective],
+})
+class TestHostDialogComponent {
+  readonly target = viewChild.required<ElementRef<HTMLButtonElement>>("target");
+  readonly typed = viewChild.required<ElementRef<HTMLInputElement>>("typed");
+}
+
 @Component({
   template: `<input #target appAutofocus="false" />`,
   imports: [AutofocusDirective],
@@ -181,6 +197,18 @@ describe("AutofocusDirective", () => {
       fixture.detectChanges();
 
       expect(document.activeElement).toBe(typed);
+    });
+
+    it("does steal focus when the autofocus target is a confirm dialog", () => {
+      const fixture = TestBed.createComponent(TestHostDialogComponent);
+      fixture.detectChanges();
+      const typed = fixture.componentInstance.typed().nativeElement;
+      const target = fixture.componentInstance.target().nativeElement;
+
+      typed.focus();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(target);
     });
 
     it("does not re-focus while it already holds focus", () => {
