@@ -60,6 +60,7 @@ import { ChangePasswordPageComponent } from "../auth/popup/settings/change-passw
 import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/extension-device-management.component";
 import { AuthenticatorFormComponent } from "../authenticator/popup/authenticator-form.component";
 import { AuthenticatorListComponent } from "../authenticator/popup/authenticator-list.component";
+import { McpAccessComponent } from "../authenticator/popup/mcp-access.component";
 import { AutofillToolsComponent } from "../autofill/popup/autofill-tools/autofill-tools.component";
 import { autofillToolsDevFlagGuard } from "../autofill/popup/autofill-tools/autofill-tools.guard";
 import { DefaultPasswordManagerPromptComponent } from "../autofill/popup/default-password-manager/default-password-manager-prompt.component";
@@ -414,6 +415,12 @@ const routes: Routes = [
     component: PremiumV2Component,
     canActivate: [authGuard],
     data: { elevation: 3 } satisfies RouteDataProperties,
+  },
+  {
+    path: "mcp-access",
+    component: McpAccessComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "appearance",

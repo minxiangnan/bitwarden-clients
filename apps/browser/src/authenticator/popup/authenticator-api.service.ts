@@ -9,6 +9,47 @@ import {
   AuthenticatorListResponse,
 } from "../authenticator.models";
 
+export type McpStatus = {
+  enabled: boolean;
+  configured: boolean;
+  revoked: boolean;
+  tokenId: string | null;
+  label: string | null;
+  keySalt: string | null;
+  tokenEnc: string | null;
+  entryCount: number;
+};
+
+export type McpIssuedToken = {
+  token: string;
+  tokenId: string;
+  keySalt: string;
+  cleared: Array<{ source: string; sourceId: string; alias: string }>;
+};
+
+export type McpEntrySummary = {
+  id: string;
+  source: string;
+  sourceId: string;
+  alias: string;
+  algorithm: string;
+  digits: number;
+  period: number;
+  steam: boolean;
+};
+
+export type McpEntryWrite = {
+  alias: string;
+  secretCt: string;
+  issuerCt?: string;
+  accountCt?: string;
+  hostCt?: string;
+  algorithm: string;
+  digits: number;
+  period: number;
+  steam: boolean;
+};
+
 @Injectable({ providedIn: "root" })
 export class AuthenticatorApiService {
   constructor(private apiService: ApiService) {}
@@ -57,8 +98,57 @@ export class AuthenticatorApiService {
       false,
     );
   }
+
+  mcpStatus(): Promise<McpStatus> {
+    return this.apiService.send("GET", "/mcp/status", null, true, true);
+  }
+
+  createMcpToken(label: string): Promise<McpIssuedToken> {
+    return this.apiService.send("POST", "/mcp/token", { label }, true, true);
+  }
+
+  putMcpTokenEnc(tokenEnc: string): Promise<void> {
+    return this.apiService.send("PUT", "/mcp/token/enc", { tokenEnc }, true, false);
+  }
+
+  rotateMcpToken(): Promise<McpIssuedToken> {
+    return this.apiService.send("POST", "/mcp/token/rotate", {}, true, true);
+  }
+
+  revokeMcpToken(): Promise<void> {
+    return this.apiService.send("DELETE", "/mcp/token", null, true, false);
+  }
+
+  async listMcpEntries(): Promise<McpEntrySummary[]> {
+    const response = await this.apiService.send("GET", "/mcp/entries", null, true, true);
+    return (response?.data ?? []) as McpEntrySummary[];
+  }
+
+  putMcpEntry(source: string, sourceId: string, body: McpEntryWrite): Promise<McpEntrySummary> {
+    return this.apiService.send(
+      "PUT",
+      "/mcp/entries/" + encodeURIComponent(source) + "/" + encodeURIComponent(sourceId),
+      body,
+      true,
+      true,
+    );
+  }
+
+  deleteMcpEntry(source: string, sourceId: string): Promise<void> {
+    return this.apiService.send(
+      "DELETE",
+      "/mcp/entries/" + encodeURIComponent(source) + "/" + encodeURIComponent(sourceId),
+      null,
+      true,
+      false,
+    );
+  }
 }
 
 export function isAuthenticatorUnsupported(error: unknown): boolean {
+  return error instanceof ErrorResponse && error.statusCode === 404;
+}
+
+export function isMcpUnsupported(error: unknown): boolean {
   return error instanceof ErrorResponse && error.statusCode === 404;
 }

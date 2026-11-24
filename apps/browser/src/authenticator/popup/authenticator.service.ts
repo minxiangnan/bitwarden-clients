@@ -40,7 +40,11 @@ import {
   normalizeAlgorithm,
 } from "../authenticator.models";
 
-import { AuthenticatorApiService, isAuthenticatorUnsupported } from "./authenticator-api.service";
+import {
+  AuthenticatorApiService,
+  isAuthenticatorUnsupported,
+  isMcpUnsupported,
+} from "./authenticator-api.service";
 
 export type AuthenticatorDraft = {
   name: string;
@@ -204,26 +208,30 @@ export class AuthenticatorService {
     }
   }
 
-  async save(draft: AuthenticatorDraft, id?: string, sortOrder?: number): Promise<void> {
+  async save(draft: AuthenticatorDraft, id?: string, sortOrder?: number): Promise<string> {
     const userId = await this.requireUserId();
     this.assertEditable(id);
     const request = await this.encryptDraft(draft, userId, id, sortOrder);
-    if (id) {
-      await this.api.update(id, request);
-    } else {
-      await this.api.create(request);
-    }
+    const saved = id ? await this.api.update(id, request) : await this.api.create(request);
     // The server write already succeeded. A later refresh failure must not look like a local-only save.
     try {
       await this.refresh(userId);
     } catch (error) {
       this.logService.error(error);
     }
+    return saved.id;
   }
 
   async remove(id: string): Promise<void> {
     const userId = await this.requireUserId();
     await this.api.delete(id);
+    try {
+      await this.api.deleteMcpEntry("authenticator", id);
+    } catch (error) {
+      if (!isMcpUnsupported(error)) {
+        this.logService.error(error);
+      }
+    }
     await this.refresh(userId);
   }
 

@@ -6,7 +6,7 @@
 - 弹出窗口里的验证器（TOTP 验证码、二维码、导入、多设备同步）
 - 界面默认简体中文，保存密码提示、基本认证自动填充、同源 iframe 里的通行密钥
 
-配合的服务端是 [minxiangnan/vaultwarden](https://github.com/minxiangnan/vaultwarden) 分支 `cursor/authenticator-entries-9888`。库存的上游 Vaultwarden 没有验证器接口，扩展里不会出现「验证器」标签。
+配合的服务端是 [minxiangnan/vaultwarden](https://github.com/minxiangnan/vaultwarden) 带验证器条目和 MCP 的分支。库存的上游 Vaultwarden 没有验证器接口，扩展里不会出现「验证器」标签。
 
 ## 1. 部署 Vaultwarden
 
@@ -21,7 +21,9 @@
 - 反向代理把 `/notifications/hub` 升级成 WebSocket
 - 数据目录做成持久卷
 
-完整的 `docker-compose.yml` 和变量说明在服务端仓库的 `docs/zh-authenticator-deploy.md`。下面是同一台机器上的反向代理例子。容器内部监听 80，映射到宿主机 8080。
+完整的 `docker-compose.yml` 和变量说明在服务端仓库的 `docs/zh-authenticator-deploy.md`。容器监听 8080，示例映射到宿主机 8080。
+
+要让 AI 读取验证码：扩展「设置 → MCP 访问」创建令牌（只显示一次，点复制），再在验证器条目里打开「允许 MCP 读取」并填写别名。客户端配置见服务端文档的 MCP 一节。
 
 ### Caddy
 

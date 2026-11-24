@@ -22,6 +22,7 @@ import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abs
 import { UserId } from "@bitwarden/common/types/guid";
 import {
   DialogService,
+  IconModule,
   ItemModule,
   LinkModule,
   TypographyModule,
@@ -43,6 +44,7 @@ import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.co
     PopupPageComponent,
     PopupHeaderComponent,
     PopOutComponent,
+    IconModule,
     ItemModule,
     CurrentAccountComponent,
     TypographyModule,

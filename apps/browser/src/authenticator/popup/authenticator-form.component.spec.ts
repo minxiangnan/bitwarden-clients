@@ -7,6 +7,7 @@ import { ToastService } from "@bitwarden/components";
 
 import { AuthenticatorFormComponent } from "./authenticator-form.component";
 import { AuthenticatorService } from "./authenticator.service";
+import { McpAccessService } from "./mcp-access.service";
 
 describe("AuthenticatorFormComponent", () => {
   function setup(entries: unknown[] = []) {
@@ -33,6 +34,15 @@ describe("AuthenticatorFormComponent", () => {
           useValue: { t: (key: string, value?: string) => value ?? key },
         },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
+        {
+          provide: McpAccessService,
+          useValue: {
+            findAuthenticator: jest.fn(async () => null),
+            hasToken: jest.fn(async () => false),
+            upsertAuthenticator: jest.fn(async () => undefined),
+            disableAuthenticator: jest.fn(async () => undefined),
+          },
+        },
       ],
     });
     const fixture = TestBed.createComponent(AuthenticatorFormComponent);
@@ -158,6 +168,15 @@ describe("AuthenticatorFormComponent", () => {
           useValue: { t: (key: string, value?: string) => value ?? key },
         },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
+        {
+          provide: McpAccessService,
+          useValue: {
+            findAuthenticator: jest.fn(async () => null),
+            hasToken: jest.fn(async () => false),
+            upsertAuthenticator: jest.fn(async () => undefined),
+            disableAuthenticator: jest.fn(async () => undefined),
+          },
+        },
       ],
     });
     const fixture = TestBed.createComponent(AuthenticatorFormComponent);

@@ -79,6 +79,13 @@
       </a>
     </bit-item>
     <bit-item>
+      <a bit-item-content routerLink="/mcp-access" [truncate]="false">
+        <bit-icon slot="start" name="bwi-key" aria-hidden="true"></bit-icon>
+        {{ "mcpAccess" | i18n }}
+        <bit-icon slot="end" name="bwi-angle-right" aria-hidden="true"></bit-icon>
+      </a>
+    </bit-item>
+    <bit-item>
       <a bit-item-content routerLink="/appearance" [truncate]="false">
         <i slot="start" class="bwi bwi-brush" aria-hidden="true"></i>
         {{ "appearance" | i18n }}
