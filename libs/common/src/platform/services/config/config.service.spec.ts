@@ -141,6 +141,17 @@ describe("ConfigService", () => {
               matches<Error>((e) => e.message === "Unable to fetch"),
             );
           });
+
+          it("does not log an insecure url rejection", async () => {
+            logService.error.mockClear();
+            configApiService.get.mockRejectedValue(
+              new Error("Insecure URL not allowed. All URLs must use HTTPS."),
+            );
+
+            await firstValueFrom(sut.serverConfig$);
+
+            expect(logService.error).not.toHaveBeenCalled();
+          });
         });
 
         describe("fetch success", () => {

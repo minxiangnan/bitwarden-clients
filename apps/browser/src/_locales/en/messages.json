@@ -2204,6 +2204,18 @@
   "selfHostedEnvFormInvalid": {
     "message": "You must add either the base Server URL or at least one custom environment."
   },
+  "serverUrlRequired": {
+    "message": "Enter the server URL."
+  },
+  "serverUrlInvalid": {
+    "message": "Enter a valid server URL, for example https://vault.example.com."
+  },
+  "serverUrlMustUseHttps": {
+    "message": "The server URL must use HTTPS. Only localhost and 127.0.0.1 may use HTTP."
+  },
+  "serverUnreachable": {
+    "message": "Could not reach that server. Check the address and your network."
+  },
   "selfHostedEnvMustUseHttps": {
     "message": "URLs must use HTTPS."
   },

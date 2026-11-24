@@ -17,6 +17,7 @@ import {
 } from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { isAllowedServerRequestUrl } from "@bitwarden/common/platform/misc/server-url";
 import {
   DialogRef,
   AsyncActionsModule,
@@ -69,10 +70,10 @@ function onlyHttpsValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const url = control.value as string;
 
-    if (url && !url.startsWith("https://") && !platformUtilsService.isDev()) {
+    if (url && !isAllowedServerRequestUrl(url) && !platformUtilsService.isDev()) {
       return {
         onlyHttpsAllowed: {
-          message: i18nService.t("selfHostedEnvMustUseHttps"),
+          message: i18nService.t("serverUrlMustUseHttps"),
         },
       }; // invalid
     }

@@ -893,6 +893,17 @@
   }
 }
 
+/* Popup headers stay warm cream. The nav token is a near-black brown (#3d180d). */
+.zh-popup-header {
+  background-color: #faf9f5;
+  color: #3d3929;
+}
+
+.theme_dark .zh-popup-header {
+  background-color: #f3efe4;
+  color: #3d3929;
+}
+
 /* Destructive confirms: cream card, brown text, terracotta action, no black scrim. */
 .zh-destructive-card {
   background: #faf9f5;

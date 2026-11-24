@@ -75,6 +75,7 @@ import { LogService } from "../platform/abstractions/log.service";
 import { PlatformUtilsService } from "../platform/abstractions/platform-utils.service";
 import { buildFetchPipeline, FetchMiddleware } from "../platform/misc/fetch-middleware";
 import { flagEnabled } from "../platform/misc/flags";
+import { isAllowedServerRequestUrl } from "../platform/misc/server-url";
 import { Utils } from "../platform/misc/utils";
 import { SyncResponse } from "../platform/sync";
 import { ProviderAddOrganizationRequest } from "../provider/models/request/provider-add-organization.request";
@@ -420,8 +421,8 @@ export class ApiService implements ApiServiceAbstraction {
       const userId = await this.getActiveUser();
       const environment = await firstValueFrom(this.environmentService.getEnvironment$(userId));
       const apiUrl = environment.getApiUrl();
-      if (!apiUrl.startsWith("https://") && !this.platformUtilsService.isDev()) {
-        throw new InsecureUrlNotAllowedError();
+      if (!isAllowedServerRequestUrl(apiUrl) && !this.platformUtilsService.isDev()) {
+        throw new InsecureUrlNotAllowedError(apiUrl);
       }
       const headers = await this.buildRequestHeaders();
       const request = new Request(`${apiUrl}/ciphers/${id}/attachment/${attachmentId}`, {
@@ -1124,8 +1125,8 @@ export class ApiService implements ApiServiceAbstraction {
   }
 
   async fetch(request: Request): Promise<Response> {
-    if (!request.url.startsWith("https://") && !this.platformUtilsService.isDev()) {
-      throw new InsecureUrlNotAllowedError();
+    if (!isAllowedServerRequestUrl(request.url) && !this.platformUtilsService.isDev()) {
+      throw new InsecureUrlNotAllowedError(request.url);
     }
 
     if (request.method === "GET") {

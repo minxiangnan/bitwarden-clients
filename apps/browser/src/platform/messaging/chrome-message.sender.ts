@@ -24,7 +24,7 @@ export class ChromeMessageSender implements MessageSender {
     payload: Record<string, unknown> | T = {},
   ): void {
     const command = getCommand(commandDefinition);
-    chrome.runtime.sendMessage(Object.assign(payload, { command: command }), () => {
+    const sent = chrome.runtime.sendMessage(Object.assign(payload, { command: command }), () => {
       if (chrome.runtime.lastError) {
         const errorHandler = HANDLED_ERRORS[chrome.runtime.lastError.message];
         if (errorHandler != null) {
@@ -37,5 +37,9 @@ export class ChromeMessageSender implements MessageSender {
         );
       }
     });
+    // Chrome 127+ returns a promise even when a callback is passed. With no
+    // extension page open, that promise rejects and chrome://extensions shows
+    // "Uncaught (in promise) Error: Could not establish connection."
+    void Promise.resolve(sent).catch((): void => undefined);
   }
 }
