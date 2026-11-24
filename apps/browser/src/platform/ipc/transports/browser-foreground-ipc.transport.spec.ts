@@ -51,6 +51,43 @@ describe("BrowserForegroundIpcTransport", () => {
     transport.init();
   });
 
+  it("does not wake when chrome reports no extension page", async () => {
+    (chrome.runtime.sendMessage as jest.Mock).mockClear();
+    (chrome.runtime as unknown as { getContexts: jest.Mock }).getContexts = jest
+      .fn()
+      .mockResolvedValue([]);
+    try {
+      transport = new BrowserForegroundIpcTransport(logService, receive);
+      transport.init();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
+      expect(logService.warning).not.toHaveBeenCalled();
+    } finally {
+      delete (chrome.runtime as unknown as { getContexts?: unknown }).getContexts;
+    }
+  });
+
+  it("wakes when an extension page is already open", async () => {
+    (chrome.runtime.sendMessage as jest.Mock).mockClear();
+    (chrome.runtime as unknown as { getContexts: jest.Mock }).getContexts = jest
+      .fn()
+      .mockResolvedValue([{ documentUrl: "chrome-extension://id/popup/index.html" }]);
+    try {
+      transport = new BrowserForegroundIpcTransport(logService, receive);
+      transport.init();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        { command: IPC_FOREGROUND_WAKE_COMMAND },
+        expect.any(Function),
+      );
+      expect(logService.warning).not.toHaveBeenCalled();
+    } finally {
+      delete (chrome.runtime as unknown as { getContexts?: unknown }).getContexts;
+    }
+  });
+
   it("asks open extension pages to connect on init", () => {
     expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
@@ -64,6 +101,17 @@ describe("BrowserForegroundIpcTransport", () => {
     const callback = (chrome.runtime.sendMessage as jest.Mock).mock.calls[0][1];
 
     expect(() => callback()).not.toThrow();
+  });
+
+  it("catches the wake rejection when no page is listening", async () => {
+    (chrome.runtime.sendMessage as jest.Mock).mockImplementationOnce(
+      () =>
+        Promise.reject(new Error("Could not establish connection. Receiving end does not exist.")),
+    );
+    transport = new BrowserForegroundIpcTransport(logService, receive);
+
+    expect(() => transport.init()).not.toThrow();
+    await Promise.resolve();
   });
 
   it("logs and continues accepting ports when the wake message cannot be sent", () => {

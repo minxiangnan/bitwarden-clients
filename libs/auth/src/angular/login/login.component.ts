@@ -50,6 +50,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { ValidationService } from "@bitwarden/common/platform/abstractions/validation.service";
+import { describeServerUrl } from "@bitwarden/common/platform/misc/server-url";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { PasswordStrengthServiceAbstraction } from "@bitwarden/common/tools/password-strength";
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
@@ -678,6 +679,13 @@ export class LoginComponent implements OnInit, OnDestroy {
    * client-specific flows (e.g. SSO invited-user redirect) that need a different title/subtitle/icon.
    */
   protected async continuePressed(mpEntryLayoutOverride?: Partial<AnonLayoutWrapperData>) {
+    if (this.serverUrlBlocksContinue) {
+      const verdict = describeServerUrl(this.serverUrl);
+      if (verdict.status !== "ok") {
+        this.serverUrlError = this.serverUrlMessage(verdict.status);
+      }
+      return;
+    }
     // Add a new entry to the browser's history so that there is a history entry to go back to
     history.pushState({}, "", window.location.href);
     await this.continue(mpEntryLayoutOverride);
@@ -723,35 +731,48 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * The extension's 继续 button stays disabled until the server field is a URL
+   * the client will actually accept. Web login has no server field.
+   */
+  protected get serverUrlBlocksContinue(): boolean {
+    return (
+      this.clientType === ClientType.Browser && describeServerUrl(this.serverUrl).status !== "ok"
+    );
+  }
+
+  protected onServerUrlInput(value: string): void {
+    this.serverUrl = value;
+    const verdict = describeServerUrl(value);
+    this.serverUrlError =
+      verdict.status === "ok" || verdict.status === "empty"
+        ? ""
+        : this.serverUrlMessage(verdict.status);
+  }
+
+  /**
    * Writes the extension's server field as a self-hosted environment.
-   * A missing scheme becomes https://. Anything that is not a usable URL is rejected.
+   * A missing scheme becomes https://. HTTP is accepted only for loopback.
    */
   private async applyServerUrl(): Promise<boolean> {
+    const verdict = describeServerUrl(this.serverUrl);
+    if (verdict.status !== "ok") {
+      this.serverUrlError = this.serverUrlMessage(verdict.status);
+      return false;
+    }
     this.serverUrlError = "";
-    let raw = this.serverUrl.trim();
-    if (!raw) {
-      this.serverUrlError = this.i18nService.t("selfHostedEnvMustUseHttps");
-      return false;
-    }
-    if (!/^https?:\/\//i.test(raw)) {
-      raw = `https://${raw}`;
-    }
-    let parsed: URL;
-    try {
-      parsed = new URL(raw);
-    } catch {
-      this.serverUrlError = this.i18nService.t("selfHostedEnvMustUseHttps");
-      return false;
-    }
-    const local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && local)) {
-      this.serverUrlError = this.i18nService.t("selfHostedEnvMustUseHttps");
-      return false;
-    }
-    const base = parsed.origin;
-    await this.environmentService.setEnvironment(Region.SelfHosted, { base });
-    this.serverUrl = base;
+    await this.environmentService.setEnvironment(Region.SelfHosted, { base: verdict.base });
+    this.serverUrl = verdict.base;
     return true;
+  }
+
+  private serverUrlMessage(reason: "empty" | "invalid" | "https"): string {
+    if (reason === "empty") {
+      return this.i18nService.t("serverUrlRequired");
+    }
+    if (reason === "invalid") {
+      return this.i18nService.t("serverUrlInvalid");
+    }
+    return this.i18nService.t("serverUrlMustUseHttps");
   }
 
   /**

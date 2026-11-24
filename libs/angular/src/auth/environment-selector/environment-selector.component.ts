@@ -9,6 +9,7 @@ import {
   RegionConfig,
 } from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { isAllowedServerRequestUrl } from "@bitwarden/common/platform/misc/server-url";
 import {
   DialogService,
   IconModule,
@@ -70,11 +71,11 @@ export class EnvironmentSelectorComponent implements OnInit, OnDestroy {
     if (!base || base === this.savedBaseUrl) {
       return;
     }
-    if (!base.startsWith("https://")) {
+    if (!isAllowedServerRequestUrl(base)) {
       this.toastService.showToast({
         variant: "error",
         title: "",
-        message: this.i18nService.t("selfHostedEnvMustUseHttps"),
+        message: this.i18nService.t("serverUrlMustUseHttps"),
       });
       return;
     }

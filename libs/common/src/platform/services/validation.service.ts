@@ -13,6 +13,14 @@ export class ValidationService implements ValidationServiceAbstraction {
     const defaultErrorMessage = this.i18nService.t("unexpectedError");
     let errors: string[] = [];
 
+    if (data != null && typeof data === "object" && typeof data.message === "string") {
+      if (/Insecure URL not allowed/i.test(data.message)) {
+        data = { ...data, message: this.i18nService.t("serverUrlMustUseHttps") };
+      } else if (/Failed to fetch|NetworkError|error sending request/i.test(data.message)) {
+        data = { ...data, message: this.i18nService.t("serverUnreachable") };
+      }
+    }
+
     if (data != null && typeof data === "string") {
       errors.push(data);
     } else if (data == null || typeof data !== "object") {

@@ -26,6 +26,7 @@ import {
   FeatureFlagValueType,
   getFeatureFlagValue,
 } from "../../../enums/feature-flag.enum";
+import { InsecureUrlNotAllowedError } from "../../../services/api-errors";
 import { UserId } from "../../../types/guid";
 import { ConfigApiServiceAbstraction } from "../../abstractions/config/config-api.service.abstraction";
 import { ConfigService } from "../../abstractions/config/config.service";
@@ -296,9 +297,15 @@ export class DefaultConfigService implements ConfigService {
         await this.stateProvider.setUserState(USER_SERVER_CONFIG, newConfig, userId);
       }
     } catch (e) {
-      // mutate error to be handled by catchError
-      this.logService.error(`Unable to fetch ServerConfig from ${environment.getApiUrl()}`, e);
-      // Emit the existing config
+      // A rejected http URL is already explained on the login form. Logging it
+      // here only fills the extension error list.
+      const message = e instanceof Error ? e.message : "";
+      if (
+        !(e instanceof InsecureUrlNotAllowedError) &&
+        !/Insecure URL not allowed/i.test(message)
+      ) {
+        this.logService.error(`Unable to fetch ServerConfig from ${environment.getApiUrl()}`, e);
+      }
       this.failedFetchFallbackSubject.next(fallbackConfig);
     }
   }

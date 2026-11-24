@@ -2205,7 +2205,19 @@
     "message": "您必须添加基础服务器 URL 或至少添加一个自定义环境。"
   },
   "selfHostedEnvMustUseHttps": {
-    "message": "URL 必须使用 HTTPS。"
+    "message": "服务器地址必须使用 HTTPS。只有本机的 localhost 和 127.0.0.1 可以使用 HTTP。"
+  },
+  "serverUrlRequired": {
+    "message": "请填写服务器地址。"
+  },
+  "serverUrlInvalid": {
+    "message": "请填写有效的服务器地址，例如 https://vault.example.com。"
+  },
+  "serverUrlMustUseHttps": {
+    "message": "服务器地址必须使用 HTTPS。只有本机的 localhost 和 127.0.0.1 可以使用 HTTP。"
+  },
+  "serverUnreachable": {
+    "message": "连不上这台服务器。请检查地址和网络。"
   },
   "customEnvironment": {
     "message": "自定义环境"

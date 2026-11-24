@@ -340,7 +340,10 @@ export class BrowserApi {
   static async tabsQuery(options: chrome.tabs.QueryInfo): Promise<chrome.tabs.Tab[]> {
     return new Promise((resolve) => {
       chrome.tabs.query(options, (tabs) => {
-        resolve(tabs);
+        // An invalid pattern sets lastError and passes no tab list. Leaving
+        // that unread, then calling filter on undefined, is an extension error.
+        void chrome.runtime.lastError;
+        resolve(tabs ?? []);
       });
     });
   }
@@ -426,13 +429,17 @@ export class BrowserApi {
     }
 
     return new Promise<TResponse>((resolve, reject) => {
-      chrome.tabs.sendMessage(tab.id, obj, options, (response) => {
+      const sent = chrome.tabs.sendMessage(tab.id, obj, options, (response) => {
         if (chrome.runtime.lastError && rejectOnError) {
-          // Some error happened
-          reject();
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
         }
         resolve(response);
       });
+      // Chrome still rejects the returned promise when the callback form is used
+      // and no content script is listening. Swallow that copy so it is not an
+      // uncaught rejection on the extensions page.
+      BrowserApi.silenceMissingReceiver(sent);
     });
   }
 
@@ -442,7 +449,19 @@ export class BrowserApi {
     options?: chrome.tabs.MessageSendOptions,
     responseCallback?: (response: T) => void,
   ) {
-    chrome.tabs.sendMessage<TabMessage, T>(tabId, message, options, responseCallback);
+    BrowserApi.silenceMissingReceiver(
+      chrome.tabs.sendMessage<TabMessage, T>(tabId, message, options, responseCallback),
+    );
+  }
+
+  /**
+   * Chrome rejects `runtime.sendMessage` / `tabs.sendMessage` when nothing is
+   * listening, even if the caller passed a callback and read `lastError`.
+   * That rejection is what chrome://extensions lists as
+   * "Could not establish connection. Receiving end does not exist."
+   */
+  private static silenceMissingReceiver(pending: unknown): void {
+    void Promise.resolve(pending).catch((): void => undefined);
   }
 
   static getRuntimeURL(path: string): string {
@@ -838,12 +857,17 @@ export class BrowserApi {
 
   static sendMessage(subscriber: string, arg: any = {}) {
     const message = Object.assign({}, { command: subscriber }, arg);
-    return chrome.runtime.sendMessage(message);
+    const sent = chrome.runtime.sendMessage(message);
+    BrowserApi.silenceMissingReceiver(sent);
+    return sent;
   }
 
   static sendMessageWithResponse<TResponse>(subscriber: string, arg: any = {}) {
     const message = Object.assign({}, { command: subscriber }, arg);
-    return new Promise<TResponse>((resolve) => chrome.runtime.sendMessage(message, resolve));
+    return new Promise<TResponse>((resolve) => {
+      const sent = chrome.runtime.sendMessage(message, resolve);
+      BrowserApi.silenceMissingReceiver(sent);
+    });
   }
 
   static async focusTab(tabId: number) {

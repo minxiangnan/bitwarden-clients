@@ -9,7 +9,7 @@
           bitInput
           data-testid="login-server-url"
           [value]="serverUrl"
-          (input)="serverUrl = $any($event.target).value"
+          (input)="onServerUrlInput($any($event.target).value)"
           placeholder="https://vault.example.com"
         />
       </bit-form-field>
@@ -56,7 +56,7 @@
         (click)="continuePressed()"
         [bitTooltip]="ssoRequired ? ('yourOrganizationRequiresSingleSignOn' | i18n) : ''"
         [addTooltipToDescribedby]="ssoRequired"
-        [disabled]="ssoRequired"
+        [disabled]="ssoRequired || serverUrlBlocksContinue"
       >
         {{ "continue" | i18n }}
       </button>

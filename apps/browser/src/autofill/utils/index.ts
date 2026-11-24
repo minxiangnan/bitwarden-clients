@@ -115,18 +115,23 @@ export async function sendExtensionMessage(
     typeof browser.runtime !== "undefined" &&
     typeof browser.runtime.sendMessage !== "undefined"
   ) {
-    return browser.runtime.sendMessage({ command, ...options });
+    const sent = browser.runtime.sendMessage({ command, ...options });
+    void Promise.resolve(sent).catch((): void => undefined);
+    return sent;
   }
 
-  return new Promise((resolve) =>
-    chrome.runtime.sendMessage(Object.assign({ command }, options), (response) => {
+  return new Promise((resolve) => {
+    const sent = chrome.runtime.sendMessage(Object.assign({ command }, options), (response) => {
       if (chrome.runtime.lastError) {
         resolve(null);
+        return;
       }
 
       resolve(response);
-    }),
-  );
+    });
+    // Chrome rejects the promise it returns even when the callback reads lastError.
+    void Promise.resolve(sent).catch((): void => undefined);
+  });
 }
 
 /**

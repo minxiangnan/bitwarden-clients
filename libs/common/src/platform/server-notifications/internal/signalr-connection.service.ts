@@ -14,6 +14,7 @@ import { InsecureUrlNotAllowedError } from "../../../services/api-errors";
 import { UserId } from "../../../types/guid";
 import { LogService } from "../../abstractions/log.service";
 import { PlatformUtilsService } from "../../abstractions/platform-utils.service";
+import { isAllowedServerRequestUrl } from "../../misc/server-url";
 
 // 2 Minutes
 const MIN_RECONNECT_TIME = 2 * 60 * 1000;
@@ -79,8 +80,8 @@ export class SignalRConnectionService {
   ) {}
 
   connect$(userId: UserId, notificationsUrl: string) {
-    if (!notificationsUrl.startsWith("https://") && !this.platformUtilsService.isDev()) {
-      throw new InsecureUrlNotAllowedError();
+    if (!isAllowedServerRequestUrl(notificationsUrl) && !this.platformUtilsService.isDev()) {
+      throw new InsecureUrlNotAllowedError(notificationsUrl);
     }
 
     return new Observable<SignalRNotification>((subscriber) => {

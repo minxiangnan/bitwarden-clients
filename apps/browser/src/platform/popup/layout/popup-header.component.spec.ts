@@ -416,12 +416,13 @@ describe("PopupHeaderComponent", () => {
         expect(appBar().contains(backButtons()[0])).toBe(true);
       });
 
-      /** The default ghost styling is illegible against the app bar's nav background. */
-      it("styles the back button for the nav background", () => {
+      it("keeps the app bar and back button on the cream header", () => {
         fixture.componentInstance.showBackButton.set(true);
         fixture.detectChanges();
 
-        expect(backButtonType()).toBe("side-nav");
+        expect(appBar().className).toContain("zh-popup-header");
+        expect(appBar().className).not.toContain("tw-bg-bg-nav");
+        expect(backButtonType()).toBe("primaryGhost");
       });
 
       it("renders no back button without showBackButton", () => {

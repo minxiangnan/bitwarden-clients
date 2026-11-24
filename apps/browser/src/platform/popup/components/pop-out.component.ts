@@ -1,11 +1,7 @@
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnInit, computed, inject } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { of } from "rxjs";
+import { Component, Input, OnInit, computed } from "@angular/core";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
-import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
-import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { ButtonType, IconButtonModule } from "@bitwarden/components";
 
@@ -23,27 +19,8 @@ export class PopOutComponent implements OnInit {
   // eslint-disable-next-line @angular-eslint/prefer-signals
   @Input() show = true;
 
-  /**
-   * TODO: remove with the VFO1Foundation flag.
-   *
-   * Optional so that reading the flag doesn't force a `ConfigService` stub into every spec that
-   * renders a page header. Always present in the running extension.
-   */
-  private readonly configService = inject(ConfigService, { optional: true });
-
-  /** TODO: remove with the VFO1Foundation flag. */
-  private readonly vfo1Enabled = toSignal(
-    this.configService?.getFeatureFlag$(FeatureFlag.VFO1Foundation) ?? of(false),
-    { initialValue: false },
-  );
-
-  /**
-   * Every usage projects into the header's `end` slot, which the flag moves onto the dark app bar.
-   * Only `side-nav` is legible against that background.
-   */
-  protected readonly buttonType = computed<ButtonType>(() =>
-    this.vfo1Enabled() ? "side-nav" : "primaryGhost",
-  );
+  /** The header is cream in both themes, so the ghost icon stays visible. */
+  protected readonly buttonType = computed<ButtonType>(() => "primaryGhost");
 
   constructor(private platformUtilsService: PlatformUtilsService) {}
 

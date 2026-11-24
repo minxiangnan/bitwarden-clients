@@ -405,6 +405,26 @@ describe("ApiService", () => {
     expect(nativeFetch).not.toHaveBeenCalled();
   });
 
+  it("allows http to loopback and still rejects other http hosts", async () => {
+    sut.nativeFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      headers: new Headers(),
+    } satisfies Partial<Response> as Response);
+    platformUtilsService.isDev.mockReturnValue(false);
+    platformUtilsService.getClientType.mockReturnValue("browser");
+    platformUtilsService.getApplicationVersionNumber.mockResolvedValue("2026.11.2");
+
+    const asRequest = (url: string) =>
+      ({ url, method: "GET", headers: new Headers() }) as Request;
+
+    await expect(sut.fetch(asRequest("http://127.0.0.1:8000/api/config"))).resolves.toBeTruthy();
+    await expect(sut.fetch(asRequest("http://localhost:8000/identity"))).resolves.toBeTruthy();
+    await expect(sut.fetch(asRequest("http://example.com/api"))).rejects.toBeInstanceOf(
+      InsecureUrlNotAllowedError,
+    );
+  });
+
   describe("When a 401 Unauthorized status is received", () => {
     it("retries request with refreshed token when initial request with access token returns 401", async () => {
       // This test verifies the 401 retry flow:
