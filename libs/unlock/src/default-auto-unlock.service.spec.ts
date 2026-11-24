@@ -1,9 +1,10 @@
 import { mock } from "jest-mock-extended";
-import { of } from "rxjs";
+import { firstValueFrom, of } from "rxjs";
 
 import { ClientType } from "@bitwarden/client-type";
 import {
   VAULT_TIMEOUT,
+  VAULT_TIMEOUT_CHOSEN,
   VaultTimeoutStringType,
 } from "@bitwarden/common/key-management/vault-timeout";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
@@ -150,6 +151,84 @@ describe("DefaultAutoUnlockService", () => {
       );
 
       expect(stateService.setUserKeyAutoUnlock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("browser accounts across logout, login, and restart", () => {
+    const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" as UserId;
+    const userB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" as UserId;
+    const keyA = new SymmetricCryptoKey(new Uint8Array(64).fill(1) as CsprngArray) as UserKey;
+    const keyB = new SymmetricCryptoKey(new Uint8Array(64).fill(2) as CsprngArray) as UserKey;
+
+    function memoryProvider() {
+      const values = new Map<string, Map<string, unknown>>();
+      const read = (key: string, userId: string) => values.get(userId)?.get(key) ?? null;
+      return {
+        getUserState$: (definition: { key: string }, userId: string) =>
+          of(read(definition.key, userId)),
+        setUserState: async (definition: { key: string }, value: unknown, userId: string) => {
+          let user = values.get(userId);
+          if (user == null) {
+            user = new Map();
+            values.set(userId, user);
+          }
+          user.set(definition.key, value);
+        },
+      };
+    }
+
+    function serviceFor(
+      provider: ReturnType<typeof memoryProvider>,
+      stored: Map<string, string | null>,
+    ) {
+      const state = mock<StateService>();
+      state.setUserKeyAutoUnlock.mockImplementation(async (value, options) => {
+        stored.set(options.userId, value);
+      });
+      state.getUserKeyAutoUnlock.mockImplementation(
+        async (options) => stored.get(options.userId) ?? null,
+      );
+      const keys = mock<KeyService>();
+      keys.validateUserKey.mockResolvedValue(true);
+      const platform = mock<PlatformUtilsService>();
+      platform.getClientType.mockReturnValue(ClientType.Browser);
+      return new DefaultAutoUnlockService(
+        keys,
+        state,
+        provider as unknown as StateProvider,
+        platform,
+        mock<LogService>(),
+      );
+    }
+
+    it("keeps every account unlocked after logout, a later login, and a restart", async () => {
+      const stored = new Map<string, string | null>();
+      const service = serviceFor(memoryProvider(), stored);
+
+      await service.setAutoUnlockKey(userA, keyA);
+      await service.setAutoUnlockKey(userB, keyB);
+
+      expect(stored.get(userA)).toBe(keyA.toBase64());
+      expect(stored.get(userB)).toBe(keyB.toBase64());
+
+      stored.set(userA, null);
+      await service.setAutoUnlockKey(userA, keyA);
+
+      expect((await service.getAutoUnlockKey(userA))?.toBase64()).toBe(keyA.toBase64());
+      expect(stored.get(userB)).toBe(keyB.toBase64());
+    });
+
+    it("does not replace a timeout the person saved", async () => {
+      const provider = memoryProvider();
+      await provider.setUserState(VAULT_TIMEOUT, 15, userA);
+      await provider.setUserState(VAULT_TIMEOUT_CHOSEN, true, userA);
+      const stored = new Map<string, string | null>();
+      const service = serviceFor(provider, stored);
+
+      await service.setAutoUnlockKey(userA, keyA);
+
+      expect(stored.get(userA)).toBeNull();
+      expect(await firstValueFrom(provider.getUserState$(VAULT_TIMEOUT, userA))).toBe(15);
     });
   });
 });

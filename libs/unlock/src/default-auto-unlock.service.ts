@@ -2,6 +2,7 @@ import { filter, firstValueFrom } from "rxjs";
 
 import { ClientType } from "@bitwarden/client-type";
 import {
+  ensureBrowserVaultTimeout,
   VAULT_TIMEOUT,
   VaultTimeoutStringType,
 } from "@bitwarden/common/key-management/vault-timeout";
@@ -68,6 +69,12 @@ export class DefaultAutoUnlockService implements AutoUnlockService {
     // Cli has fixed Never vault timeout, and it should not be affected by a policy.
     if (this.platformUtilsService.getClientType() === ClientType.Cli) {
       return true;
+    }
+
+    // The browser default is never-lock. Apply it before reading, including for a
+    // second account whose stored value is still empty or the old "on restart" default.
+    if (this.platformUtilsService.getClientType() === ClientType.Browser) {
+      await ensureBrowserVaultTimeout(this.stateProvider, userId);
     }
 
     const vaultTimeout = await firstValueFrom(

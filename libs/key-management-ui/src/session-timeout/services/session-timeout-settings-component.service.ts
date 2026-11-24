@@ -40,7 +40,11 @@ export class SessionTimeoutSettingsComponentService {
     });
   }
 
-  onTimeoutSave(_timeout: VaultTimeout): void {
+  onTimeoutSave(_timeout: VaultTimeout): void | Promise<void> {
+    // Default implementation does nothing, but other clients might want to override this
+  }
+
+  onTimeoutActionSave(): void | Promise<void> {
     // Default implementation does nothing, but other clients might want to override this
   }
 

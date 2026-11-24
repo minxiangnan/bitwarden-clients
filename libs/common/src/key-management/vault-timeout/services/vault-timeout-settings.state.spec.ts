@@ -2,11 +2,16 @@ import { UserKeyDefinition } from "../../../platform/state";
 import { VaultTimeoutAction } from "../enums/vault-timeout-action.enum";
 import { VaultTimeout } from "../types/vault-timeout.type";
 
-import { VAULT_TIMEOUT, VAULT_TIMEOUT_ACTION } from "./vault-timeout-settings.state";
+import {
+  VAULT_TIMEOUT,
+  VAULT_TIMEOUT_ACTION,
+  VAULT_TIMEOUT_CHOSEN,
+} from "./vault-timeout-settings.state";
 
 describe.each([
   [VAULT_TIMEOUT_ACTION, VaultTimeoutAction.Lock],
   [VAULT_TIMEOUT, 5],
+  [VAULT_TIMEOUT_CHOSEN, true],
 ])(
   "deserializes state key definitions",
   (

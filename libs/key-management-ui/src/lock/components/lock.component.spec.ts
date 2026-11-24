@@ -1019,4 +1019,16 @@ describe("LockComponent", () => {
       expect(setDefaultSpy).not.toHaveBeenCalled();
     }));
   });
+
+  describe("browser restart", () => {
+    it("continues into the vault when the never-lock key is restored", async () => {
+      mockPlatformUtilsService.getClientType.mockReturnValue(ClientType.Browser);
+      const restoredKey = new SymmetricCryptoKey(new Uint8Array(64)) as UserKey;
+      mockKeyService.userKey$.mockReturnValue(of(restoredKey));
+
+      await component.ngOnInit();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/tabs/current"]);
+    });
+  });
 });

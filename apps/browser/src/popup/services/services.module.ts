@@ -956,6 +956,8 @@ const safeProviders: SafeProvider[] = [
       SessionTimeoutTypeService,
       PolicyService,
       MessagingServiceAbstraction,
+      AccountServiceAbstraction,
+      StateProvider,
     ],
   }),
   safeProvider({

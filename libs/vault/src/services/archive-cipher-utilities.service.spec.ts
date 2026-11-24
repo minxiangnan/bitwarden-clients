@@ -71,6 +71,14 @@ describe("ArchiveCipherUtilitiesService", () => {
       expect(cipherArchiveService.archiveWithServer).not.toHaveBeenCalled();
     });
 
+    it("focuses cancel when asking to archive", async () => {
+      await service.archiveCipher(mockCipher);
+
+      expect(dialogService.openSimpleDialog).toHaveBeenCalledWith(
+        expect.objectContaining({ focusCancel: true }),
+      );
+    });
+
     it("archives cipher and shows success toast when successful", async () => {
       await service.archiveCipher(mockCipher);
 
