@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -36,6 +36,9 @@ export class McpAccessService {
   /** Plaintext token for this unlocked session. Not written to disk. */
   private token: string | null = null;
   private keySalt: string | null = null;
+  /** Revoke clears server opt-ins. Hide aliases until the next token is issued. */
+  private aliasesCleared = false;
+  readonly aliasEpoch = signal(0);
 
   constructor(
     private api: AuthenticatorApiService,
@@ -63,12 +66,16 @@ export class McpAccessService {
   async createToken(): Promise<string> {
     const issued = await this.api.createMcpToken("extension");
     await this.remember(issued.token, issued.keySalt);
+    this.aliasesCleared = false;
+    this.aliasEpoch.update((value) => value + 1);
     return issued.token;
   }
 
   async rotateToken(): Promise<{ token: string; cleared: McpIssuedCleared[] }> {
     const issued = await this.api.rotateMcpToken();
     await this.remember(issued.token, issued.keySalt);
+    this.aliasesCleared = false;
+    this.aliasEpoch.update((value) => value + 1);
     return { token: issued.token, cleared: issued.cleared ?? [] };
   }
 
@@ -76,9 +83,14 @@ export class McpAccessService {
     await this.api.revokeMcpToken();
     this.token = null;
     this.keySalt = null;
+    this.aliasesCleared = true;
+    this.aliasEpoch.update((value) => value + 1);
   }
 
   async authenticatorAliases(): Promise<Record<string, string>> {
+    if (this.aliasesCleared) {
+      return {};
+    }
     try {
       const entries = await this.api.listMcpEntries();
       const aliases: Record<string, string> = {};
@@ -97,6 +109,9 @@ export class McpAccessService {
   }
 
   async findAuthenticator(sourceId: string): Promise<McpEntrySummary | null> {
+    if (this.aliasesCleared) {
+      return null;
+    }
     try {
       const entries = await this.api.listMcpEntries();
       return (

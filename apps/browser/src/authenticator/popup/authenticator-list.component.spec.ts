@@ -54,7 +54,10 @@ describe("AuthenticatorListComponent", () => {
         { provide: I18nService, useValue: { t: (key: string, value?: string) => value ?? key } },
         {
           provide: McpAccessService,
-          useValue: { authenticatorAliases: jest.fn(async () => ({ "1": "gh" })) },
+          useValue: {
+            aliasEpoch: () => 0,
+            authenticatorAliases: jest.fn(async () => ({ "1": "gh" })),
+          },
         },
       ],
     });
