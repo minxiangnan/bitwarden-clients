@@ -61,6 +61,16 @@
         {{ "continue" | i18n }}
       </button>
 
+      <p *ngIf="clientType === ClientType.Browser" class="tw-mb-0 tw-text-center tw-text-sm">
+        <a
+          bitLink
+          routerLink="/invited-account"
+          [queryParams]="{ server: serverUrl }"
+          data-testid="invited-create-account"
+          >收到邀请？创建账户</a
+        >
+      </p>
+
       <div class="tw-text-center" *ngIf="clientType !== ClientType.Browser">{{ "or" | i18n }}</div>
 
       <!-- Button to Login with Passkey -->

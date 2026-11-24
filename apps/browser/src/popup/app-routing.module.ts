@@ -54,6 +54,7 @@ import { AccountSwitcherComponent } from "../auth/popup/account-switching/accoun
 import { AuthExtensionRoute } from "../auth/popup/constants/auth-extension-route.constant";
 import { fido2AuthGuard } from "../auth/popup/guards/fido2-auth.guard";
 import { platformPopoutGuard } from "../auth/popup/guards/platform-popout.guard";
+import { InvitedAccountComponent } from "../auth/popup/invited-account/invited-account.component";
 import { AccountSecurityComponent } from "../auth/popup/settings/account-security.component";
 import { ChangePasswordPageComponent } from "../auth/popup/settings/change-password-page.component";
 import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/extension-device-management.component";
@@ -521,6 +522,23 @@ const routes: Routes = [
           secondaryContentLocation: "footer",
         } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
         children: [{ path: "", component: LoginComponent }],
+      },
+      {
+        path: "invited-account",
+        canActivate: [unauthGuardFn(unauthRouteOverrides)],
+        data: {
+          pageTitle: "创建账户",
+          elevation: 1,
+          showAcctSwitcher: false,
+          showLogo: false,
+          hideFooter: true,
+          hidePageIcon: true,
+          showBackButton: true,
+          contentVerticalPadding: "compact",
+          footerVerticalPadding: "compact",
+          heroTextAlignment: "left",
+        } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
+        children: [{ path: "", component: InvitedAccountComponent }],
       },
       {
         path: AuthRoute.LoginWithPasskey,
