@@ -9707,5 +9707,32 @@
   },
   "mcpHotpUnsupported": {
     "message": "HOTP cannot be read over MCP. The counter changes on every use, so copy it in the extension."
+  },
+  "destructiveLogoutBody": {
+    "message": "Logging out drops changes on this browser that have not reached the server. Passwords and codes already saved stay on the server."
+  },
+  "destructiveNeverTitle": {
+    "message": "This website"
+  },
+  "destructiveNeverBody": {
+    "message": "This website will not be asked about saving again. Logins already saved stay."
+  },
+  "destructiveNeverAccept": {
+    "message": "Don't save"
+  },
+  "destructiveUriBody": {
+    "message": "This website address will be removed from the login."
+  },
+  "destructiveFieldBody": {
+    "message": "The contents of this field will be lost."
+  },
+  "destructiveDomainBody": {
+    "message": "This website will be asked about saving again."
+  },
+  "destructiveAuthenticatorTrashBody": {
+    "message": "The code moves to the trash and can be restored. MCP access for it turns off."
+  },
+  "destructiveDraftBody": {
+    "message": "The captured draft for this page will be cleared and cannot be restored."
   }
 }

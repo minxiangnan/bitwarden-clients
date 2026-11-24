@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import {
+  AutofocusDirective,
   ButtonComponent,
   DIALOG_DATA,
   DialogModule,
@@ -36,7 +37,7 @@ export const openDeleteFolderDialog = (
 @Component({
   templateUrl: "delete-folder-dialog.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogModule, ButtonComponent, IconComponent, I18nPipe],
+  imports: [DialogModule, ButtonComponent, IconComponent, I18nPipe, AutofocusDirective],
 })
 export class DeleteFolderDialogComponent {
   private readonly dialogRef = inject<DialogRef<boolean>>(DialogRef);
@@ -47,7 +48,7 @@ export class DeleteFolderDialogComponent {
 
   protected readonly title =
     "folderName" in this.params
-      ? this.i18nService.t("deleteFolder")
+      ? this.params.folderName
       : this.i18nService.t("deleteFoldersCount", this.params.count);
 
   // The single-folder description is one localized sentence with the name in the middle, so

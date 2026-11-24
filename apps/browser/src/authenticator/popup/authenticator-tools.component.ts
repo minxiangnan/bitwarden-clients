@@ -6,7 +6,14 @@ import { Router } from "@angular/router";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/components";
+import {
+  ButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
+  DialogService,
+  FormFieldModule,
+  ToastService,
+} from "@bitwarden/components";
 
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../platform/popup/layout/popup-page.component";
@@ -36,6 +43,7 @@ export class AuthenticatorToolsComponent {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly dialogService = inject(DialogService);
   protected readonly ui = inject(AuthenticatorUiService);
 
   protected readonly importText = signal("");
@@ -65,6 +73,22 @@ export class AuthenticatorToolsComponent {
   }
 
   protected async purge(entryId: string): Promise<void> {
+    const entry = this.state().entries.find((item) => item.id === entryId);
+    const label = entry
+      ? entry.issuer
+        ? `${entry.issuer} · ${destructiveTitle(entry.name, this.i18n.t("authenticator"))}`
+        : destructiveTitle(entry.name, this.i18n.t("authenticator"))
+      : this.i18n.t("authenticatorTrashPermanent");
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: label,
+        content: this.i18n.t("permanentlyDeleteItemConfirmation"),
+        acceptText: this.i18n.t("authenticatorTrashPermanent"),
+      }),
+    );
+    if (!confirmed) {
+      return;
+    }
     try {
       await this.authenticator.remove(entryId);
     } catch {

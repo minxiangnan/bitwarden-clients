@@ -1,8 +1,9 @@
 <form
   [formGroup]="formGroup"
-  [bitSubmit]="accept"
+  [bitSubmit]="submit"
   bit-simple-dialog
   [hideIcon]="simpleDialogOpts.hideIcon ?? false"
+  [cream]="simpleDialogOpts.focusCancel ?? false"
 >
   <i bitDialogIcon class="bwi tw-text-3xl" [class]="iconClasses" aria-hidden="true"></i>
 
@@ -11,16 +12,22 @@
   <div bitDialogContent>{{ content }}</div>
 
   <ng-container bitDialogFooter>
+    @if (simpleDialogOpts.focusCancel && showCancelButton) {
+      <button type="submit" bitButton bitFormButton buttonType="secondary" appAutofocus>
+        {{ cancelButtonText }}
+      </button>
+    }
     <button
-      type="submit"
+      [type]="simpleDialogOpts.focusCancel ? 'button' : 'submit'"
       bitButton
       bitFormButton
       [buttonType]="simpleDialogOpts.type === 'danger' ? 'danger' : 'primary'"
+      (click)="simpleDialogOpts.focusCancel ? accept() : null"
     >
       {{ acceptButtonText }}
     </button>
 
-    @if (showCancelButton) {
+    @if (showCancelButton && !simpleDialogOpts.focusCancel) {
       <button
         type="button"
         bitButton

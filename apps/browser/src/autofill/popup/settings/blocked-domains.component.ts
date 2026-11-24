@@ -3,6 +3,7 @@ import {
   QueryList,
   Component,
   ElementRef,
+  inject,
   OnDestroy,
   AfterViewInit,
   ViewChildren,
@@ -24,6 +25,9 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import {
   ButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
+  DialogService,
   CardComponent,
   FormFieldModule,
   IconButtonModule,
@@ -86,6 +90,7 @@ export class BlockedDomainsComponent implements AfterViewInit, OnDestroy {
   fieldsEditThreshold: number = 0;
 
   private destroy$ = new Subject<void>();
+  private readonly dialogService = inject(DialogService);
 
   constructor(
     private domainSettingsService: DomainSettingsService,
@@ -141,6 +146,19 @@ export class BlockedDomainsComponent implements AfterViewInit, OnDestroy {
   }
 
   async removeDomain(i: number) {
+    const domain = this.blockedDomainsState[i]?.trim();
+    if (domain) {
+      const confirmed = await this.dialogService.openSimpleDialog(
+        destructiveDialogOptions({
+          title: destructiveTitle(domain, this.i18nService.t("neverForWebsite")),
+          content: this.i18nService.t("destructiveDomainBody"),
+          acceptText: this.i18nService.t("delete"),
+        }),
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
     this.blockedDomainsState.splice(i, 1);
 
     // If a pre-existing field was dropped, lower the edit threshold

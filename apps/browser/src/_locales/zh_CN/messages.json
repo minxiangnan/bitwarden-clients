@@ -9707,5 +9707,32 @@
   },
   "mcpHotpUnsupported": {
     "message": "HOTP 不能通过 MCP 读取。计数器每次使用都会变，请在扩展里复制。"
+  },
+  "destructiveLogoutBody": {
+    "message": "注销后，这台浏览器上还没同步到服务器的修改会丢掉。已经保存的密码和验证码还在。"
+  },
+  "destructiveNeverTitle": {
+    "message": "此网站"
+  },
+  "destructiveNeverBody": {
+    "message": "以后这个网站不再询问保存。已经保存的登录不会删除。"
+  },
+  "destructiveNeverAccept": {
+    "message": "不再保存"
+  },
+  "destructiveUriBody": {
+    "message": "这个网址会从登录里去掉。"
+  },
+  "destructiveFieldBody": {
+    "message": "这个字段里的内容会丢掉。"
+  },
+  "destructiveDomainBody": {
+    "message": "去掉之后，这个网站会重新询问是否保存。"
+  },
+  "destructiveAuthenticatorTrashBody": {
+    "message": "验证码会先放进回收站，还可以恢复。MCP 读取会关掉。"
+  },
+  "destructiveDraftBody": {
+    "message": "这个页面的采集草稿会被清掉，不能恢复。"
   }
 }

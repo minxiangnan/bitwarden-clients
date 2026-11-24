@@ -57,6 +57,12 @@ export type SimpleDialogOptions = {
   disableClose?: boolean;
 
   /**
+   * Focus 取消 and treat Enter as cancel. Destructive confirms set this so the
+   * danger button is not the default action.
+   */
+  focusCancel?: boolean;
+
+  /**
    * Custom accept action. Runs when the user clicks the accept button and shows a loading spinner until the promise
    * is resolved.
    */

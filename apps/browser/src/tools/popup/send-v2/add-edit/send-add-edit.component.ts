@@ -20,6 +20,8 @@ import {
   ButtonComponent,
   ButtonModule,
   CalloutComponent,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   SearchModule,
@@ -163,11 +165,16 @@ export class SendAddEditComponent {
   }
 
   deleteSend = async () => {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteSend" },
-      content: { key: "deleteSendPermanentConfirmation" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(
+          this.sendFormService.originalSendView()?.name,
+          this.i18nService.t("deleteSend"),
+        ),
+        content: this.i18nService.t("deleteSendPermanentConfirmation"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
 
     if (!confirmed) {
       return;

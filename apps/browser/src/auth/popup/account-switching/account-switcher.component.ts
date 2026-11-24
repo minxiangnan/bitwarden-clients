@@ -1,5 +1,5 @@
 import { CommonModule, Location } from "@angular/common";
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, inject, OnDestroy, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { Observable, Subject, firstValueFrom, map, of, startWith, switchMap } from "rxjs";
 
@@ -13,10 +13,13 @@ import {
   VaultTimeoutService,
   VaultTimeoutSettingsService,
 } from "@bitwarden/common/key-management/vault-timeout";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { UserId } from "@bitwarden/common/types/guid";
 import {
   AvatarModule,
   ButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconModule,
   ItemModule,
@@ -61,6 +64,7 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
 
   loading = false;
   activeUserCanLock = false;
+  private readonly i18nService = inject(I18nService);
   enableAccountSwitching$: Observable<boolean>;
 
   constructor(
@@ -139,19 +143,27 @@ export class AccountSwitcherComponent implements OnInit, OnDestroy {
   }
 
   async logOut(userId: UserId) {
-    this.loading = true;
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "logOut" },
-      content: { key: "logOutConfirmation" },
-      type: "info",
-    });
+    const accounts = await firstValueFrom(this.accountService.accounts$);
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(accounts[userId]?.email, this.i18nService.t("logOut")),
+        content: this.i18nService.t("destructiveLogoutBody"),
+        acceptText: this.i18nService.t("logOut"),
+      }),
+    );
 
-    if (confirmed) {
+    if (!confirmed) {
+      return;
+    }
+
+    this.loading = true;
+    try {
       await this.logoutService.logout(userId, "userInitiated");
       // navigate to root so redirect guard can properly route next active user or null user to correct page
       await this.router.navigate(["/"]);
+    } finally {
+      this.loading = false;
     }
-    this.loading = false;
   }
 
   ngOnDestroy() {

@@ -20,6 +20,7 @@ import {
   NotificationType,
   NotificationTypes,
 } from "./abstractions/notification-bar";
+import { confirmNeverSave, neverSaveHost } from "./never-save-confirm";
 import { isAtRiskPasswordNotification } from "./utils";
 
 let notificationBarIframeInitData: NotificationBarIframeInitData = {};
@@ -324,7 +325,17 @@ function handleCloseNotification(e: Event) {
 
 function handleNeverAction(e: Event) {
   e.preventDefault();
-  sendPlatformMessage({ command: "bgNeverSave" });
+  const message = (key: string, fallback: string) => chrome.i18n.getMessage(key) || fallback;
+  void confirmNeverSave({
+    title: neverSaveHost(document.referrer, message("destructiveNeverTitle", "此网站")),
+    body: message("destructiveNeverBody", "以后这个网站不再询问保存。已经保存的登录不会删除。"),
+    acceptLabel: message("destructiveNeverAccept", "不再保存"),
+    cancelLabel: message("cancel", "取消"),
+  }).then((accepted) => {
+    if (accepted) {
+      sendPlatformMessage({ command: "bgNeverSave" });
+    }
+  });
 }
 
 function handleSaveAction(e: Event) {

@@ -41,6 +41,8 @@ import {
   AsyncActionsModule,
   AnonLayoutWrapperDataService,
   ButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   FormFieldModule,
   IconButtonModule,
@@ -421,12 +423,13 @@ export class LockComponent implements OnInit, OnDestroy {
   }
 
   async logOut() {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "logOut" },
-      content: { key: "logOutConfirmation" },
-      acceptButtonText: { key: "logOut" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.activeAccount?.email, this.i18nService.t("logOut")),
+        content: this.i18nService.t("destructiveLogoutBody"),
+        acceptText: this.i18nService.t("logOut"),
+      }),
+    );
 
     if (confirmed && this.activeAccount != null) {
       await this.logoutService.logout(this.activeAccount.id, "userInitiated");

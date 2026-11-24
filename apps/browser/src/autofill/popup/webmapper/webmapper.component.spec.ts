@@ -91,6 +91,7 @@ describe("WebmapperComponent", () => {
         { provide: WebmapperDraftService, useValue: draftService },
         { provide: PlatformUtilsService, useValue: platformUtilsService },
         { provide: ToastService, useValue: toastService },
+        { provide: I18nService, useValue: { t: (key: string) => key } },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     })
@@ -448,7 +449,7 @@ describe("WebmapperComponent", () => {
       await component.clearDraft();
 
       expect(dialogService.openSimpleDialog).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "warning" }),
+        expect.objectContaining({ type: "danger", focusCancel: true, title: HOST }),
       );
       expect(draftService.clearDraft).toHaveBeenCalledWith(HOST, PATH);
       expect(component.exportText()).toBeNull();

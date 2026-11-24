@@ -42,6 +42,7 @@ describe("CustomFieldsComponent", () => {
   let component: CustomFieldsComponent;
   let fixture: ComponentFixture<CustomFieldsComponent>;
   let open: jest.Mock;
+  let openSimpleDialog: jest.Mock;
   let announce: jest.Mock;
   let patchCipher: jest.Mock;
   let config: CipherFormConfig;
@@ -49,6 +50,7 @@ describe("CustomFieldsComponent", () => {
 
   beforeEach(async () => {
     open = jest.fn();
+    openSimpleDialog = jest.fn().mockResolvedValue(true);
     announce = jest.fn().mockResolvedValue(null);
     patchCipher = jest.fn();
     originalCipherView = new CipherView();
@@ -84,6 +86,7 @@ describe("CustomFieldsComponent", () => {
       .overrideProvider(DialogService, {
         useValue: {
           open,
+          openSimpleDialog,
         },
       })
       .compileComponents();
@@ -349,14 +352,29 @@ describe("CustomFieldsComponent", () => {
       component.ngOnInit();
     });
 
-    it("removes the field", () => {
-      component.removeField(0);
+    it("removes the field after confirmation", async () => {
+      await component.removeField(0);
 
+      expect(openSimpleDialog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "text label",
+          type: "danger",
+          focusCancel: true,
+        }),
+      );
       expect(patchCipher).toHaveBeenCalled();
       const patchFn = patchCipher.mock.lastCall[0];
 
       const updatedCipher = patchFn(new CipherView());
       expect(updatedCipher.fields).toEqual([]);
+    });
+
+    it("keeps the field when confirmation is cancelled", async () => {
+      openSimpleDialog.mockResolvedValue(false);
+
+      await component.removeField(0);
+
+      expect(component.fields.length).toBe(1);
     });
   });
 

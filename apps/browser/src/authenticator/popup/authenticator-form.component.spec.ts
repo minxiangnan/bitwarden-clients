@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { of } from "rxjs";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { ToastService } from "@bitwarden/components";
+import { DialogService, ToastService } from "@bitwarden/components";
 
 import { AuthenticatorFormComponent } from "./authenticator-form.component";
 import { AuthenticatorService } from "./authenticator.service";
@@ -22,6 +22,7 @@ describe("AuthenticatorFormComponent", () => {
           useValue: {
             state$: of({ status: "ready", entries }),
             save: jest.fn(async (): Promise<void> => undefined),
+            moveToTrash: jest.fn(async (): Promise<void> => undefined),
           },
         },
         {
@@ -34,6 +35,10 @@ describe("AuthenticatorFormComponent", () => {
           useValue: { t: (key: string, value?: string) => value ?? key },
         },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
+        {
+          provide: DialogService,
+          useValue: { openSimpleDialog: jest.fn().mockResolvedValue(false) },
+        },
         {
           provide: McpAccessService,
           useValue: {
@@ -48,6 +53,42 @@ describe("AuthenticatorFormComponent", () => {
     const fixture = TestBed.createComponent(AuthenticatorFormComponent);
     return fixture.componentInstance;
   }
+
+  it("does not trash an entry when the confirm dialog is cancelled", async () => {
+    const component = setup([
+      {
+        id: "entry-1",
+        name: "ada",
+        issuer: "GitLab",
+        secret: "JBSWY3DPEHPK3PXP",
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        notes: "",
+        favorite: false,
+        sortOrder: 0,
+        revisionDate: "",
+        creationDate: "",
+      },
+    ]);
+    component["entryId"].set("entry-1");
+    component["form"].controls.name.setValue("ada");
+    component["form"].controls.issuer.setValue("GitLab");
+    const authenticator = TestBed.inject(AuthenticatorService);
+    const dialog = TestBed.inject(DialogService);
+
+    await component["remove"]();
+
+    expect(dialog.openSimpleDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "GitLab · ada",
+        type: "danger",
+        focusCancel: true,
+        acceptButtonText: "delete",
+      }),
+    );
+    expect(authenticator.moveToTrash).not.toHaveBeenCalled();
+  });
 
   it("does not require a name", () => {
     const component = setup();
@@ -208,6 +249,10 @@ describe("AuthenticatorFormComponent", () => {
           useValue: { t: (key: string, value?: string) => value ?? key },
         },
         { provide: ToastService, useValue: { showToast: jest.fn() } },
+        {
+          provide: DialogService,
+          useValue: { openSimpleDialog: jest.fn().mockResolvedValue(false) },
+        },
         {
           provide: McpAccessService,
           useValue: {

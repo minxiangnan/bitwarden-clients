@@ -83,6 +83,7 @@ describe("ViewComponent", () => {
 
   const mockCipher = {
     id: "122-333-444",
+    name: "示例网站",
     type: CipherType.Login,
     orgId: "222-444-555",
     login: {
@@ -706,13 +707,12 @@ describe("ViewComponent", () => {
 
           expect(openSimpleDialog).toHaveBeenCalledTimes(1);
           expect(openSimpleDialog).toHaveBeenCalledWith({
-            content: {
-              key: "deleteItemConfirmation",
-            },
-            title: {
-              key: "deleteItem",
-            },
-            type: "warning",
+            title: "示例网站",
+            content: "deleteItemConfirmation",
+            type: "danger",
+            acceptButtonText: "delete",
+            cancelButtonText: { key: "cancel" },
+            focusCancel: true,
           });
         });
 
@@ -744,13 +744,12 @@ describe("ViewComponent", () => {
 
           expect(openSimpleDialog).toHaveBeenCalledTimes(1);
           expect(openSimpleDialog).toHaveBeenCalledWith({
-            content: {
-              key: "permanentlyDeleteItemConfirmation",
-            },
-            title: {
-              key: "deleteItem",
-            },
-            type: "warning",
+            title: "示例网站",
+            content: "permanentlyDeleteItemConfirmation",
+            type: "danger",
+            acceptButtonText: "authenticatorTrashPermanent",
+            cancelButtonText: { key: "cancel" },
+            focusCancel: true,
           });
         });
 

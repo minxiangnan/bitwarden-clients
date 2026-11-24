@@ -6,7 +6,15 @@ import { firstValueFrom } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { ButtonModule, CheckboxModule, FormFieldModule, ToastService } from "@bitwarden/components";
+import {
+  ButtonModule,
+  CheckboxModule,
+  destructiveDialogOptions,
+  destructiveTitle,
+  DialogService,
+  FormFieldModule,
+  ToastService,
+} from "@bitwarden/components";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
@@ -55,6 +63,7 @@ export class AuthenticatorFormComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly toast = inject(ToastService);
   private readonly mcp = inject(McpAccessService);
+  private readonly dialogService = inject(DialogService);
   private readonly mcpWasEnabled = signal(false);
 
   protected readonly algorithms = [
@@ -69,7 +78,6 @@ export class AuthenticatorFormComponent implements OnInit {
   protected readonly maxPeriod = MAX_AUTHENTICATOR_PERIOD;
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
-  protected readonly confirmDelete = signal(false);
   protected readonly scanning = signal(false);
   protected readonly advancedOpen = signal(false);
   protected readonly otpType = signal<"totp" | "steam" | "hotp">("totp");
@@ -306,8 +314,19 @@ export class AuthenticatorFormComponent implements OnInit {
     if (id == null || this.saving()) {
       return;
     }
-    if (!this.confirmDelete()) {
-      this.confirmDelete.set(true);
+    const name = this.form.controls.name.value;
+    const issuer = this.form.controls.issuer.value?.trim();
+    const title = issuer
+      ? `${issuer} · ${destructiveTitle(name, this.i18n.t("authenticator"))}`
+      : destructiveTitle(name, this.i18n.t("authenticator"));
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title,
+        content: this.i18n.t("destructiveAuthenticatorTrashBody"),
+        acceptText: this.i18n.t("delete"),
+      }),
+    );
+    if (!confirmed) {
       return;
     }
     this.saving.set(true);

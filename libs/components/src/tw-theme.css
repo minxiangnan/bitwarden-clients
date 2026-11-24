@@ -892,3 +892,13 @@
     display: none;
   }
 }
+
+/* Destructive confirms: cream card, brown text, terracotta action, no black scrim. */
+.zh-destructive-card {
+  background: #faf9f5;
+  box-shadow: 0 12px 32px rgba(61, 57, 41, 0.16);
+}
+
+.zh-destructive-scrim {
+  background: rgba(61, 57, 41, 0.28);
+}

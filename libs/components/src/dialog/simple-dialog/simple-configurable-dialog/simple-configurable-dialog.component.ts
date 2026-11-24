@@ -8,6 +8,7 @@ import { SimpleDialogOptions, SimpleDialogType, Translation } from "../..";
 import { BitSubmitDirective } from "../../../async-actions/bit-submit.directive";
 import { BitFormButtonDirective } from "../../../async-actions/form-button.directive";
 import { ButtonComponent } from "../../../button/button.component";
+import { AutofocusDirective } from "../../../input";
 import {
   SimpleDialogComponent,
   IconDirective,
@@ -41,6 +42,7 @@ const DEFAULT_COLOR: Record<SimpleDialogType, string> = {
     DialogFooterDirective,
     ButtonComponent,
     BitFormButtonDirective,
+    AutofocusDirective,
   ],
 })
 export class SimpleConfigurableDialogComponent {
@@ -80,6 +82,19 @@ export class SimpleConfigurableDialogComponent {
     if (!this.simpleDialogOpts.disableClose) {
       this.dialogRef.close(true);
     }
+  };
+
+  /** Enter confirms nothing destructive: the focused 取消 button submits as cancel. */
+  protected readonly cancel = () => {
+    this.dialogRef.close(false);
+  };
+
+  protected readonly submit = async () => {
+    if (this.simpleDialogOpts.focusCancel) {
+      this.cancel();
+      return;
+    }
+    await this.accept();
   };
 
   private translate(translation: string | Translation): string {

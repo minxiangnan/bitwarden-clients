@@ -497,10 +497,12 @@ describe("LockComponent", () => {
       await component.logOut();
 
       expect(mockDialogService.openSimpleDialog).toHaveBeenCalledWith({
-        title: { key: "logOut" },
-        content: { key: "logOutConfirmation" },
-        acceptButtonText: { key: "logOut" },
-        type: "warning",
+        title: component.activeAccount?.email,
+        content: "destructiveLogoutBody",
+        type: "danger",
+        acceptButtonText: "logOut",
+        cancelButtonText: { key: "cancel" },
+        focusCancel: true,
       });
       expect(mockLogoutService.logout).toHaveBeenCalledWith(userId, "userInitiated");
       expect(mockRouter.navigate).toHaveBeenCalledWith(["/"]);
@@ -513,10 +515,12 @@ describe("LockComponent", () => {
       await component.logOut();
 
       expect(mockDialogService.openSimpleDialog).toHaveBeenCalledWith({
-        title: { key: "logOut" },
-        content: { key: "logOutConfirmation" },
-        acceptButtonText: { key: "logOut" },
-        type: "warning",
+        title: component.activeAccount?.email,
+        content: "destructiveLogoutBody",
+        type: "danger",
+        acceptButtonText: "logOut",
+        cancelButtonText: { key: "cancel" },
+        focusCancel: true,
       });
       expect(mockLogoutService.logout).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -529,10 +533,12 @@ describe("LockComponent", () => {
       await component.logOut();
 
       expect(mockDialogService.openSimpleDialog).toHaveBeenCalledWith({
-        title: { key: "logOut" },
-        content: { key: "logOutConfirmation" },
-        acceptButtonText: { key: "logOut" },
-        type: "warning",
+        title: "logOut",
+        content: "destructiveLogoutBody",
+        type: "danger",
+        acceptButtonText: "logOut",
+        cancelButtonText: { key: "cancel" },
+        focusCancel: true,
       });
       expect(mockLogoutService.logout).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();

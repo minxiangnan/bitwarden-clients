@@ -16,6 +16,7 @@ import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/pl
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { LoginUriView } from "@bitwarden/common/vault/models/view/login-uri.view";
 import { LoginView } from "@bitwarden/common/vault/models/view/login.view";
+import { DialogService } from "@bitwarden/components";
 
 import { CipherFormContainer } from "../../cipher-form-container";
 import { CipherFormHTTPAuthenticationService } from "../../services/cipher-form-http-authentication.service";
@@ -45,6 +46,7 @@ describe("AutofillOptionsComponent", () => {
   let gaFeatureFlagSubject: BehaviorSubject<boolean>;
   const getInitialCipherView = jest.fn((): any => null);
   const formStatusChange$ = new BehaviorSubject<"enabled" | "disabled">("enabled");
+  const openSimpleDialog = jest.fn().mockResolvedValue(true);
 
   beforeEach(async () => {
     getInitialCipherView.mockClear();
@@ -80,7 +82,9 @@ describe("AutofillOptionsComponent", () => {
         { provide: ConfigService, useValue: configService },
         { provide: CipherFormHTTPAuthenticationService, useValue: httpAuthenticationService },
       ],
-    }).compileComponents();
+    })
+      .overrideProvider(DialogService, { useValue: { openSimpleDialog } })
+      .compileComponents();
 
     fixture = TestBed.createComponent(AutofillOptionsComponent);
     component = fixture.componentInstance;
@@ -268,7 +272,7 @@ describe("AutofillOptionsComponent", () => {
     expect(component["uriOptions"].last.focusInput).toHaveBeenCalled();
   }));
 
-  it("removes URI input when remove() is called", () => {
+  it("removes URI input when remove() is called", async () => {
     fixture.detectChanges();
 
     // Add second Uri
@@ -277,11 +281,35 @@ describe("AutofillOptionsComponent", () => {
     fixture.detectChanges();
 
     // Remove first Uri
-    component.removeUri(0);
+    await component.removeUri(0);
 
     fixture.detectChanges();
 
     expect(component.autofillOptionsForm.value.uris.length).toEqual(1);
+  });
+
+  it("asks before removing a website that would be lost", async () => {
+    fixture.detectChanges();
+    component.addUri({ uri: "https://example.com", matchDetection: null });
+
+    openSimpleDialog.mockResolvedValue(false);
+    await component.removeUri(component.autofillOptionsForm.value.uris.length - 1);
+    expect(
+      component.autofillOptionsForm.value.uris.some((uri) => uri.uri === "https://example.com"),
+    ).toBe(true);
+
+    openSimpleDialog.mockResolvedValue(true);
+    await component.removeUri(component.autofillOptionsForm.value.uris.length - 1);
+    expect(
+      component.autofillOptionsForm.value.uris.some((uri) => uri.uri === "https://example.com"),
+    ).toBe(false);
+    expect(openSimpleDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "https://example.com",
+        type: "danger",
+        focusCancel: true,
+      }),
+    );
   });
 
   it("does not emit events when status changes to prevent a `valueChanges` call", () => {

@@ -40,6 +40,8 @@ import {
   RestrictedCipherPolicy,
 } from "@bitwarden/common/vault/utils/restricted-cipher-policy";
 import {
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   ItemModule,
@@ -438,11 +440,13 @@ export class ItemMoreOptionsComponent {
       return;
     }
 
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteItem" },
-      content: { key: "deleteItemConfirmation" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.cipher.name, this.i18nService.t("deleteItem")),
+        content: this.i18nService.t("deleteItemConfirmation"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
 
     if (!confirmed) {
       return;

@@ -49,6 +49,7 @@ export type DialogConfig<D = unknown, R = unknown> = Pick<
   | "width"
   | "restoreFocus"
   | "closeOnNavigation"
+  | "backdropClass"
 > & {
   closePredicate?: (result?: R) => Promise<boolean>;
 };

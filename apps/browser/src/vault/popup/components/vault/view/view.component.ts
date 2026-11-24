@@ -47,6 +47,8 @@ import {
   ButtonModule,
   CalloutModule,
   ChipActionComponent,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   SearchModule,
@@ -306,13 +308,16 @@ export class ViewComponent {
   }
 
   delete = async (): Promise<boolean> => {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteItem" },
-      content: {
-        key: this.cipher.isDeleted ? "permanentlyDeleteItemConfirmation" : "deleteItemConfirmation",
-      },
-      type: "warning",
-    });
+    const permanent = Boolean(this.cipher.isDeleted);
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.cipher.name, this.i18nService.t("deleteItem")),
+        content: this.i18nService.t(
+          permanent ? "permanentlyDeleteItemConfirmation" : "deleteItemConfirmation",
+        ),
+        acceptText: this.i18nService.t(permanent ? "authenticatorTrashPermanent" : "delete"),
+      }),
+    );
 
     if (!confirmed) {
       return false;

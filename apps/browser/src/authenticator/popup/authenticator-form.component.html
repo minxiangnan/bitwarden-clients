@@ -141,7 +141,7 @@
         </button>
       </div>
       <button type="button" bitButton buttonType="danger" [block]="true" [disabled]="saving()" (click)="remove()">
-        {{ (confirmDelete() ? "authenticatorDeleteConfirm" : "delete") | i18n }}
+        {{ "delete" | i18n }}
       </button>
     }
   </form>

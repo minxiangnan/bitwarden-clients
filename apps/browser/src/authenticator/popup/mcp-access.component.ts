@@ -5,7 +5,13 @@ import { firstValueFrom } from "rxjs";
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
-import { ButtonModule, CalloutModule, ToastService } from "@bitwarden/components";
+import {
+  ButtonModule,
+  CalloutModule,
+  destructiveDialogOptions,
+  DialogService,
+  ToastService,
+} from "@bitwarden/components";
 
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../platform/popup/layout/popup-header.component";
@@ -35,6 +41,7 @@ export class McpAccessComponent implements OnInit {
   private readonly platformUtils = inject(PlatformUtilsService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly dialogService = inject(DialogService);
 
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
@@ -55,14 +62,28 @@ export class McpAccessComponent implements OnInit {
   }
 
   protected async rotate(): Promise<void> {
-    if (!confirm(this.i18n.t("mcpRotateConfirm"))) {
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: this.i18n.t("mcpToken"),
+        content: this.i18n.t("mcpRotateConfirm"),
+        acceptText: this.i18n.t("mcpRotate"),
+      }),
+    );
+    if (!confirmed) {
       return;
     }
     await this.issue(true);
   }
 
   protected async revoke(): Promise<void> {
-    if (!confirm(this.i18n.t("mcpRevokeConfirm"))) {
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: this.i18n.t("mcpToken"),
+        content: this.i18n.t("mcpRevokeConfirm"),
+        acceptText: this.i18n.t("mcpRevoke"),
+      }),
+    );
+    if (!confirmed) {
       return;
     }
     this.busy.set(true);
@@ -139,7 +160,9 @@ export class McpAccessComponent implements OnInit {
     }
   }
 
-  private async rewrap(cleared: Array<{ source: string; sourceId: string; alias: string }>): Promise<string[]> {
+  private async rewrap(
+    cleared: Array<{ source: string; sourceId: string; alias: string }>,
+  ): Promise<string[]> {
     const missed: string[] = [];
     const state = await firstValueFrom(this.authenticator.state$);
     for (const item of cleared) {

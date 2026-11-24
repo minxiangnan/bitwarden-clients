@@ -27,6 +27,9 @@ import {
   IconButtonModule,
   LinkModule,
   MenuModule,
+  destructiveDialogOptions,
+  destructiveTitle,
+  DialogService,
   SectionHeaderComponent,
   SelectModule,
   TypographyModule,
@@ -119,6 +122,7 @@ export class AutofillOptionsComponent implements OnInit {
   protected readonly desktopAppUriPrefix = DESKTOP_APP_URI_PREFIX;
 
   private httpAuthenticationService = inject(CipherFormHTTPAuthenticationService);
+  private dialogService = inject(DialogService);
 
   constructor(
     private cipherFormContainer: CipherFormContainer,
@@ -293,7 +297,20 @@ export class AutofillOptionsComponent implements OnInit {
     }
   }
 
-  removeUri(i: number) {
+  async removeUri(i: number) {
+    const uri = this.autofillOptionsForm.controls.uris.at(i)?.value?.uri?.trim();
+    if (uri) {
+      const confirmed = await this.dialogService.openSimpleDialog(
+        destructiveDialogOptions({
+          title: destructiveTitle(uri, this.i18nService.t("website")),
+          content: this.i18nService.t("destructiveUriBody"),
+          acceptText: this.i18nService.t("delete"),
+        }),
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
     this.autofillOptionsForm.controls.uris.removeAt(i);
   }
 

@@ -13,11 +13,14 @@ import { takeUntilDestroyed, toObservable } from "@angular/core/rxjs-interop";
 import { of, switchMap } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import {
   BadgeModule,
   ButtonModule,
   CalloutModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   SectionComponent,
@@ -108,6 +111,7 @@ export class WebmapperComponent implements OnInit, OnDestroy {
   private readonly platformUtilsService = inject(PlatformUtilsService);
   private readonly toastService = inject(ToastService);
   private readonly dialogService = inject(DialogService);
+  private readonly i18nService = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly tabChangeListener = (): void => {
@@ -351,11 +355,13 @@ export class WebmapperComponent implements OnInit, OnDestroy {
     if (!url) {
       return;
     }
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: "Discard draft",
-      content: "Discard the captured mapping for this page? This can't be undone.",
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(url.host, this.i18nService.t("website")),
+        content: this.i18nService.t("destructiveDraftBody"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
     if (!confirmed) {
       return;
     }

@@ -23,6 +23,8 @@ import {
   CipherViewLikeUtils,
 } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 import {
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   ItemModule,
@@ -199,11 +201,13 @@ export class ArchiveComponent {
     if (!(await this.canInteract(cipher))) {
       return;
     }
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteItem" },
-      content: { key: "deleteItemConfirmation" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(cipher.name, this.i18nService.t("deleteItem")),
+        content: this.i18nService.t("deleteItemConfirmation"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
 
     if (!confirmed) {
       return;
