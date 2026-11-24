@@ -244,15 +244,10 @@ export class AppComponent implements OnInit, OnDestroy {
             this.toastService._showToast(msg);
           } else if (msg.command === "reloadProcess") {
             if (this.platformUtilsService.isSafari()) {
-              window.setTimeout(async () => {
-                await this.biometricStateService.updateLastProcessReload();
-                window.location.reload();
-              }, 2000);
-            } else {
-              // On Chromium-based browsers (Chrome, Vivaldi, etc.), `chrome.runtime.reload()` invalidates extension contexts before the view can close naturally.
-              // Popouts also need closing because they survive the runtime reload and strand the user on broken states.
-              await BrowserPopupUtils.closeCurrentPopupOrPopout(window);
+              void this.biometricStateService.updateLastProcessReload();
             }
+            // Stay in this window. Closing it hid the unlock screen.
+            BrowserPopupUtils.showLockScreen(window);
           } else if (msg.command === "reloadExtension") {
             // The background reloads the extension after this message. Close this popup/popout
             // first so the runtime reload doesn't strand it with an invalidated context.

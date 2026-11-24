@@ -65,6 +65,9 @@
         {{ "authenticatorTools" | i18n }}
       </button>
     </div>
+    @if (scanError()) {
+      <p class="tw-mb-0 tw-text-sm tw-text-danger" role="alert">{{ scanError() }}</p>
+    }
   </div>
 
   @if (visible().length === 0 && (status() === "ready" || status() === "offline")) {

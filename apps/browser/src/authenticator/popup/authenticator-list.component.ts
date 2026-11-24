@@ -56,6 +56,7 @@ export class AuthenticatorListComponent {
   protected readonly query = signal("");
   protected readonly favoritesOnly = signal(false);
   protected readonly scanning = signal(false);
+  protected readonly scanError = signal<string | null>(null);
   protected readonly busyId = signal<string | null>(null);
 
   private readonly state = toSignal(this.authenticator.state$, {
@@ -137,13 +138,16 @@ export class AuthenticatorListComponent {
       return;
     }
     this.scanning.set(true);
+    this.scanError.set(null);
     try {
       const uri = await scanCurrentTabForOtpauth();
       if (!uri) {
+        const message = this.i18n.t("authenticatorScanEmpty");
+        this.scanError.set(message);
         this.toast.showToast({
           variant: "error",
           title: null,
-          message: this.i18n.t("authenticatorScanEmpty"),
+          message,
         });
         return;
       }

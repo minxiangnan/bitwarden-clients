@@ -361,6 +361,8 @@ export class AuthenticatorFormComponent implements OnInit {
         return;
       }
       await this.acceptInput(uri, !this.editing());
+    } catch {
+      this.errorKey.set("authenticatorSaveError");
     } finally {
       this.scanning.set(false);
     }
