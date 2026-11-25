@@ -17,12 +17,6 @@ import {
 import { LoginViaWebAuthnComponent } from "@bitwarden/angular/auth/login-via-webauthn/login-via-webauthn.component";
 import { ChangePasswordComponent } from "@bitwarden/angular/auth/password-management/change-password";
 import { SetInitialPasswordComponent } from "@bitwarden/angular/auth/password-management/set-initial-password/set-initial-password.component";
-import {
-  RegistrationFinishComponent,
-  RegistrationStartComponent,
-  RegistrationStartSecondaryComponent,
-  RegistrationStartSecondaryComponentData,
-} from "@bitwarden/angular/auth/registration";
 import { canAccessFeature } from "@bitwarden/angular/platform/guard/feature-flag.guard";
 import { featureFlaggedRoute } from "@bitwarden/angular/platform/utils/feature-flagged-route";
 import {
@@ -37,7 +31,6 @@ import {
 import {
   LoginComponent,
   LoginDecryptionOptionsComponent,
-  LoginSecondaryContentComponent,
   LoginViaAuthRequestComponent,
   NewDeviceVerificationComponent,
   PasswordHintComponent,
@@ -61,9 +54,16 @@ import { AccountSwitcherComponent } from "../auth/popup/account-switching/accoun
 import { AuthExtensionRoute } from "../auth/popup/constants/auth-extension-route.constant";
 import { fido2AuthGuard } from "../auth/popup/guards/fido2-auth.guard";
 import { platformPopoutGuard } from "../auth/popup/guards/platform-popout.guard";
+import { InvitedAccountComponent } from "../auth/popup/invited-account/invited-account.component";
 import { AccountSecurityComponent } from "../auth/popup/settings/account-security.component";
 import { ChangePasswordPageComponent } from "../auth/popup/settings/change-password-page.component";
 import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/extension-device-management.component";
+import { AuthenticatorFormComponent } from "../authenticator/popup/authenticator-form.component";
+import { AuthenticatorHelpComponent } from "../authenticator/popup/authenticator-help.component";
+import { AuthenticatorListComponent } from "../authenticator/popup/authenticator-list.component";
+import { AuthenticatorToolsComponent } from "../authenticator/popup/authenticator-tools.component";
+import { McpAccessComponent } from "../authenticator/popup/mcp-access.component";
+import { PasswordHealthComponent } from "../authenticator/popup/password-health.component";
 import { AutofillToolsComponent } from "../autofill/popup/autofill-tools/autofill-tools.component";
 import { autofillToolsDevFlagGuard } from "../autofill/popup/autofill-tools/autofill-tools.guard";
 import { DefaultPasswordManagerPromptComponent } from "../autofill/popup/default-password-manager/default-password-manager-prompt.component";
@@ -93,6 +93,7 @@ import { importUpgradeRequiredGuard } from "../tools/popup/guards/import-upgrade
 import { SendAddEditComponent as SendAddEditV2Component } from "../tools/popup/send-v2/add-edit/send-add-edit.component";
 import { SendCreatedComponent } from "../tools/popup/send-v2/send-created/send-created.component";
 import { SendV2Component } from "../tools/popup/send-v2/send-v2.component";
+import { sendVisibleGuard } from "../tools/popup/send-v2/send-visibility";
 import { AboutPageV2Component } from "../tools/popup/settings/about-page/about-page-v2.component";
 import { ExportBrowserV2Component } from "../tools/popup/settings/export/export-browser-v2.component";
 import { ImportBrowserV2Component } from "../tools/popup/settings/import/import-browser-v2.component";
@@ -419,6 +420,12 @@ const routes: Routes = [
     data: { elevation: 3 } satisfies RouteDataProperties,
   },
   {
+    path: "mcp-access",
+    component: McpAccessComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
     path: "appearance",
     component: AppearanceComponent,
     canActivate: [authGuard],
@@ -439,25 +446,29 @@ const routes: Routes = [
   {
     path: "add-send",
     component: SendAddEditV2Component,
-    canActivate: [authGuard, filePickerPopoutGuard()],
+    canActivate: [authGuard, sendVisibleGuard, filePickerPopoutGuard()],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "edit-send",
     component: SendAddEditV2Component,
-    canActivate: [authGuard],
+    canActivate: [authGuard, sendVisibleGuard],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "send-created",
     component: SendCreatedComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, sendVisibleGuard],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "share-item",
     component: ShareItemComponent,
-    canActivate: [authGuard, canAccessFeature(FeatureFlag.PM34203TemporaryItemSharing)],
+    canActivate: [
+      authGuard,
+      sendVisibleGuard,
+      canAccessFeature(FeatureFlag.PM34203TemporaryItemSharing),
+    ],
     // Above "view-cipher"
     data: { elevation: 4 } satisfies RouteDataProperties,
   },
@@ -475,48 +486,11 @@ const routes: Routes = [
     children: [
       {
         path: AuthRoute.SignUp,
-        canActivate: [unauthGuardFn()],
-        data: {
-          elevation: 1,
-          pageTitle: {
-            key: "createAccount",
-          },
-          showBackButton: true,
-          hidePageIcon: true,
-          contentVerticalPadding: "compact",
-          footerVerticalPadding: "compact",
-          heroTextAlignment: "left",
-          hideFooter: true,
-        } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
-        children: [
-          {
-            path: "",
-            component: RegistrationStartComponent,
-          },
-          {
-            path: "",
-            component: RegistrationStartSecondaryComponent,
-            outlet: "secondary",
-            data: {
-              loginRoute: `/${AuthRoute.Login}`,
-            } satisfies RegistrationStartSecondaryComponentData,
-          },
-        ],
+        redirectTo: AuthRoute.Login,
       },
       {
         path: AuthRoute.FinishSignUp,
-        canActivate: [unauthGuardFn()],
-        data: {
-          pageIcon: LockIcon,
-          elevation: 1,
-          showBackButton: true,
-        } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
-        children: [
-          {
-            path: "",
-            component: RegistrationFinishComponent,
-          },
-        ],
+        redirectTo: AuthRoute.Login,
       },
       {
         path: AuthRoute.SetInitialPassword,
@@ -539,21 +513,32 @@ const routes: Routes = [
           },
           elevation: 1,
           showAcctSwitcher: true,
+          showLogo: false,
+          hideFooter: true,
           hidePageIcon: true,
           contentVerticalPadding: "compact",
           footerVerticalPadding: "compact",
           heroTextAlignment: "left",
           secondaryContentLocation: "footer",
         } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
-        children: [
-          { path: "", component: LoginComponent },
-          { path: "", component: LoginSecondaryContentComponent, outlet: "secondary" },
-          {
-            path: "",
-            component: EnvironmentSelectorComponent,
-            outlet: "environment-selector",
-          },
-        ],
+        children: [{ path: "", component: LoginComponent }],
+      },
+      {
+        path: "invited-account",
+        canActivate: [unauthGuardFn(unauthRouteOverrides)],
+        data: {
+          pageTitle: "创建账户",
+          elevation: 1,
+          showAcctSwitcher: false,
+          showLogo: false,
+          hideFooter: true,
+          hidePageIcon: true,
+          showBackButton: true,
+          contentVerticalPadding: "compact",
+          footerVerticalPadding: "compact",
+          heroTextAlignment: "left",
+        } satisfies RouteDataProperties & ExtensionAnonLayoutWrapperData,
+        children: [{ path: "", component: InvitedAccountComponent }],
       },
       {
         path: AuthRoute.LoginWithPasskey,
@@ -869,6 +854,12 @@ const routes: Routes = [
       {
         path: "send",
         component: SendV2Component,
+        canActivate: [authGuard, sendVisibleGuard],
+        data: { elevation: 0 } satisfies RouteDataProperties,
+      },
+      {
+        path: "authenticator",
+        component: AuthenticatorListComponent,
         canActivate: [authGuard],
         data: { elevation: 0 } satisfies RouteDataProperties,
       },
@@ -879,6 +870,36 @@ const routes: Routes = [
         data: { elevation: 0 } satisfies RouteDataProperties,
       },
     ],
+  },
+  {
+    path: "authenticator-tools",
+    component: AuthenticatorToolsComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "authenticator-help",
+    component: AuthenticatorHelpComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "password-health",
+    component: PasswordHealthComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "authenticator/new",
+    component: AuthenticatorFormComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "authenticator/:id",
+    component: AuthenticatorFormComponent,
+    canActivate: [authGuard],
+    data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "health/:category",

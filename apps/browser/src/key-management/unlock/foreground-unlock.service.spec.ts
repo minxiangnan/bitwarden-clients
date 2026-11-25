@@ -4,6 +4,7 @@ import "core-js/proposals/explicit-resource-management";
 import { mock } from "jest-mock-extended";
 import { Subject, of } from "rxjs";
 
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AccountCryptographicStateService } from "@bitwarden/common/key-management/account-cryptography/account-cryptographic-state.service";
 import { InternalMasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
@@ -20,7 +21,14 @@ import {
   KeyService,
 } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
-import { CsprngArray, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
+import {
+  CsprngArray,
+  EncryptionType,
+  EncryptService,
+  KeyGenerationService,
+  LegacyCompatKeyService,
+  SymmetricCryptoKey,
+} from "@bitwarden/legacy-crypto";
 import { LogService } from "@bitwarden/logging";
 import { StateProvider } from "@bitwarden/state";
 import { AutoUnlockService, UnlockCompletedMessage, UnlockMethod } from "@bitwarden/unlock";
@@ -47,6 +55,10 @@ describe("ForegroundUnlockService", () => {
   const autoUnlockService = mock<AutoUnlockService>();
   const messageSender = mock<MessageSender>();
   const messageListener = mock<MessageListener>();
+  const apiService = mock<ApiService>();
+  const encryptService = mock<EncryptService>();
+  const legacyCompatKeyService = mock<LegacyCompatKeyService>();
+  const keyGenerationService = mock<KeyGenerationService>();
 
   let service: ForegroundUnlockService;
   let backgroundUnlocks: Subject<UnlockCompletedMessage>;
@@ -93,6 +105,10 @@ describe("ForegroundUnlockService", () => {
       autoUnlockService,
       messageSender,
       messageListener,
+      apiService,
+      encryptService,
+      legacyCompatKeyService,
+      keyGenerationService,
     );
   });
 
@@ -111,6 +127,53 @@ describe("ForegroundUnlockService", () => {
       await expect(service.unlockWithBiometrics(userId)).rejects.toThrow(
         "Failed to unlock with biometrics",
       );
+    });
+
+    it("finishes a deferred authenticator rotation after a master-password unlock", async () => {
+      masterPasswordService.masterPasswordUnlockData$.mockReturnValue(
+        of({
+          salt: "salt",
+          kdf: { kdfType: 0 },
+          toSdk: () => ({ salt: "salt", kdf: {}, masterKeyWrappedUserKey: "wrapped" }),
+        }) as never,
+      );
+      keyService.userKey$.mockReturnValue(of(userKey));
+      const derived = {
+        inner: () => ({ type: EncryptionType.AesCbc256_B64 }),
+      } as SymmetricCryptoKey;
+      legacyCompatKeyService.makeMasterKey.mockResolvedValue(derived as never);
+      keyGenerationService.stretchKey.mockResolvedValue(derived);
+      apiService.send.mockResolvedValue({ required: false });
+
+      await service.unlockWithMasterPassword(userId, "correct-password");
+
+      expect(legacyCompatKeyService.makeMasterKey).toHaveBeenCalledWith(
+        "correct-password",
+        "salt",
+        { kdfType: 0 },
+      );
+      expect(apiService.send).toHaveBeenCalledWith(
+        "GET",
+        "/authenticator/rotate",
+        null,
+        true,
+        true,
+      );
+    });
+
+    it("still unlocks when authenticator recovery fails", async () => {
+      masterPasswordService.masterPasswordUnlockData$.mockReturnValue(
+        of({
+          salt: "salt",
+          kdf: {},
+          toSdk: () => ({ salt: "salt", kdf: {}, masterKeyWrappedUserKey: "wrapped" }),
+        }) as never,
+      );
+      keyService.userKey$.mockReturnValue(of(userKey));
+      legacyCompatKeyService.makeMasterKey.mockRejectedValue(new Error("kdf failed"));
+
+      await expect(service.unlockWithMasterPassword(userId, "correct-password")).resolves.toBeUndefined();
+      expect(logService.error).toHaveBeenCalled();
     });
 
     it("runs the on-unlock actions once, when the background announces the unlock", async () => {

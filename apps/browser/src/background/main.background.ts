@@ -160,6 +160,7 @@ import {
 } from "@bitwarden/common/platform/abstractions/storage.service";
 import { SystemService as SystemServiceAbstraction } from "@bitwarden/common/platform/abstractions/system.service";
 import { ActionsService } from "@bitwarden/common/platform/actions/actions-service";
+import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import { IpcService } from "@bitwarden/common/platform/ipc";
 import {
   IntraprocessMessageSender,
@@ -336,6 +337,9 @@ import {
 
 import { ExtensionAuthRequestAnsweringService } from "../auth/services/auth-request-answering/extension-auth-request-answering.service";
 import { AuthStatusBadgeUpdaterService } from "../auth/services/auth-status-badge-updater.service";
+import { createAuthenticatorTotpLookup } from "../authenticator/authenticator-autofill";
+import { steamCode } from "../authenticator/authenticator-codes";
+import { clipboardClearMs } from "../authenticator/clipboard-delay";
 import { AutofillOrchestrator } from "../autofill/background/abstractions/autofill-orchestrator";
 import { OverlayNotificationsBackground as OverlayNotificationsBackgroundInterface } from "../autofill/background/abstractions/overlay-notifications.background";
 import {
@@ -954,7 +958,7 @@ export default class MainBackground {
       this.biometricStateService,
       this.stateProvider,
       this.logService,
-      VaultTimeoutStringType.OnRestart, // default vault timeout
+      VaultTimeoutStringType.Never, // default vault timeout
       sessionTimeoutTypeService,
     );
 
@@ -1203,7 +1207,10 @@ export default class MainBackground {
       this.logService,
     );
 
-    this.themeStateService = new DefaultThemeStateService(this.globalStateProvider);
+    this.themeStateService = new DefaultThemeStateService(
+      this.globalStateProvider,
+      ThemeTypes.Light,
+    );
     this.animationControlService = new DefaultAnimationControlService(this.globalStateProvider);
 
     this.cipherEncryptionService = new DefaultCipherEncryptionService(
@@ -1391,6 +1398,14 @@ export default class MainBackground {
       this.animationControlService,
       this.autofillLifecycleService,
     );
+    this.authenticatorTotpLookup = createAuthenticatorTotpLookup({
+      accountService: this.accountService,
+      stateProvider: this.stateProvider,
+      keyService: this.keyService,
+      encryptService: this.encryptService,
+      logService: this.logService,
+    });
+    this.autofillService.setAuthenticatorTotpLookup(this.authenticatorTotpLookup);
     this.autofillOrchestrator = new DefaultAutofillOrchestrator(
       this.autofillLifecycleService,
       this.autofillService,
@@ -2262,6 +2277,28 @@ export default class MainBackground {
     }
   }
 
+  /** Copies the authenticator code linked to the tab's exact hostname. */
+  async copySiteAuthenticator(tab: chrome.tabs.Tab): Promise<void> {
+    if (!tab.url || this.authenticatorTotpLookup == null) {
+      return;
+    }
+    const seed = await this.authenticatorTotpLookup(tab.url);
+    if (!seed) {
+      return;
+    }
+    const code = seed.startsWith("steam://")
+      ? await steamCode(seed.slice("steam://".length), Date.now())
+      : (await firstValueFrom(this.totpService.getCode$(seed))).code;
+    if (!code) {
+      return;
+    }
+    const delay = await firstValueFrom(this.autofillSettingsService.clearClipboardDelay$);
+    const clearMs = clipboardClearMs(delay);
+    this.platformUtilsService.copyToClipboard(code, clearMs ? { clearMs } : undefined);
+  }
+
+  private authenticatorTotpLookup: ((url: string) => Promise<string | null>) | null = null;
+
   private async fullSync(override = false) {
     const syncInternal = 6 * 60 * 60 * 1000; // 6 hours
     const lastSync = await this.syncService.getLastSync();
@@ -2390,6 +2427,7 @@ export default class MainBackground {
       this.fillCipherPolicy,
       this.badgeSettingsService,
       this.logService,
+      this.authService,
     );
 
     this.clipboardNotificationBadgeUpdaterService = new ClipboardNotificationBadgeUpdaterService(

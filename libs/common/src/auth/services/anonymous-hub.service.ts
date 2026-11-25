@@ -19,6 +19,7 @@ import {
 } from "../../models/response/notification.response";
 import { EnvironmentService } from "../../platform/abstractions/environment.service";
 import { PlatformUtilsService } from "../../platform/abstractions/platform-utils.service";
+import { isAllowedServerRequestUrl } from "../../platform/misc/server-url";
 import { InsecureUrlNotAllowedError } from "../../services/api-errors";
 import { AnonymousHubService as AnonymousHubServiceAbstraction } from "../abstractions/anonymous-hub.service";
 
@@ -34,8 +35,8 @@ export class AnonymousHubService implements AnonymousHubServiceAbstraction {
 
   async createHubConnection(token: string) {
     this.url = (await firstValueFrom(this.environmentService.environment$)).getNotificationsUrl();
-    if (!this.url.startsWith("https://") && !this.platformUtilsService.isDev()) {
-      throw new InsecureUrlNotAllowedError();
+    if (!isAllowedServerRequestUrl(this.url) && !this.platformUtilsService.isDev()) {
+      throw new InsecureUrlNotAllowedError(this.url);
     }
 
     this.anonHubConnection = new HubConnectionBuilder()

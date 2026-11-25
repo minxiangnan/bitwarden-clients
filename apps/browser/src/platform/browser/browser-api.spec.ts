@@ -142,6 +142,19 @@ describe("BrowserApi", () => {
       expect(result).toBeUndefined();
     });
 
+    it("rejects when the managed storage read never calls back", async () => {
+      jest.useFakeTimers();
+      (global.chrome as any).storage.managed = {
+        get: jest.fn(),
+      };
+
+      const pending = BrowserApi.getManagedStorage();
+      const assertion = expect(pending).rejects.toThrow("Managed storage read timed out");
+      await jest.advanceTimersByTimeAsync(3000);
+      await assertion;
+      jest.useRealTimers();
+    });
+
     it("rejects with the runtime error when the read fails", async () => {
       (global.chrome as any).storage.managed = {
         get: jest.fn().mockImplementation((_keys, callback) => {

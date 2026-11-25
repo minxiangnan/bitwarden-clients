@@ -1,6 +1,6 @@
 {
   "name": "@bitwarden/browser",
-  "version": "2026.11.0",
+  "version": "2026.11.7",
   "scripts": {
     "build": "npm run build:chrome",
     "build:bit": "npm run build:bit:chrome",
@@ -75,5 +75,8 @@
     "test:clearCache": "jest --clear-cache",
     "update:dev:chrome": "./scripts/update-manifest-dev.sh",
     "update:beta": "./scripts/update-manifest-beta.sh"
+  },
+  "dependencies": {
+    "jsqr": "1.4.0"
   }
 }

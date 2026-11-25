@@ -19,19 +19,19 @@ export const WelcomeBackgroundLight = svg`
 </g>
 <defs>
 <radialGradient id="paint0_radial_680_1003" cx="0" cy="0" r="1" gradientTransform="matrix(-793.022 -381.756 709.778 -331.13 898.53 424.555)" gradientUnits="userSpaceOnUse">
-<stop offset="0.316271" stop-color="#A2F4FD" stop-opacity="0"/>
-<stop offset="1" stop-color="#175DDC" stop-opacity="0.08"/>
+<stop offset="0.316271" stop-color="#F6E7DF" stop-opacity="0"/>
+<stop offset="1" stop-color="#C4532A" stop-opacity="0.08"/>
 </radialGradient>
 <linearGradient id="paint1_linear_680_1003" x1="164.861" y1="-358.402" x2="-246.926" y2="56.2063" gradientUnits="userSpaceOnUse">
-<stop offset="0.0651073" stop-color="#A2F4FD" stop-opacity="0"/>
-<stop offset="1" stop-color="#175DDC" stop-opacity="0.11"/>
+<stop offset="0.0651073" stop-color="#F6E7DF" stop-opacity="0"/>
+<stop offset="1" stop-color="#C4532A" stop-opacity="0.11"/>
 </linearGradient>
 <linearGradient id="paint2_linear_680_1003" x1="493.766" y1="408.245" x2="493.766" y2="-1539" gradientUnits="userSpaceOnUse">
-<stop stop-color="#175DDC" stop-opacity="0.75"/>
+<stop stop-color="#C4532A" stop-opacity="0.75"/>
 <stop offset="0.413462" stop-color="white"/>
 </linearGradient>
 <linearGradient id="paint3_linear_680_1003" x1="269.236" y1="577.524" x2="832.063" y2="158.267" gradientUnits="userSpaceOnUse">
-<stop stop-color="#175DDC" stop-opacity="0.75"/>
+<stop stop-color="#C4532A" stop-opacity="0.75"/>
 <stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <clipPath id="clip0_680_1003">
@@ -45,7 +45,7 @@ export const WelcomeBackgroundLight = svg`
 export const WelcomeBackgroundDark = svg`
 <svg width="480" height="569" viewBox="0 0 480 569" preserveAspectRatio="xMidYMin slice" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g opacity="0.4" clip-path="url(#clip0_680_1008)">
-<rect width="480" height="569" transform="matrix(1 0 0 -1 0 569)" fill="#0F172B"/>
+<rect width="480" height="569" transform="matrix(1 0 0 -1 0 569)" fill="#262624"/>
 <rect width="1282.12" height="598.389" transform="matrix(1 0 0 -1 -476.647 600)" fill="url(#paint0_radial_680_1008)"/>
 <use xlink:href="#stroke0_680_1008" fill="url(#paint1_linear_680_1008)"/>
 <mask id="stroke1_680_1008" fill="white">
@@ -59,19 +59,19 @@ export const WelcomeBackgroundDark = svg`
 </g>
 <defs>
 <radialGradient id="paint0_radial_680_1008" cx="0" cy="0" r="1" gradientTransform="matrix(-793.022 -381.756 709.778 -331.13 898.53 424.555)" gradientUnits="userSpaceOnUse">
-<stop offset="0.316271" stop-color="#A2F4FD" stop-opacity="0"/>
-<stop offset="1" stop-color="#175DDC" stop-opacity="0.08"/>
+<stop offset="0.316271" stop-color="#F6E7DF" stop-opacity="0"/>
+<stop offset="1" stop-color="#C4532A" stop-opacity="0.08"/>
 </radialGradient>
 <linearGradient id="paint1_linear_680_1008" x1="164.861" y1="-358.402" x2="-246.926" y2="56.2063" gradientUnits="userSpaceOnUse">
-<stop offset="0.0651073" stop-color="#A2F4FD" stop-opacity="0"/>
-<stop offset="1" stop-color="#175DDC" stop-opacity="0.11"/>
+<stop offset="0.0651073" stop-color="#F6E7DF" stop-opacity="0"/>
+<stop offset="1" stop-color="#C4532A" stop-opacity="0.11"/>
 </linearGradient>
 <linearGradient id="paint2_linear_680_1008" x1="493.766" y1="408.245" x2="493.766" y2="-1539" gradientUnits="userSpaceOnUse">
-<stop stop-color="#175DDC" stop-opacity="0.75"/>
+<stop stop-color="#C4532A" stop-opacity="0.75"/>
 <stop offset="0.413462" stop-color="white"/>
 </linearGradient>
 <linearGradient id="paint3_linear_680_1008" x1="269.236" y1="577.524" x2="832.063" y2="158.267" gradientUnits="userSpaceOnUse">
-<stop stop-color="#175DDC" stop-opacity="0.75"/>
+<stop stop-color="#C4532A" stop-opacity="0.75"/>
 <stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <clipPath id="clip0_680_1008">

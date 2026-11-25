@@ -32,6 +32,10 @@ describe("PasswordStrengthV2Component", () => {
     expect(component).toBeTruthy();
   });
 
+  it("does not show a strength score before a password is typed", () => {
+    expect(fixture.nativeElement.textContent).not.toContain("passwordStrengthScore");
+  });
+
   it("should update password strength when password changes", () => {
     const password = "testPassword";
     jest.spyOn(component, "updatePasswordStrength");

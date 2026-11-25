@@ -14,7 +14,7 @@
     "description": "Extension name for the beta channel, MUST be less than 40 characters (Safari restriction)"
   },
   "extDesc": {
-    "message": "无论是在家中、工作中还是在旅途中，Bitwarden 都可以轻松地保护您的所有密码、通行密钥和敏感信息。",
+    "message": "自建密码库和验证器，数据保存在你的服务器上。",
     "description": "Extension description, MUST be less than 112 characters (Safari restriction)"
   },
   "loginOrCreateNewAccount": {
@@ -25,6 +25,12 @@
   },
   "createAccount": {
     "message": "创建账户"
+  },
+  "welcomeToBitwarden": {
+    "message": "欢迎使用 Bitwarden"
+  },
+  "createYourAccountOrLogIn": {
+    "message": "创建账户或登录"
   },
   "newToBitwarden": {
     "message": "Bitwarden 新手吗？"
@@ -982,6 +988,9 @@
   "never": {
     "message": "从不"
   },
+  "neverForWebsite": {
+    "message": "此网站永不"
+  },
   "security": {
     "message": "安全"
   },
@@ -1448,6 +1457,10 @@
   "saveFailureDetails": {
     "message": "糟糕！我们无法保存它。请尝试手动输入详细信息。",
     "description": "Detailed error message shown when saving login details fails."
+  },
+  "untrustedCertificate": {
+    "message": "服务器证书不受信任，保存失败",
+    "description": "Shown when a save fails because the server certificate is not trusted."
   },
   "changePasswordWarning": {
     "message": "更改密码后，您需要使用新密码登录。在其他设备上的活动会话将在一小时内注销。"
@@ -2192,7 +2205,19 @@
     "message": "您必须添加基础服务器 URL 或至少添加一个自定义环境。"
   },
   "selfHostedEnvMustUseHttps": {
-    "message": "URL 必须使用 HTTPS。"
+    "message": "服务器地址必须使用 HTTPS。只有本机的 localhost 和 127.0.0.1 可以使用 HTTP。"
+  },
+  "serverUrlRequired": {
+    "message": "请填写服务器地址。"
+  },
+  "serverUrlInvalid": {
+    "message": "请填写有效的服务器地址，例如 https://vault.example.com。"
+  },
+  "serverUrlMustUseHttps": {
+    "message": "服务器地址必须使用 HTTPS。只有本机的 localhost 和 127.0.0.1 可以使用 HTTP。"
+  },
+  "serverUnreachable": {
+    "message": "连不上这台服务器。请检查地址和网络。"
   },
   "customEnvironment": {
     "message": "自定义环境"
@@ -3837,14 +3862,14 @@
     "message": "复制 Send 链接",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
-  "removePassword": {
-    "message": "移除密码"
+  "removeAuth": {
+    "message": "移除密码或邮箱验证"
   },
   "delete": {
     "message": "删除"
   },
-  "removedPassword": {
-    "message": "密码已移除"
+  "removedAuth": {
+    "message": "已移除密码或邮箱验证"
   },
   "deletedSend": {
     "message": "Send 已删除",
@@ -3857,8 +3882,28 @@
   "disabled": {
     "message": "已禁用"
   },
-  "removePasswordConfirmation": {
-    "message": "确定要移除此密码吗？"
+  "removeAuthConfirmation": {
+    "message": "确定要移除此 Send 的密码或邮箱验证要求吗？"
+  },
+  "removePassword": {
+    "message": "移除密码"
+  },
+  "removeEmailVerification": {
+    "message": "移除邮箱验证"
+  },
+  "removedPassword": {
+    "message": "密码已移除"
+  },
+  "removedEmailVerification": {
+    "message": "已移除邮箱验证"
+  },
+  "removeSendPasswordConfirmation": {
+    "message": "确定要移除此 Send 的密码要求吗？",
+    "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
+  },
+  "removeSendEmailVerificationConfirmation": {
+    "message": "确定要移除此 Send 的邮箱验证要求吗？",
+    "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "deleteSend": {
     "message": "删除 Send",
@@ -6705,9 +6750,6 @@
   "copyAddress": {
     "message": "复制地址"
   },
-  "myItems": {
-    "message": "我的项目"
-  },
   "myItemsV2": {
     "message": "我的项目"
   },
@@ -7052,12 +7094,13 @@
       }
     }
   },
-  "appUri": {
-    "message": "App (URI)"
+  "desktopApp": {
+    "message": "桌面应用",
+    "description": "Label for a field that shows an application installed on the computer that the item is paired with."
   },
-  "appUriCount": {
-    "message": "App (URI) $COUNT$",
-    "description": "Label for an input field that contains an app URI. The input field is part of a list of fields, and the count indicates the position of the field in the list.",
+  "desktopAppCount": {
+    "message": "桌面应用 $COUNT$",
+    "description": "Label for a field that shows an application installed on the computer that the item is paired with. The field is part of a list of fields, and the count indicates the position of the field in the list.",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -8443,8 +8486,8 @@
     "message": "此 Send 将在设置的删除日期自动过期",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
-  "errorImportingMyItemsMultiCollection": {
-    "message": "您不能将属于多个集合的项目导入到「我的项目」"
+  "errorImportingMyItemsMultiCollectionV2": {
+    "message": "无法将属于多个集合的项目导入“我的项目”"
   },
   "cannotSaveItemNoConfirmedOrgs": {
     "message": "无法保存项目。您必须先通过组织确认才能保存项目。"
@@ -8865,5 +8908,846 @@
   },
   "httpAuthenticationTurnedOffNotice": {
     "message": "此项目已开启主密码二次验证，因此浏览器登录自动填充提示功能被关闭。请保存此条目以保留此更改。"
+  },
+  "pamStartLeaseErrorWindowNotStarted": {
+    "message": "已批准的访问时段尚未开始。"
+  },
+  "pamStartLeaseErrorWindowEnded": {
+    "message": "已批准的访问时段已经结束。"
+  },
+  "pamStartLeaseErrorNotApproved": {
+    "message": "此请求尚未获得批准。"
+  },
+  "pamStartLeaseErrorNoLongerActivatable": {
+    "message": "此请求已无法再激活。"
+  },
+  "pamStartLeaseErrorAlreadyUsed": {
+    "message": "此请求的访问权限已使用，不再有效。"
+  },
+  "pamStartLeaseErrorSingleActiveAccess": {
+    "message": "同一时间只能有 1 位用户对此项目拥有活动访问权限。请在当前访问结束后再试。"
+  },
+  "pamStartLeaseErrorNetworkNotPermitted": {
+    "message": "当前网络不允许访问此项目。"
+  },
+  "pamStartLeaseErrorTimeNotPermitted": {
+    "message": "当前时间不允许访问此项目。"
+  },
+  "pamStartLeaseErrorNotPermitted": {
+    "message": "现在不允许访问此项目。"
+  },
+  "requestAccessModalAlreadyApproved": {
+    "message": "你已有一项已批准的此项目请求。"
+  },
+  "requestAccessModalAlreadyPending": {
+    "message": "你已有一项待处理的此项目请求。"
+  },
+  "pamLeaseExpires": {
+    "message": "于 $DATE$ $TIME$ 到期",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "Nov 3, 2026"
+      },
+      "time": {
+        "content": "$2",
+        "example": "4:15 pm"
+      }
+    }
+  },
+  "pamLeaseExpiresToday": {
+    "message": "今天 $TIME$ 到期",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "4:15 pm"
+      }
+    }
+  },
+  "pamStartLeaseButton": {
+    "message": "开始访问"
+  },
+  "pamStartLeaseSuccess": {
+    "message": "访问已开始。"
+  },
+  "pamStartLeaseError": {
+    "message": "无法开始访问。"
+  },
+  "pamEndLeaseButton": {
+    "message": "结束访问"
+  },
+  "pamEndLeaseTitle": {
+    "message": "结束访问？"
+  },
+  "pamEndLeaseConfirm": {
+    "message": "这将立即撤销你的访问权限。此操作无法撤销。"
+  },
+  "pamEndLeaseSuccess": {
+    "message": "访问已结束。"
+  },
+  "pamExtendLeaseButtonV2": {
+    "message": "延长访问"
+  },
+  "pamExtendLeaseDialogTitle": {
+    "message": "延长访问"
+  },
+  "pamExtendLeaseDurationLabel": {
+    "message": "延长时长"
+  },
+  "pamExtendLeaseReasonLabel": {
+    "message": "原因"
+  },
+  "pamExtendLeaseSuccess": {
+    "message": "访问已延长。"
+  },
+  "pamExtendLeaseError": {
+    "message": "无法延长访问。"
+  },
+  "pamExtendLeaseEnded": {
+    "message": "访问在延长前已经结束。该请求已记入历史记录。"
+  },
+  "pamAccessBadgePrivileged": {
+    "message": "特权"
+  },
+  "pamAccessBadgePending": {
+    "message": "等待批准"
+  },
+  "pamAccessBadgeUnavailable": {
+    "message": "不可用"
+  },
+  "pamAccessBadgeReady": {
+    "message": "可以使用"
+  },
+  "pamAccessBadgeTimeLeft": {
+    "message": "剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "18m"
+      }
+    }
+  },
+  "pamAccessBadgeEndingSoon": {
+    "message": "即将结束 • 剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "4m"
+      }
+    }
+  },
+  "pamAccessBadgeEnded": {
+    "message": "会话已结束"
+  },
+  "pamActiveLeaseBannerTitleV2": {
+    "message": "访问进行中 • 剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "20 days"
+      }
+    }
+  },
+  "pamActiveLeaseBannerEndingSoonTitleV2": {
+    "message": "即将结束 • 剩余 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "4 minutes"
+      }
+    }
+  },
+  "pamPendingRequestBannerHeading": {
+    "message": "访问请求等待批准"
+  },
+  "pamPendingSubmittedJustNow": {
+    "message": "刚刚提交"
+  },
+  "pamPendingSubmittedAgo": {
+    "message": "提交于 $WHEN$",
+    "placeholders": {
+      "when": {
+        "content": "$1",
+        "example": "5 minutes ago"
+      }
+    }
+  },
+  "pamPrivilegedCredentialsHeading": {
+    "message": "特权凭据"
+  },
+  "pamLicenseNeededTooltip": {
+    "message": "需要特权控制许可证",
+    "description": "Tooltip on the disabled Request access button of a member without a Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamRequestToUse": {
+    "message": "申请使用"
+  },
+  "pamUnavailableToRequest": {
+    "message": "无法申请",
+    "description": "Subtitle of a vault row for a privileged item that cannot be requested right now, for example because another member holds it."
+  },
+  "pamExtendAccessMenuItem": {
+    "message": "延长访问",
+    "description": "Overflow menu action on a vault row that extends the member's active access to a privileged item."
+  },
+  "pamAccessBadgeLessThanMinuteLeft": {
+    "message": "剩余不到 1 分钟",
+    "description": "Badge for a vault item whose access ends in under a minute."
+  },
+  "controlledAccess": {
+    "message": "受控访问"
+  },
+  "pamControlledAccessFilterActive": {
+    "message": "使用中"
+  },
+  "pamControlledAccessFilterEndingSoon": {
+    "message": "即将结束"
+  },
+  "pamEndedBannerHeading": {
+    "message": "你的访问已结束"
+  },
+  "pamEndedBannerBody": {
+    "message": "此凭据的租约已到期。访问结束后，该凭据现在将被轮换。"
+  },
+  "pamUnavailableBannerHeading": {
+    "message": "你现在无法申请访问"
+  },
+  "pamUnavailableBannerBody": {
+    "message": "此凭据的访问规则不允许从当前网络或在当前时间提出申请。"
+  },
+  "pamApprovedRequestBannerHeadingV2": {
+    "message": "可以使用"
+  },
+  "pamApprovedAccessUntilToday": {
+    "message": "你可以在今天 $TIME$ 之前访问此凭据。",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "4:45 PM"
+      }
+    }
+  },
+  "pamApprovedAccessUntil": {
+    "message": "你可以在 $DATE$ $TIME$ 之前访问此凭据。",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "4:45 PM"
+      },
+      "date": {
+        "content": "$2",
+        "example": "Nov 6, 2026"
+      }
+    }
+  },
+  "pamRequestAccessBannerBody": {
+    "message": "在授予访问权限之前，凭据会被隐藏。"
+  },
+  "pamRequestAccessBannerHeading": {
+    "message": "你可以申请访问"
+  },
+  "pamUnlicensedBannerHeadingV2": {
+    "message": "使用此项目需要特权控制许可证",
+    "description": "Heading of the message shown on a privileged item to a member who has no Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamUnlicensedBannerRequestUnavailable": {
+    "message": "未获得许可时无法申请访问。",
+    "description": "Explains to a member without a Privileged Controls license why no request button is offered on a privileged item."
+  },
+  "pamUnlicensedBannerBodyV2": {
+    "message": "请让管理员激活你的许可证。",
+    "description": "Body of the message shown on a privileged item to a member who has no Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamLeaseErrorUnlicensed": {
+    "message": "需要特权控制许可证。请让管理员激活你的许可证。",
+    "description": "Toast shown when starting or extending privileged access fails because the member has no Privileged Controls license. 'Privileged Controls' is a product name and should not be translated."
+  },
+  "pamRequestAccessBannerMaxDuration": {
+    "message": "最长访问 $DURATION$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "1 day"
+      }
+    }
+  },
+  "pamRequestAccessBannerMaxDurationAutomatic": {
+    "message": "最长访问 $DURATION$，满足条件即可立即批准",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "1 day"
+      }
+    }
+  },
+  "pamRequestAccessButton": {
+    "message": "申请访问"
+  },
+  "pamRequestSlotTaken": {
+    "message": "当前已有其他人正在访问此项目。你可以申请访问，但要等对方结束后才能开始。"
+  },
+  "pamRequestSlotTakenUntil": {
+    "message": "当前已有其他人正在访问此项目。你可以申请访问，但要到 $TIME$ 才能开始。",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "8/31/26, 10:52 AM"
+      }
+    }
+  },
+  "pendingStateCancelRequest": {
+    "message": "取消请求"
+  },
+  "pamKeepRequest": {
+    "message": "保留请求"
+  },
+  "pamCancelRequestTitle": {
+    "message": "取消访问请求"
+  },
+  "pamCancelRequestPendingConfirm": {
+    "message": "这将在审批人决定之前撤回你的请求。你可以随时重新提交。"
+  },
+  "pamCancelRequestApprovedConfirm": {
+    "message": "这将放弃已经批准的访问权限。你可以重新提交请求，但需要再次批准。"
+  },
+  "pamCancelRequestCanceledToast": {
+    "message": "请求已取消"
+  },
+  "pendingStateCancelError": {
+    "message": "无法取消请求。"
+  },
+  "requestAccessModalSubmitV2": {
+    "message": "发送请求"
+  },
+  "requestAccessModalDurationV2": {
+    "message": "你需要使用多长时间？"
+  },
+  "requestAccessModalDurationHint": {
+    "message": "批准后你会收到通知。只有在你开始使用此凭据后，时间才会开始倒计时。"
+  },
+  "requestAccessModalDetailsHeading": {
+    "message": "请求详情"
+  },
+  "requestAccessModalStartDate": {
+    "message": "开始日期"
+  },
+  "requestAccessModalStart": {
+    "message": "开始时间"
+  },
+  "requestAccessModalEndDate": {
+    "message": "结束日期"
+  },
+  "requestAccessModalEnd": {
+    "message": "结束时间"
+  },
+  "requestAccessModalEndNotAfterStart": {
+    "message": "结束时间必须晚于开始时间。"
+  },
+  "requestAccessModalStartNow": {
+    "message": "$TIME$（现在）",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "10:57 AM"
+      }
+    }
+  },
+  "requestAccessModalCustomOption": {
+    "message": "自定义时间…"
+  },
+  "requestAccessModalCustomEndOption": {
+    "message": "自定义结束日期和时间…"
+  },
+  "requestAccessModalShowStartPresets": {
+    "message": "显示建议的开始时间"
+  },
+  "requestAccessModalShowEndPresets": {
+    "message": "返回建议时长"
+  },
+  "requestAccessModalDurationUntil": {
+    "message": "$DURATION$，直到 $END$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "4 hours"
+      },
+      "end": {
+        "content": "$2",
+        "example": "2:57 PM"
+      }
+    }
+  },
+  "requestAccessModalWindowSummary": {
+    "message": "申请 $DURATION$ 的访问：$START$ – $END$",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "2 days, 22 hours"
+      },
+      "start": {
+        "content": "$2",
+        "example": "Tue, Sep 29, 10:57 AM"
+      },
+      "end": {
+        "content": "$3",
+        "example": "Thu, Oct 1, 9:00 AM"
+      }
+    }
+  },
+  "requestAccessModalWindowInPast": {
+    "message": "申请的时段已经结束。请选择更晚的日期或时间。"
+  },
+  "requestAccessModalWindowExceedsMax": {
+    "message": "时段不能超过 $DURATION$。",
+    "placeholders": {
+      "duration": {
+        "content": "$1",
+        "example": "30 minutes"
+      }
+    }
+  },
+  "requestAccessModalReasonRequiredV2": {
+    "message": "你为什么需要它？"
+  },
+  "requestAccessModalReasonOptionalV2": {
+    "message": "你为什么需要它？"
+  },
+  "requestAccessModalReasonPlaceholderV2": {
+    "message": "例如：季度审计，需要运行几条只读查询"
+  },
+  "requestAccessModalAutomaticReasonHintV2": {
+    "message": "审批人可见，并会写入审计日志。"
+  },
+  "requestAccessModalHumanReasonHintV2": {
+    "message": "审批人可见，并会写入审计日志。"
+  },
+  "requestAccessModalGenericError": {
+    "message": "无法申请访问。请重试。"
+  },
+  "requestAccessModalAlreadyActive": {
+    "message": "你已经拥有此项目的活动访问权限。"
+  },
+  "requestAccessModalApprovedSuccessV2": {
+    "message": "访问已批准。选择“开始访问”即可开始。"
+  },
+  "requestAccessModalRequestCreatedSuccessV2": {
+    "message": "已申请访问"
+  },
+  "authenticator": {
+    "message": "验证器"
+  },
+  "authenticatorAdd": {
+    "message": "添加验证码"
+  },
+  "authenticatorEdit": {
+    "message": "编辑验证码"
+  },
+  "authenticatorIssuer": {
+    "message": "发行方"
+  },
+  "authenticatorSecret": {
+    "message": "密钥"
+  },
+  "authenticatorAlgorithm": {
+    "message": "算法"
+  },
+  "authenticatorDigits": {
+    "message": "位数"
+  },
+  "authenticatorPeriod": {
+    "message": "周期（秒）"
+  },
+  "authenticatorFavorites": {
+    "message": "收藏"
+  },
+  "authenticatorFavorite": {
+    "message": "收藏"
+  },
+  "authenticatorUnfavorite": {
+    "message": "取消收藏"
+  },
+  "authenticatorEmpty": {
+    "message": "还没有验证码。"
+  },
+  "authenticatorLoadError": {
+    "message": "无法加载验证码。"
+  },
+  "authenticatorCopied": {
+    "message": "验证码已复制"
+  },
+  "authenticatorImport": {
+    "message": "从密码库导入"
+  },
+  "authenticatorImportHelp": {
+    "message": "密码库中已经保存了验证码密钥的登录项。"
+  },
+  "authenticatorImportNone": {
+    "message": "没有可导入的新验证码。"
+  },
+  "authenticatorImportOne": {
+    "message": "导入"
+  },
+  "authenticatorPasteUri": {
+    "message": "粘贴 otpauth 链接"
+  },
+  "authenticatorPasteFailed": {
+    "message": "无法读取剪贴板。"
+  },
+  "authenticatorInvalidUri": {
+    "message": "这不是有效的 otpauth 链接。"
+  },
+  "authenticatorScanTab": {
+    "message": "扫描当前标签页"
+  },
+  "authenticatorScanEmpty": {
+    "message": "当前标签页没有找到二维码。"
+  },
+  "authenticatorScanUnsupported": {
+    "message": "当前浏览器不能识别二维码。请改为粘贴 otpauth 链接。"
+  },
+  "authenticatorScanFound": {
+    "message": "已读取二维码"
+  },
+  "authenticatorSecretHint": {
+    "message": "粘贴 Base32 密钥或 otpauth:// 链接"
+  },
+  "authenticatorAdvanced": {
+    "message": "高级设置"
+  },
+  "authenticatorType": {
+    "message": "类型"
+  },
+  "authenticatorTypeTotp": {
+    "message": "TOTP"
+  },
+  "authenticatorTypeSteam": {
+    "message": "Steam"
+  },
+  "authenticatorDefaultName": {
+    "message": "账户 $NUMBER$",
+    "placeholders": {
+      "number": {
+        "content": "$1",
+        "example": "1"
+      }
+    }
+  },
+  "authenticatorSecretInvalid": {
+    "message": "请输入有效的 Base32 密钥。"
+  },
+  "authenticatorSaveError": {
+    "message": "无法保存到服务器，请检查网络后重试。"
+  },
+  "serverSaveFailed": {
+    "message": "无法保存到服务器，请检查网络后重试。"
+  },
+  "authenticatorMissing": {
+    "message": "找不到此验证码。"
+  },
+  "authenticatorDeleteConfirm": {
+    "message": "确认删除"
+  },
+  "authenticatorUndecryptable": {
+    "message": "无法解密此验证码。在能够读取之前不能编辑。"
+  },
+  "authenticatorMoveUp": {
+    "message": "上移"
+  },
+  "authenticatorMoveDown": {
+    "message": "下移"
+  },
+  "mcpAccess": {
+    "message": "MCP 访问"
+  },
+  "mcpAccessHelp": {
+    "message": "创建令牌后，在验证器条目里打开「允许 MCP 读取」并填写别名。AI 只能读取这些条目的当前验证码。"
+  },
+  "mcpAllowRead": {
+    "message": "允许 MCP 读取"
+  },
+  "mcpAlias": {
+    "message": "别名"
+  },
+  "mcpAliasHint": {
+    "message": "例如 gitlab"
+  },
+  "mcpAllowHelp": {
+    "message": "别名可以现在就填。勾选上面的选项后，AI 才能按这个名字读取当前验证码。"
+  },
+  "mcpCreate": {
+    "message": "创建令牌"
+  },
+  "mcpRotate": {
+    "message": "轮换令牌"
+  },
+  "mcpRevoke": {
+    "message": "吊销令牌"
+  },
+  "mcpCopy": {
+    "message": "复制令牌"
+  },
+  "mcpToken": {
+    "message": "访问令牌"
+  },
+  "mcpTokenOnce": {
+    "message": "令牌只显示这一次。请立刻复制到 Claude 或 Cursor。离开本页后无法再查看，丢失只能轮换。"
+  },
+  "mcpTokenCopied": {
+    "message": "已复制令牌"
+  },
+  "mcpTokenRevoked": {
+    "message": "令牌已吊销"
+  },
+  "mcpNoServer": {
+    "message": "这台服务器没有打开 MCP。"
+  },
+  "mcpNeedToken": {
+    "message": "请先到「设置 → MCP 访问」创建令牌。"
+  },
+  "mcpAliasRequired": {
+    "message": "请填写别名。"
+  },
+  "mcpAliasInvalid": {
+    "message": "别名以字母或数字开头，只能包含字母、数字、点、下划线和连字符。"
+  },
+  "mcpEnabledStatus": {
+    "message": "令牌已生效，已放行 $COUNT$ 条。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "mcpRotateConfirm": {
+    "message": "轮换后当前令牌立即失效。能解密的条目会自动重新放行，其余需要再打开一次「允许 MCP 读取」。"
+  },
+  "mcpRevokeConfirm": {
+    "message": "吊销后，已放行的验证码会全部关闭 MCP 读取，别名也会清空。如果只想换掉令牌、保留别名，请改用「轮换令牌」。"
+  },
+  "mcpActionError": {
+    "message": "MCP 操作失败，请检查网络后重试。"
+  },
+  "mcpRewrapMissed": {
+    "message": "这些别名需要重新打开「允许 MCP 读取」：$NAMES$",
+    "placeholders": {
+      "names": {
+        "content": "$1",
+        "example": "gitlab"
+      }
+    }
+  },
+  "authenticatorHelp": {
+    "message": "使用说明"
+  },
+  "authenticatorTools": {
+    "message": "更多"
+  },
+  "authenticatorArrange": {
+    "message": "排序和分组"
+  },
+  "authenticatorArrangeHelp": {
+    "message": "只影响这台浏览器上的查看方式，不会改服务器上的顺序，除非你在编辑页里上移或下移。"
+  },
+  "authenticatorSort": {
+    "message": "排序"
+  },
+  "authenticatorGroup": {
+    "message": "分组"
+  },
+  "authenticatorHide": {
+    "message": "收起"
+  },
+  "authenticatorBackupHelp": {
+    "message": "写成一条加密的安全笔记，和其他登录一起存在服务器上。下载的 JSON 是明文，只用于迁移。"
+  },
+  "authenticatorRecentEmpty": {
+    "message": "还没有最近复制过的验证码。"
+  },
+  "authenticatorCopyAction": {
+    "message": "复制验证码"
+  },
+  "authenticatorTrash": {
+    "message": "验证码回收站"
+  },
+  "authenticatorTrashHelp": {
+    "message": "删除的验证码先留在这里，可以恢复。彻底删除才会从服务器去掉。"
+  },
+  "authenticatorTrashEmpty": {
+    "message": "回收站是空的。"
+  },
+  "authenticatorRestore": {
+    "message": "恢复"
+  },
+  "authenticatorTrashPermanent": {
+    "message": "彻底删除"
+  },
+  "passwordHealthClear": {
+    "message": "没有发现需要处理的密码。"
+  },
+  "passwordHealthBusy": {
+    "message": "正在检查…"
+  },
+  "passwordPresetHint": {
+    "message": "点一下就按这个预设生成并复制。下面可以继续改长度和字符。"
+  },
+  "authenticatorHost": {
+    "message": "网站主机"
+  },
+  "authenticatorHostHint": {
+    "message": "例如 github.com"
+  },
+  "authenticatorUseHost": {
+    "message": "使用当前网站"
+  },
+  "authenticatorTags": {
+    "message": "分组"
+  },
+  "authenticatorTagsHint": {
+    "message": "用逗号分隔，例如 工作, 个人"
+  },
+  "authenticatorCounter": {
+    "message": "计数器"
+  },
+  "authenticatorTypeHotp": {
+    "message": "HOTP"
+  },
+  "authenticatorSortManual": {
+    "message": "手动排序"
+  },
+  "authenticatorSortName": {
+    "message": "按名称"
+  },
+  "authenticatorSortIssuer": {
+    "message": "按发行方"
+  },
+  "authenticatorGroupNone": {
+    "message": "不分组"
+  },
+  "authenticatorGroupIssuer": {
+    "message": "按发行方分组"
+  },
+  "authenticatorGroupTag": {
+    "message": "按分组标签"
+  },
+  "authenticatorOffline": {
+    "message": "服务器暂时连不上。正在显示上次同步的验证码，现在只能查看和复制。"
+  },
+  "authenticatorSyncedAt": {
+    "message": "已同步 $TIME$",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "2026/11/23 14:00"
+      }
+    }
+  },
+  "authenticatorImportHint": {
+    "message": "粘贴 otpauth 链接、Google 迁移链接，或 Aegis、2FAS、Bitwarden 的导出内容"
+  },
+  "authenticatorImportPaste": {
+    "message": "导入粘贴的内容"
+  },
+  "authenticatorImportFile": {
+    "message": "从图片或文件导入"
+  },
+  "authenticatorImportEmpty": {
+    "message": "没有读到可导入的验证码。"
+  },
+  "authenticatorImportEncrypted": {
+    "message": "这个备份是加密的。请在原来的应用里导出未加密的 JSON。"
+  },
+  "authenticatorImported": {
+    "message": "已导入 $COUNT$ 条",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "authenticatorExport": {
+    "message": "导出 JSON"
+  },
+  "authenticatorExportWarning": {
+    "message": "导出的文件包含明文密钥，只适合迁移。加密副本在服务器上。"
+  },
+  "authenticatorBackup": {
+    "message": "备份到保险库"
+  },
+  "authenticatorBackupSaved": {
+    "message": "已写入一条加密的安全笔记。"
+  },
+  "authenticatorRecent": {
+    "message": "最近使用"
+  },
+  "authenticatorNext": {
+    "message": "下一段"
+  },
+  "commandCopySiteTotp": {
+    "message": "复制当前网站的验证码"
+  },
+  "passwordHealth": {
+    "message": "密码健康"
+  },
+  "passwordHealthHelp": {
+    "message": "在这台浏览器里检查太短、太简单和重复的密码。泄露检查只发送密码哈希的前 5 位。"
+  },
+  "passwordHealthLocal": {
+    "message": "检查弱密码和重复"
+  },
+  "passwordHealthExposed": {
+    "message": "检查是否泄露"
+  },
+  "passwordHealthWeak": {
+    "message": "弱"
+  },
+  "passwordHealthReused": {
+    "message": "重复"
+  },
+  "passwordHealthLeaked": {
+    "message": "泄露"
+  },
+  "passwordPresetStrong": {
+    "message": "20 位强密码"
+  },
+  "passwordPresetPin": {
+    "message": "6 位数字"
+  },
+  "passwordPresetPhrase": {
+    "message": "5 词口令"
+  },
+  "passwordPresetCopied": {
+    "message": "已按预设生成并复制"
+  },
+  "mcpHotpUnsupported": {
+    "message": "HOTP 不能通过 MCP 读取。计数器每次使用都会变，请在扩展里复制。"
+  },
+  "destructiveLogoutBody": {
+    "message": "注销后，这台浏览器上还没同步到服务器的修改会丢掉。已经保存的密码和验证码还在。"
+  },
+  "destructiveNeverTitle": {
+    "message": "此网站"
+  },
+  "destructiveNeverBody": {
+    "message": "以后这个网站不再询问保存。已经保存的登录不会删除。"
+  },
+  "destructiveNeverAccept": {
+    "message": "不再保存"
+  },
+  "destructiveUriBody": {
+    "message": "这个网址会从登录里去掉。"
+  },
+  "destructiveFieldBody": {
+    "message": "这个字段里的内容会丢掉。"
+  },
+  "destructiveDomainBody": {
+    "message": "去掉之后，这个网站会重新询问是否保存。"
+  },
+  "destructiveAuthenticatorTrashBody": {
+    "message": "验证码会先放进回收站，还可以恢复。MCP 读取会关掉。"
+  },
+  "destructiveDraftBody": {
+    "message": "这个页面的采集草稿会被清掉，不能恢复。"
   }
 }

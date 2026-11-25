@@ -1,3 +1,4 @@
+import "./i18n/force-zh-cn";
 import { ConsoleLogService } from "@bitwarden/common/platform/services/console-log.service";
 
 import MainBackground from "../background/main.background";

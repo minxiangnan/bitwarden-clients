@@ -63,6 +63,22 @@ export class BrowserForegroundIpcTransport {
   }
 
   /**
+   * A fresh install has no popup, so waking it rejects with
+   * "Receiving end does not exist." Chrome records that rejection even after a
+   * catch is attached. Skip the send unless an extension page is already open.
+   */
+  private async extensionPageIsOpen(): Promise<boolean> {
+    if (typeof chrome.runtime.getContexts !== "function") {
+      return true;
+    }
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ["POPUP", "SIDE_PANEL", "TAB"],
+    });
+    const origin = chrome.runtime.getURL("");
+    return contexts.some((context) => context.documentUrl?.startsWith(origin));
+  }
+
+  /**
    * The endpoints of the extension pages that currently hold an open port, in connection order.
    */
   connectedEndpoints(): Endpoint[] {
@@ -98,11 +114,27 @@ export class BrowserForegroundIpcTransport {
    * pages that are already open. Every open page receives this message and connects its port.
    */
   private wakeForegrounds() {
+    if (typeof chrome.runtime.getContexts !== "function") {
+      this.sendWake();
+      return;
+    }
+    void this.extensionPageIsOpen()
+      .then((open) => {
+        if (open) {
+          this.sendWake();
+        }
+      })
+      .catch((e) => {
+        this.logService.warning("[IPC] Failed to wake extension pages", e);
+      });
+  }
+
+  private sendWake() {
     try {
-      chrome.runtime.sendMessage({ command: IPC_FOREGROUND_WAKE_COMMAND }, () => {
-        // Suppress the error raised when no page is open to receive the message
+      const sent = chrome.runtime.sendMessage({ command: IPC_FOREGROUND_WAKE_COMMAND }, () => {
         void chrome.runtime.lastError;
       });
+      void Promise.resolve(sent).catch((): void => undefined);
     } catch (e) {
       this.logService.warning("[IPC] Failed to wake extension pages", e);
     }

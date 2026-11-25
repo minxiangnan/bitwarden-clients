@@ -262,13 +262,15 @@ export class SessionTimeoutSettingsComponent implements OnInit {
       this.vaultTimeoutSettingsService.getVaultTimeoutActionByUserId$(this.userId),
     );
 
+    // Mark the choice before the timeout is written. Writing it refreshes the
+    // unlock key, and that refresh must see the person's choice.
+    await this.sessionTimeoutSettingsComponentService.onTimeoutSave(newValue);
+
     await this.vaultTimeoutSettingsService.setVaultTimeoutOptions(
       this.userId,
       newValue,
       vaultTimeoutAction,
     );
-
-    this.sessionTimeoutSettingsComponentService.onTimeoutSave(newValue);
   }
 
   async saveTimeoutAction(value: VaultTimeoutAction) {
@@ -296,6 +298,8 @@ export class SessionTimeoutSettingsComponent implements OnInit {
       });
       return;
     }
+
+    await this.sessionTimeoutSettingsComponentService.onTimeoutActionSave();
 
     await this.vaultTimeoutSettingsService.setVaultTimeoutOptions(
       this.userId,

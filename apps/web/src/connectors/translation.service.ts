@@ -8,7 +8,7 @@ export class TranslationService extends BaseTranslationService {
   private _translationLocale: string;
 
   constructor(systemLanguage: string, localesDirectory: string) {
-    super(systemLanguage || "en-US", localesDirectory, async (formattedLocale: string) => {
+    super(systemLanguage || "zh-CN", localesDirectory, async (formattedLocale: string) => {
       const filePath =
         this.localesDirectory +
         "/" +
@@ -20,6 +20,7 @@ export class TranslationService extends BaseTranslationService {
       return locales;
     });
 
+    this.defaultLocale = "zh-CN";
     this.supportedTranslationLocales = SupportedTranslationLocales;
   }
 

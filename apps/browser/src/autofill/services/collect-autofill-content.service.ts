@@ -103,6 +103,40 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
   private lastMutationTimestamp = 0;
   private mutationBurstCount = 0;
   private readonly mutationCooldownMs = 500;
+  /**
+   * While set, the page has no login-like field yet, so the observer only watches
+   * for one to appear and does not rescan or walk shadow roots.
+   */
+  private deferFullMonitoring = false;
+  private suppressRescansForTyping = false;
+  private rescanPendingDuringTyping = false;
+  private typingQuietTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly typingQuietMs = 400;
+  private static readonly loginLikeFieldSelector = [
+    'input[type="password"]',
+    'input[type="email"]',
+    'input[type="tel"]',
+    'input[autocomplete~="username"]',
+    'input[autocomplete~="current-password"]',
+    'input[autocomplete~="new-password"]',
+    "form",
+  ].join(", ");
+  /** Text inputs that are not given an explicit type, the usual username step. */
+  private static readonly plainTextInputSelector = 'input[type="text"], input:not([type])';
+  private readonly handleUserTyping = () => {
+    this.suppressRescansForTyping = true;
+    if (this.typingQuietTimer != null) {
+      globalThis.clearTimeout(this.typingQuietTimer);
+    }
+    this.typingQuietTimer = globalThis.setTimeout(() => {
+      this.typingQuietTimer = null;
+      this.suppressRescansForTyping = false;
+      if (this.rescanPendingDuringTyping) {
+        this.rescanPendingDuringTyping = false;
+        this.updateAutofillElementsAfterMutation();
+      }
+    }, this.typingQuietMs);
+  };
   private readonly maxMutationWaitMs = 5000;
   private formFieldQueryString;
   /**
@@ -220,6 +254,53 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     }
     this.isMonitoring = true;
     this.currentLocationHref = globalThis.location.href;
+    if (!this.documentHasLoginLikeField()) {
+      this.deferFullMonitoring = true;
+      this.domQueryService.suspendShadowProbe();
+      this.mutationObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+      return;
+    }
+    this.beginFullMonitoring();
+  }
+
+  private documentHasLoginLikeField(): boolean {
+    return this.rootHasLoginLikeField(globalThis.document);
+  }
+
+  /**
+   * Login fields inside an open shadow root, and a form-less page whose only
+   * field is a single text input, still need the inline menu.
+   */
+  private rootHasLoginLikeField(root: ParentNode): boolean {
+    if (root.querySelector(CollectAutofillContentService.loginLikeFieldSelector) != null) {
+      return true;
+    }
+    if (this.isFormlessSingleTextStep(root)) {
+      return true;
+    }
+    const elements = root.querySelectorAll("*");
+    for (const element of elements) {
+      const shadow = element.shadowRoot;
+      if (shadow != null && this.rootHasLoginLikeField(shadow)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private isFormlessSingleTextStep(root: ParentNode): boolean {
+    if (root.querySelector("form") != null) {
+      return false;
+    }
+    return root.querySelectorAll(CollectAutofillContentService.plainTextInputSelector).length === 1;
+  }
+
+  private beginFullMonitoring(): void {
+    this.deferFullMonitoring = false;
+    this.domQueryService.resumeShadowProbe();
     // FIXME we might be able to use an alternate (less expensive) mutation observer setup when targeting rules are being used
     this.mutationObserver.observe(document.documentElement, {
       attributes: true,
@@ -227,6 +308,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       childList: true,
       subtree: true,
     });
+    document.addEventListener("input", this.handleUserTyping, true);
     document.addEventListener("transitionend", this.handleOpacityTransitionEnd, true);
   }
 
@@ -243,7 +325,15 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     this.pendingOverlaySetup.forEach((timeout) => globalThis.clearTimeout(timeout));
     this.pendingOverlaySetup.clear();
     this.mutationObserver.disconnect();
+    document.removeEventListener("input", this.handleUserTyping, true);
     document.removeEventListener("transitionend", this.handleOpacityTransitionEnd, true);
+    if (this.typingQuietTimer != null) {
+      globalThis.clearTimeout(this.typingQuietTimer);
+      this.typingQuietTimer = null;
+    }
+    this.suppressRescansForTyping = false;
+    this.rescanPendingDuringTyping = false;
+    this.deferFullMonitoring = false;
     this.clearFieldCache();
     // Shadow-host tracking is monitoring-scoped; clear it so restart drops stale deadlines.
     this.shadowTracker.reset();
@@ -1602,6 +1692,20 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       return;
     }
 
+    if (this.deferFullMonitoring) {
+      const loginFieldAdded = mutations.some(
+        (mutation) =>
+          this.nodeListContainsSelector(
+            mutation.addedNodes,
+            CollectAutofillContentService.loginLikeFieldSelector,
+          ) || this.documentHasLoginLikeField(),
+      );
+      if (loginFieldAdded) {
+        this.upgradeToFullMonitoring();
+      }
+      return;
+    }
+
     // Throttled; runs every wake so detached nodes are reclaimed even when no drain is scheduled.
     this.purgeDetachedNodesIfDue();
 
@@ -1680,6 +1784,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     this.domRecentlyMutated = true;
     if (this.autofillOverlayContentService) {
       this.autofillOverlayContentService.pageDetailsUpdateRequired = true;
+      this.autofillOverlayContentService.flushCapturedLogin();
       this.autofillOverlayContentService.clearUserFilledFields();
       void this.sendExtensionMessage("closeAutofillInlineMenu", { forceCloseInlineMenu: true });
     }
@@ -1692,6 +1797,10 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     this.ruleQualificationResult = undefined;
 
     this.clearFieldCache();
+
+    if (this.deferFullMonitoring && this.documentHasLoginLikeField()) {
+      this.upgradeToFullMonitoring();
+    }
 
     // Reset shadow root tracking on navigation
     this.domQueryService.resetObservedShadowRoots();
@@ -1815,6 +1924,10 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
   }
 
   private nodeListContainsFormField(nodes: NodeList | undefined): boolean {
+    return this.nodeListContainsSelector(nodes, this.formFieldQueryString);
+  }
+
+  private nodeListContainsSelector(nodes: NodeList | undefined, selector: string): boolean {
     if (!nodes) {
       return false;
     }
@@ -1822,10 +1935,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       if (!nodeIsElement(node)) {
         continue;
       }
-      if (
-        node.matches(this.formFieldQueryString) ||
-        node.querySelector(this.formFieldQueryString) !== null
-      ) {
+      if (node.matches(selector) || node.querySelector(selector) !== null) {
         return true;
       }
     }
@@ -1877,7 +1987,17 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
    * This prevents premature collection during loading spinners or SPA transitions.
    * @private
    */
+  private upgradeToFullMonitoring(): void {
+    this.mutationObserver.disconnect();
+    this.beginFullMonitoring();
+  }
+
   private updateAutofillElementsAfterMutation() {
+    if (this.suppressRescansForTyping) {
+      this.rescanPendingDuringTyping = true;
+      return;
+    }
+
     if (this.updateAfterMutationIdleCallback !== null) {
       cancelIdleCallbackPolyfill(this.updateAfterMutationIdleCallback);
       this.updateAfterMutationIdleCallback = null;

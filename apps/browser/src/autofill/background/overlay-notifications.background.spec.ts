@@ -217,6 +217,69 @@ describe("OverlayNotificationsBackground", () => {
       ).toBeUndefined();
     });
 
+    it("registers a password submission that arrives before page details", async () => {
+      const earlySender = mock<chrome.runtime.MessageSender>({
+        tab: { id: 2, url: "https://example.com/login" },
+        url: "https://example.com/login",
+        origin: "https://example.com",
+      });
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/login",
+          username: "ada",
+          password: "secret",
+        },
+        earlySender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(2)).toEqual(
+        expect.objectContaining({ username: "ada", password: "secret" }),
+      );
+      expect(chrome.webRequest.onCompleted.addListener).toHaveBeenCalled();
+    });
+
+    it("keeps a username-only submission pending until a password arrives", async () => {
+      const earlySender = mock<chrome.runtime.MessageSender>({
+        tab: { id: 2, url: "https://example.com/login" },
+        url: "https://example.com/login",
+        origin: "https://example.com",
+      });
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/login",
+          username: "ada",
+          password: "",
+        },
+        earlySender,
+      );
+      await flushPromises();
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(2)).toBeUndefined();
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/password",
+          username: "",
+          password: "secret",
+        },
+        earlySender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(2)).toEqual(
+        expect.objectContaining({
+          username: "ada",
+          password: "secret",
+          uri: "https://example.com/password",
+        }),
+      );
+    });
+
     it("ignores the store request if the form submission does not include a username, password, or newPassword", () => {
       sendMockExtensionMessage(
         {
@@ -255,6 +318,59 @@ describe("OverlayNotificationsBackground", () => {
         password: "password",
         newPassword: "newPassword",
       });
+    });
+
+    it("combines a username captured on the first step with the password submitted on the second", async () => {
+      const originSender = mock<chrome.runtime.MessageSender>({
+        tab: { id: sender.tab.id, url: "https://example.com/password" },
+        origin: "https://example.com",
+      });
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/username",
+          username: "ada",
+          password: "",
+          newPassword: "",
+        },
+        originSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["notificationFallbackTimeout"]).toBeNull();
+
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://example.com/password",
+          username: "",
+          password: "secret",
+          newPassword: "",
+        },
+        originSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(sender.tab.id)).toEqual(
+        {
+          uri: "https://example.com/password",
+          username: "ada",
+          password: "secret",
+          newPassword: "",
+        },
+      );
+    });
+
+    it("does not reuse a username after the save prompt has been offered", () => {
+      overlayNotificationsBackground["capturedUsernames"].set(sender.tab.id, {
+        origin: "https://example.com",
+        username: "ada",
+        expiresAt: Date.now() + 60_000,
+      });
+
+      overlayNotificationsBackground["clearCompletedWebRequest"]("request-1", sender.tab.id);
+
+      expect(overlayNotificationsBackground["capturedUsernames"].has(sender.tab.id)).toBe(false);
     });
 
     it("overrides previously stored modified login cipher form data with a subsequent store request", async () => {
@@ -656,13 +772,51 @@ describe("OverlayNotificationsBackground", () => {
         expect(cipherNotificationSpy).not.toHaveBeenCalled();
       });
 
-      it("clears the notification fallback timeout if the request is completed with an invalid status code", async () => {
+      it("does not cancel the save prompt when a login request is rejected", async () => {
+        sendMockExtensionMessage(
+          {
+            command: "formFieldSubmitted",
+            uri: "https://example.com/login",
+            username: "ada",
+            password: "secret",
+          },
+          sender,
+        );
+        await flushPromises();
+
+        const requestId = "123345";
+        triggerWebRequestOnBeforeRequestEvent(
+          mock<chrome.webRequest.WebRequestDetails>({
+            url: sender.url,
+            tabId: sender.tab.id,
+            method: "POST",
+            requestId,
+          }),
+        );
+        await flushPromises();
+
+        chrome.tabs.get = jest.fn().mockImplementationOnce((_tabId, callback) => {
+          callback(mock<chrome.tabs.Tab>({ status: "complete", url: sender.url }));
+        });
+        triggerWebRequestOnCompletedEvent(
+          mock<chrome.webRequest.OnCompletedDetails>({
+            url: "https://auth.example.net/login",
+            tabId: sender.tab.id,
+            statusCode: 401,
+            requestId,
+          }),
+        );
+        await flushPromises();
+
+        expect(cipherNotificationSpy).toHaveBeenCalled();
+      });
+
+      it("leaves the click fallback in place when the login request fails with a server error", async () => {
         const clearFallbackSpy = jest.spyOn(
           overlayNotificationsBackground as any,
           "clearNotificationFallbackTimeout",
         );
-
-        const requestId = "123345";
+        const requestId = "server-error";
         triggerWebRequestOnBeforeRequestEvent(
           mock<chrome.webRequest.WebRequestDetails>({
             url: sender.url,
@@ -677,13 +831,14 @@ describe("OverlayNotificationsBackground", () => {
           mock<chrome.webRequest.OnCompletedDetails>({
             url: sender.url,
             tabId: sender.tab.id,
-            statusCode: 404,
+            statusCode: 500,
             requestId,
           }),
         );
         await flushPromises();
 
-        expect(clearFallbackSpy).toHaveBeenCalled();
+        expect(clearFallbackSpy).not.toHaveBeenCalled();
+        expect(cipherNotificationSpy).not.toHaveBeenCalled();
       });
     });
 

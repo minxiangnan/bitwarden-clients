@@ -14,6 +14,7 @@ import {
   MessageTypes,
 } from "./messaging/message";
 import { MessageWithMetadata, Messenger } from "./messaging/messenger";
+import { isSameOriginWithAncestors } from "./same-origin-with-ancestors";
 
 (function (globalContext) {
   const shouldExecuteContentScript =
@@ -141,7 +142,7 @@ import { MessageWithMetadata, Messenger } from "./messaging/messenger";
     const data: CreateCredentialParams | AssertCredentialParams = {
       ...messageData,
       origin: globalContext.location.origin,
-      sameOriginWithAncestors: globalContext.self === globalContext.top,
+      sameOriginWithAncestors: isSameOriginWithAncestors(globalContext as unknown as Window),
     };
 
     const result = await sendExtensionMessage(command, { data, requestId });

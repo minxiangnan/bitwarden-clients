@@ -948,6 +948,21 @@ describe("DefaultAutofillOrchestrator", () => {
       expect(autofillService.doAutoFill).toHaveBeenCalledTimes(1);
     });
 
+    it("fills a shortcut tab once ensureLiveTab records the open id missing from the set", async () => {
+      liveTabs$.next(new Set());
+      lifecycleService.ensureLiveTab.mockImplementation(async (tabId: number) => {
+        liveTabs$.next(new Set([tabId]));
+        return true;
+      });
+      autofillService.collectPageDetailsFromTab$.mockReturnValue(of([pageDetail(1, 0)]));
+
+      autofillOrchestrator.autofillActiveTabFromCommand(pageDetail(1, 0).tab);
+      await flushPromises();
+
+      expect(lifecycleService.ensureLiveTab).toHaveBeenCalledWith(1);
+      expect(autofillService.doAutoFill).toHaveBeenCalledTimes(1);
+    });
+
     it("drops a forged-id request without disturbing a later live-tab fill", async () => {
       // The gate's purpose is to keep a forged id from opening a per-tab group that never retires.
       // A dropped forged request must not consume or reroute a subsequent legitimate fill.

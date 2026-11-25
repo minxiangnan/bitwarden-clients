@@ -1,3 +1,4 @@
+import "../platform/i18n/force-zh-cn";
 import { enableProdMode, provideZoneChangeDetection } from "@angular/core";
 import { platformBrowser } from "@angular/platform-browser";
 

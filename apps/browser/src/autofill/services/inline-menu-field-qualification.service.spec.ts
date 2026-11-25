@@ -5,6 +5,8 @@ import AutofillForm from "../models/autofill-form";
 import AutofillPageDetails from "../models/autofill-page-details";
 import { createAutofillFormMock } from "../spec/autofill-mocks";
 
+import * as autofillUtils from "../utils";
+
 import { AutoFillConstants } from "./autofill-constants";
 import { InlineMenuFieldQualificationService } from "./inline-menu-field-qualification.service";
 
@@ -18,6 +20,21 @@ describe("InlineMenuFieldQualificationService", () => {
       fields: [],
     });
     inlineMenuFieldQualificationService = new InlineMenuFieldQualificationService();
+  });
+
+  it("does not message itself from the service worker", () => {
+    const send = jest.spyOn(autofillUtils, "sendExtensionMessage").mockResolvedValue(null);
+    const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+    Object.defineProperty(globalThis, "document", { configurable: true, value: undefined });
+    try {
+      new InlineMenuFieldQualificationService();
+      expect(send).not.toHaveBeenCalled();
+    } finally {
+      send.mockRestore();
+      if (documentDescriptor) {
+        Object.defineProperty(globalThis, "document", documentDescriptor);
+      }
+    }
   });
 
   describe("isFieldForLoginForm", () => {

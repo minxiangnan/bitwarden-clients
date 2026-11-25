@@ -246,6 +246,7 @@ describe("AutofillInlineMenuIframeService", () => {
         let updateElementStylesSpy: jest.SpyInstance;
 
         beforeEach(() => {
+          window.matchMedia = jest.fn(() => mock<MediaQueryList>({ matches: false }));
           updateElementStylesSpy = jest.spyOn(
             autofillInlineMenuIframeService as any,
             "updateElementStyles",
@@ -266,8 +267,8 @@ describe("AutofillInlineMenuIframeService", () => {
           ).toHaveBeenCalledWith(message, autofillInlineMenuIframeService["extensionOrigin"]);
         });
 
-        it("sets a light theme based on the user's system preferences", () => {
-          window.matchMedia = jest.fn(() => mock<MediaQueryList>({ matches: false }));
+        it("keeps the light palette when the setting is system, even if the page prefers dark", () => {
+          window.matchMedia = jest.fn(() => mock<MediaQueryList>({ matches: true }));
           const message = {
             command: "initAutofillInlineMenuList",
             theme: ThemeTypes.System,
@@ -275,7 +276,7 @@ describe("AutofillInlineMenuIframeService", () => {
 
           sendPortMessage(portSpy, message);
 
-          expect(window.matchMedia).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
+          expect(window.matchMedia).not.toHaveBeenCalled();
           expect(
             autofillInlineMenuIframeService["iframe"].contentWindow?.postMessage,
           ).toHaveBeenCalledWith(
@@ -287,16 +288,14 @@ describe("AutofillInlineMenuIframeService", () => {
           );
         });
 
-        it("sets a dark theme based on the user's system preferences", () => {
-          window.matchMedia = jest.fn(() => mock<MediaQueryList>({ matches: true }));
+        it("uses dark only when the extension setting is dark", () => {
           const message = {
             command: "initAutofillInlineMenuList",
-            theme: ThemeTypes.System,
+            theme: ThemeTypes.Dark,
           };
 
           sendPortMessage(portSpy, message);
 
-          expect(window.matchMedia).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
           expect(
             autofillInlineMenuIframeService["iframe"].contentWindow?.postMessage,
           ).toHaveBeenCalledWith(
@@ -309,6 +308,7 @@ describe("AutofillInlineMenuIframeService", () => {
         });
 
         it("updates the border to match the `dark` theme", () => {
+          window.matchMedia = jest.fn(() => mock<MediaQueryList>({ matches: true }));
           const message = {
             command: "initAutofillInlineMenuList",
             theme: ThemeTypes.Dark,
@@ -319,7 +319,7 @@ describe("AutofillInlineMenuIframeService", () => {
           expect(updateElementStylesSpy).toHaveBeenCalledWith(
             autofillInlineMenuIframeService["iframe"],
             {
-              borderColor: "#4c525f",
+              borderColor: "#3e3e38",
             },
           );
         });

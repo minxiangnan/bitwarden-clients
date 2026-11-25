@@ -1,3 +1,4 @@
+import "../../platform/i18n/force-zh-cn";
 import DomElementVisibilityService from "../services/dom-element-visibility.service";
 import { DomQueryService } from "../services/dom-query.service";
 import { setupAutofillInitDisconnectAction } from "../utils";

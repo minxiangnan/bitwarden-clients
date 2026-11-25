@@ -340,7 +340,10 @@ export class BrowserApi {
   static async tabsQuery(options: chrome.tabs.QueryInfo): Promise<chrome.tabs.Tab[]> {
     return new Promise((resolve) => {
       chrome.tabs.query(options, (tabs) => {
-        resolve(tabs);
+        // An invalid pattern sets lastError and passes no tab list. Leaving
+        // that unread, then calling filter on undefined, is an extension error.
+        void chrome.runtime.lastError;
+        resolve(tabs ?? []);
       });
     });
   }
@@ -426,13 +429,17 @@ export class BrowserApi {
     }
 
     return new Promise<TResponse>((resolve, reject) => {
-      chrome.tabs.sendMessage(tab.id, obj, options, (response) => {
+      const sent = chrome.tabs.sendMessage(tab.id, obj, options, (response) => {
         if (chrome.runtime.lastError && rejectOnError) {
-          // Some error happened
-          reject();
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
         }
         resolve(response);
       });
+      // Chrome still rejects the returned promise when the callback form is used
+      // and no content script is listening. Swallow that copy so it is not an
+      // uncaught rejection on the extensions page.
+      BrowserApi.silenceMissingReceiver(sent);
     });
   }
 
@@ -442,7 +449,19 @@ export class BrowserApi {
     options?: chrome.tabs.MessageSendOptions,
     responseCallback?: (response: T) => void,
   ) {
-    chrome.tabs.sendMessage<TabMessage, T>(tabId, message, options, responseCallback);
+    BrowserApi.silenceMissingReceiver(
+      chrome.tabs.sendMessage<TabMessage, T>(tabId, message, options, responseCallback),
+    );
+  }
+
+  /**
+   * Chrome rejects `runtime.sendMessage` / `tabs.sendMessage` when nothing is
+   * listening, even if the caller passed a callback and read `lastError`.
+   * That rejection is what chrome://extensions lists as
+   * "Could not establish connection. Receiving end does not exist."
+   */
+  private static silenceMissingReceiver(pending: unknown): void {
+    void Promise.resolve(pending).catch((): void => undefined);
   }
 
   static getRuntimeURL(path: string): string {
@@ -504,6 +523,36 @@ export class BrowserApi {
    * Uses `chrome.runtime.getContexts()` on MV3 (Chrome/Edge),
    * and falls back to `chrome.extension.getViews()` for MV2 (Firefox) and Safari.
    */
+  /**
+   * True when a vault UI the user is looking at is open: the toolbar popup,
+   * a popped-out window, the side panel, or the extension page in a tab.
+   * Lock keeps that view on the unlock screen instead of reloading it away.
+   */
+  static async isExtensionUiOpen(): Promise<boolean> {
+    if (
+      typeof (chrome.runtime as any).getContexts === "function" &&
+      BrowserApi.isManifestVersion(3)
+    ) {
+      const contexts = await chrome.runtime.getContexts({});
+      return contexts.some((context) => {
+        if (
+          context.contextType === "POPUP" ||
+          context.contextType === "SIDE_PANEL"
+        ) {
+          return true;
+        }
+        return (
+          context.contextType === "TAB" &&
+          (context.documentUrl?.includes("/popup/index.html") ?? false)
+        );
+      });
+    }
+
+    return BrowserApi.getExtensionViews().some((view) =>
+      view.location.href.includes("/popup/index.html"),
+    );
+  }
+
   static async isPopupOpen(): Promise<boolean> {
     if (
       typeof (chrome.runtime as any).getContexts === "function" &&
@@ -713,6 +762,34 @@ export class BrowserApi {
     }
   }
 
+  /** webRequest listeners require a URL filter, which the shared helper cannot express. */
+  static addWebRequestErrorListener(
+    callback: (details: { error?: string }) => void,
+    filter: chrome.webRequest.RequestFilter,
+  ) {
+    const onError = chrome.webRequest.onErrorOccurred;
+    onError.addListener(callback, filter);
+    if (BrowserApi.isSafariApi && !BrowserApi.isBackgroundPage(self)) {
+      BrowserApi.trackedChromeEventListeners.push([
+        onError as unknown as chrome.events.Event<(details: { error?: string }) => void>,
+        callback,
+      ]);
+      BrowserApi.setupUnloadListeners();
+    }
+  }
+
+  static removeWebRequestErrorListener(callback: (details: { error?: string }) => void) {
+    chrome.webRequest.onErrorOccurred.removeListener(callback);
+    if (BrowserApi.isSafariApi && !BrowserApi.isBackgroundPage(self)) {
+      const index = BrowserApi.trackedChromeEventListeners.findIndex(([_event, eventListener]) => {
+        return eventListener == callback;
+      });
+      if (index !== -1) {
+        BrowserApi.trackedChromeEventListeners.splice(index, 1);
+      }
+    }
+  }
+
   /**
    * Removes a callback from the given chrome event in a cross-browser platform manner.
    * @param event - The event in which to remove the listener from.
@@ -780,12 +857,17 @@ export class BrowserApi {
 
   static sendMessage(subscriber: string, arg: any = {}) {
     const message = Object.assign({}, { command: subscriber }, arg);
-    return chrome.runtime.sendMessage(message);
+    const sent = chrome.runtime.sendMessage(message);
+    BrowserApi.silenceMissingReceiver(sent);
+    return sent;
   }
 
   static sendMessageWithResponse<TResponse>(subscriber: string, arg: any = {}) {
     const message = Object.assign({}, { command: subscriber }, arg);
-    return new Promise<TResponse>((resolve) => chrome.runtime.sendMessage(message, resolve));
+    return new Promise<TResponse>((resolve) => {
+      const sent = chrome.runtime.sendMessage(message, resolve);
+      BrowserApi.silenceMissingReceiver(sent);
+    });
   }
 
   static async focusTab(tabId: number) {
@@ -890,13 +972,35 @@ export class BrowserApi {
    * Firefox where no native managed manifest is installed. Callers decide whether that is
    * exceptional; on most installations it is the normal case.
    */
+  /**
+   * How long a managed-storage read may block extension startup. Chromium can leave
+   * `chrome.storage.managed.get` pending forever when an extension declares
+   * `storage.managed_schema` (bitwarden/clients#24182, #13299). Bootstrap awaits this read
+   * before migrations, so an unsettled call leaves the popup on its spinner.
+   */
+  private static readonly managedStorageTimeoutMs = 3000;
+
   static getManagedStorage(): Promise<Record<string, unknown> | undefined> {
     if (chrome.storage?.managed == null) {
       return Promise.resolve(undefined);
     }
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        reject(new Error("Managed storage read timed out"));
+      }, BrowserApi.managedStorageTimeoutMs);
+
       chrome.storage.managed.get(null, (items) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
         if (chrome.runtime.lastError) {
           return reject(chrome.runtime.lastError);
         }
@@ -937,9 +1041,25 @@ export class BrowserApi {
     return null;
   }
 
-  static captureVisibleTab(): Promise<string> {
+  /**
+   * Captures the visible tab of a window. Pass the website window when the
+   * extension UI is a popped-out window, so the capture is not the extension itself.
+   */
+  static captureVisibleTab(windowId?: number): Promise<string> {
     return new Promise((resolve) => {
-      chrome.tabs.captureVisibleTab(null, { format: "png" }, resolve);
+      const done = (dataUrl?: string) => {
+        if (chrome.runtime.lastError || typeof dataUrl !== "string") {
+          resolve("");
+          return;
+        }
+        resolve(dataUrl);
+      };
+      try {
+        const targetWindow = windowId ?? chrome.windows.WINDOW_ID_CURRENT;
+        chrome.tabs.captureVisibleTab(targetWindow, { format: "png" }, done);
+      } catch {
+        resolve("");
+      }
     });
   }
 

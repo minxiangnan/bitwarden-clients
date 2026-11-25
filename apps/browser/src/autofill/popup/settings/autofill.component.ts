@@ -136,11 +136,15 @@ export class AutofillComponent implements OnInit {
   protected fillAssistFeatureEnabled$: Observable<boolean> = this.configService.getFeatureFlag$(
     FeatureFlag.FillAssistTargetingRules,
   );
-  /** Safari cannot answer HTTP auth challenges from an extension, so the setting is never offered there. */
+  /**
+   * Safari cannot answer HTTP auth challenges from an extension, so the setting is never offered
+   * there. Elsewhere the setting is offered unless the server explicitly turns the flag off.
+   * A server that omits `enable-basic-auth-response` still offers it (bitwarden/clients#17324).
+   */
   protected basicAuthResponseSettingIsAvailable$: Observable<boolean> =
     this.platformUtilsService.isSafari()
       ? of(false)
-      : this.configService.getFeatureFlag$(FeatureFlag.EnableBasicAuthResponse);
+      : this.autofillSettingsService.httpAuthenticationAvailable$;
 
   protected autofillOnPageLoadForm = new FormGroup({
     autofillOnPageLoad: new FormControl(),
@@ -182,7 +186,7 @@ export class AutofillComponent implements OnInit {
   /** Non-null asserted. */
   clearClipboard!: ClearClipboardDelaySetting;
   clearClipboardOptions: { name: string; value: ClearClipboardDelaySetting }[];
-  defaultUriMatch: UriMatchStrategySetting = UriMatchStrategy.Domain;
+  defaultUriMatch: UriMatchStrategySetting = UriMatchStrategy.Host;
   uriMatchOptions: { name: string; value: UriMatchStrategySetting | null; disabled?: boolean }[];
   showCardsCurrentTab: boolean = true;
   showIdentitiesCurrentTab: boolean = true;
@@ -414,7 +418,7 @@ export class AutofillComponent implements OnInit {
     const defaultUriMatch = await firstValueFrom(
       this.domainSettingsService.resolvedDefaultUriMatchStrategy$,
     );
-    this.defaultUriMatch = defaultUriMatch == null ? UriMatchStrategy.Domain : defaultUriMatch;
+    this.defaultUriMatch = defaultUriMatch == null ? UriMatchStrategy.Host : defaultUriMatch;
 
     this.additionalOptionsForm.controls.defaultUriMatch.patchValue(this.defaultUriMatch, {
       emitEvent: false,

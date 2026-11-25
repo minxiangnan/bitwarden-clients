@@ -14,6 +14,7 @@ import { Utils } from "../../platform/misc/utils";
 import { UserId } from "../../types/guid";
 import { FormPurposeCategories } from "../constants";
 import { TargetingRulesByDomain, FormContent } from "../types";
+import { UriMatchStrategy } from "../../models/domain/domain-service";
 
 import { DefaultDomainSettingsService, DomainSettingsService } from "./domain-settings.service";
 
@@ -90,6 +91,14 @@ describe("DefaultDomainSettingsService", () => {
     jest.spyOn(domainSettingsService, "getUrlEquivalentDomains");
     domainSettingsService.equivalentDomains$ = of(mockEquivalentDomains);
     domainSettingsService.blockedInteractionsUris$ = of({});
+  });
+
+  describe("defaultUriMatchStrategy$", () => {
+    it("uses host matching until the user chooses another strategy", async () => {
+      expect(await firstValueFrom(domainSettingsService.defaultUriMatchStrategy$)).toBe(
+        UriMatchStrategy.Host,
+      );
+    });
   });
 
   describe("getUrlEquivalentDomains", () => {

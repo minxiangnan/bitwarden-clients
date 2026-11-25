@@ -40,6 +40,8 @@ import {
   RestrictedCipherPolicy,
 } from "@bitwarden/common/vault/utils/restricted-cipher-policy";
 import {
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   ItemModule,
@@ -55,6 +57,7 @@ import {
   Vfo1I18nPipe,
 } from "@bitwarden/vault";
 
+import { SHOW_SEND } from "../../../../../tools/popup/send-v2/send-visibility";
 import { VaultPopupAutofillService } from "../../../services/vault-popup-autofill.service";
 import { AddEditQueryParams } from "../add-edit/add-edit.component";
 import {
@@ -98,6 +101,7 @@ const BUILT_IN_ACTION_IDS: ReadonlySet<string> = new Set([
   ],
 })
 export class ItemMoreOptionsComponent {
+  protected readonly showSend = SHOW_SEND;
   private _cipher$ = new BehaviorSubject<CipherViewLike>({} as CipherViewLike);
 
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
@@ -436,11 +440,13 @@ export class ItemMoreOptionsComponent {
       return;
     }
 
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteItem" },
-      content: { key: "deleteItemConfirmation" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.cipher.name, this.i18nService.t("deleteItem")),
+        content: this.i18nService.t("deleteItemConfirmation"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
 
     if (!confirmed) {
       return;
@@ -467,6 +473,7 @@ export class ItemMoreOptionsComponent {
       content: { key: "archiveItemDialogContent" },
       acceptButtonText: { key: "archiveVerb" },
       type: "info",
+      focusCancel: true,
     });
 
     if (!confirmed) {

@@ -11,8 +11,8 @@ import BrowserPopupUtils from "../platform/browser/browser-popup-utils";
 import { BrowserTaskSchedulerService } from "../platform/services/abstractions/browser-task-scheduler.service";
 
 /**
- * Browser implementation of the process reload. The extension is wiped by restarting it,
- * which requires tearing down scheduled tasks and popups first.
+ * Browser implementation of the process reload. An open vault window stays on the
+ * unlock screen. The extension restarts only when no vault UI is open.
  */
 export class BrowserProcessReloadService extends DefaultProcessReloadService {
   constructor(
@@ -35,15 +35,15 @@ export class BrowserProcessReloadService extends DefaultProcessReloadService {
   }
 
   protected override async performProcessReload(): Promise<void> {
-    // Sends the "reloadProcess" message, which popups close themselves upon receiving.
+    // Asks the open vault UI to reload onto the unlock screen. Reloading the
+    // whole extension while that page is open invalidates it and closes the window.
     await super.performProcessReload();
+    if (await BrowserApi.isExtensionUiOpen()) {
+      return;
+    }
 
     await this.taskSchedulerService.clearAllScheduledTasks();
-
-    // Wait for the popup to actually close, otherwise the reload leaves behind a
-    // zombie popup with an invalidated extension context.
     await BrowserPopupUtils.waitForAllPopupsClose();
-
     BrowserApi.reloadExtension();
   }
 }

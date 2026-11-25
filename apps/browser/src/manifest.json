@@ -1,10 +1,10 @@
 {
   "manifest_version": 2,
-  "name": "__MSG_extName__",
-  "short_name": "Bitwarden",
-  "version": "2026.11.0",
-  "description": "__MSG_extDesc__",
-  "default_locale": "en",
+  "name": "Bitwarden 验证器版",
+  "short_name": "验证器版",
+  "version": "2026.11.7",
+  "description": "自建密码库和验证器，数据保存在你的服务器上。",
+  "default_locale": "zh_CN",
   "author": "Bitwarden Inc.",
   "homepage_url": "https://bitwarden.com",
   "icons": {
@@ -40,7 +40,7 @@
       "19": "images/icon19.png",
       "38": "images/icon38.png"
     },
-    "default_title": "Bitwarden",
+    "default_title": "Bitwarden 验证器版",
     "default_popup": "popup/index.html"
   },
   "permissions": [
@@ -86,30 +86,15 @@
   "__firefox__sandbox": null,
   "commands": {
     "_execute_browser_action": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+Y",
-        "linux": "Ctrl+Shift+U"
-      },
       "description": "__MSG_commandOpenPopup__"
     },
     "__firefox___execute_sidebar_action": {
-      "suggested_key": {
-        "default": "Alt+Shift+Y",
-        "linux": "Alt+Shift+U"
-      },
       "description": "__MSG_commandOpenSidebar__"
     },
     "__opera___execute_sidebar_action": {
-      "suggested_key": {
-        "default": "Alt+Shift+Y",
-        "linux": "Alt+Shift+U"
-      },
       "description": "__MSG_commandOpenSidebar__"
     },
     "autofill_login": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+L"
-      },
       "description": "__MSG_commandAutofillLoginDesc__"
     },
     "autofill_card": {
@@ -119,13 +104,13 @@
       "description": "__MSG_commandAutofillIdentityDesc__"
     },
     "generate_password": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+9"
-      },
       "description": "__MSG_commandGeneratePasswordDesc__"
     },
     "lock_vault": {
       "description": "__MSG_commandLockVaultDesc__"
+    },
+    "copy_site_totp": {
+      "description": "__MSG_commandCopySiteTotp__"
     }
   },
   "web_accessible_resources": [
@@ -140,19 +125,19 @@
   ],
   "__firefox__browser_specific_settings": {
     "gecko": {
-      "id": "{446900e4-71c2-419f-a6a7-df9c091e268b}",
+      "id": "{c3a91f20-7e4b-4d88-9a16-5e8b2d0c6f41}",
       "strict_min_version": "91.0"
     }
   },
   "__firefox__sidebar_action": {
-    "default_title": "Bitwarden",
+    "default_title": "Bitwarden 验证器版",
     "default_panel": "popup/index.html?uilocation=sidebar",
     "default_icon": "images/icon19.png",
     "open_at_install": false,
     "browser_style": false
   },
   "__opera__sidebar_action": {
-    "default_title": "Bitwarden",
+    "default_title": "Bitwarden 验证器版",
     "default_panel": "popup/index.html?uilocation=sidebar",
     "default_icon": "images/icon19.png",
     "open_at_install": false,

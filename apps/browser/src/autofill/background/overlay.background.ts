@@ -180,7 +180,13 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   private focusedFieldData: FocusedFieldData | null = null;
   private allFieldData: AutofillField[] = [];
   private isFieldCurrentlyFocused: boolean = false;
-  private isFieldCurrentlyFilling: boolean = false;
+  /**
+   * Per-tab fill latch. A single process-wide flag stuck `true` hid the inline menu in every
+   * tab until some later fill cleared it. Each entry is the timeout that clears that tab.
+   */
+  private readonly fillingTabTimeouts = new Map<number, ReturnType<typeof setTimeout>>();
+  /** Backstop if the content script never sends the matching `false` (it normally does at 250ms). */
+  private readonly fieldFillingClearMs = 2_000;
   private isInlineMenuButtonVisible: boolean = false;
   private isInlineMenuListVisible: boolean = false;
   private showPasskeysLabelsWithinInlineMenu: boolean = false;
@@ -203,8 +209,9 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     updateIsFieldCurrentlyFocused: ({ message, sender }) =>
       this.updateIsFieldCurrentlyFocused(message, sender),
     checkIsFieldCurrentlyFocused: () => this.checkIsFieldCurrentlyFocused(),
-    updateIsFieldCurrentlyFilling: ({ message }) => this.updateIsFieldCurrentlyFilling(message),
-    checkIsFieldCurrentlyFilling: () => this.checkIsFieldCurrentlyFilling(),
+    updateIsFieldCurrentlyFilling: ({ message, sender }) =>
+      this.updateIsFieldCurrentlyFilling(message, sender),
+    checkIsFieldCurrentlyFilling: ({ sender }) => this.checkIsFieldCurrentlyFilling(sender),
     getAutofillInlineMenuVisibility: () => this.getInlineMenuVisibility(),
     openAutofillInlineMenu: ({ message, sender }) =>
       this.withSenderTab(sender, () =>
@@ -1699,7 +1706,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       return;
     }
 
-    if (this.isFieldCurrentlyFilling) {
+    if (tab.id != null && this.isTabCurrentlyFilling(tab.id)) {
       BrowserApi.tabSendMessage(
         tab,
         { command, overlayElement: AutofillOverlayElement.List },
@@ -3220,19 +3227,61 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   }
 
   /**
-   * Updates the property that identifies if a form field is currently being autofilled.
+   * Records whether a form field in the sender's tab is being autofilled.
+   * A `true` latch expires on its own so a dropped `false` cannot hide the inline
+   * menu in that tab, and it never applies to any other tab.
    *
    * @param message - The message received from the web page
+   * @param sender - The content-script sender; the tab id is the latch key
    */
-  private updateIsFieldCurrentlyFilling(message: OverlayBackgroundExtensionMessage) {
-    this.isFieldCurrentlyFilling = message.isFieldCurrentlyFilling ?? false;
+  private updateIsFieldCurrentlyFilling(
+    message: OverlayBackgroundExtensionMessage,
+    sender: chrome.runtime.MessageSender,
+  ) {
+    const tabId = sender.tab?.id;
+    if (tabId == null) {
+      return;
+    }
+
+    this.clearFieldFillingTimeout(tabId);
+    if (message.isFieldCurrentlyFilling !== true) {
+      this.fillingTabTimeouts.delete(tabId);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      if (this.fillingTabTimeouts.get(tabId) === timeout) {
+        this.fillingTabTimeouts.delete(tabId);
+      }
+    }, this.fieldFillingClearMs);
+    this.fillingTabTimeouts.set(tabId, timeout);
   }
 
   /**
-   * Allows a content script to check if a form field is currently being autofilled.
+   * Allows a content script to check if a form field in its own tab is being autofilled.
    */
-  private checkIsFieldCurrentlyFilling() {
-    return this.isFieldCurrentlyFilling;
+  private checkIsFieldCurrentlyFilling(sender: chrome.runtime.MessageSender) {
+    const tabId = sender.tab?.id;
+    if (tabId == null) {
+      return false;
+    }
+    return this.isTabCurrentlyFilling(tabId);
+  }
+
+  private isTabCurrentlyFilling(tabId: number) {
+    return this.fillingTabTimeouts.has(tabId);
+  }
+
+  private readonly handleTabRemoved = (tabId: number) => {
+    this.clearFieldFillingTimeout(tabId);
+    this.fillingTabTimeouts.delete(tabId);
+  };
+
+  private clearFieldFillingTimeout(tabId: number) {
+    const existing = this.fillingTabTimeouts.get(tabId);
+    if (existing != null) {
+      clearTimeout(existing);
+    }
   }
 
   /**
@@ -3456,6 +3505,9 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     BrowserApi.messageListener("overlay.background", this.handleExtensionMessage);
     BrowserApi.addListener(chrome.webNavigation.onCommitted, this.handleWebNavigationOnCommitted);
     BrowserApi.addListener(chrome.runtime.onConnect, this.handlePortOnConnect);
+    if (chrome.tabs?.onRemoved) {
+      BrowserApi.addListener(chrome.tabs.onRemoved, this.handleTabRemoved);
+    }
 
     this.messageListener
       .messages$(RETRY_WHEN_UNLOCK_COMPLETED)

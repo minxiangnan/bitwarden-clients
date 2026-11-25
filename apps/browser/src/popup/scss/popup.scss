@@ -7,6 +7,25 @@
 html,
 body {
   font-family: var(--font-sans) !important;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+svg [fill="#101828"],
+svg [fill="#000"],
+svg [fill="#000000"],
+svg [fill="black"] {
+  fill: currentColor;
+}
+
+button,
+a,
+input,
+bit-form-field {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .cdk-virtual-scroll-content-wrapper {

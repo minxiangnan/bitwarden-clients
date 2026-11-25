@@ -36,6 +36,7 @@ type ShadowScanContext = {
 export class DomQueryService implements DomQueryServiceInterface {
   /** One-way ratchet — never reset; `resetObservedShadowRoots()` clears only the root set. */
   private pageContainsShadowDom!: boolean;
+  private shadowProbeSuspended = false;
   // Stale entries (roots whose hosts left the DOM) are harmless — querying them
   // returns an empty NodeList. Cleared on `resetObservedShadowRoots` (navigation).
   private knownShadowRoots = new Set<ShadowRoot>();
@@ -123,9 +124,27 @@ export class DomQueryService implements DomQueryServiceInterface {
    * @returns True if the page contains any shadow DOM elements
    */
   updatePageContainsShadowDom = (): boolean => {
+    if (this.shadowProbeSuspended) {
+      this.pageContainsShadowDom = false;
+      return false;
+    }
     this.pageContainsShadowDom = this.queryShadowRoots(globalThis.document.body, true).length > 0;
     return this.pageContainsShadowDom;
   };
+
+  suspendShadowProbe(): void {
+    this.shadowProbeSuspended = true;
+    this.pageContainsShadowDom = false;
+    globalThis.removeEventListener(EVENTS.LOAD, this.updatePageContainsShadowDom);
+  }
+
+  resumeShadowProbe(): void {
+    if (!this.shadowProbeSuspended) {
+      return;
+    }
+    this.shadowProbeSuspended = false;
+    this.updatePageContainsShadowDom();
+  }
 
   // May be the page's first signal; scan while the latch is false (ratchet preserved).
   refreshShadowDomStateForUserRequest = (): void => {

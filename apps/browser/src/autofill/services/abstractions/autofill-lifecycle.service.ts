@@ -169,6 +169,12 @@ export abstract class AutofillLifecycleService {
    */
   abstract liveTabs$: Observable<ReadonlySet<number>>;
   /**
+   * Adds `tabId` to the live-tab set when `chrome.tabs.get` confirms the tab is open
+   * and not discarded. Returns false (and does not add it) when the tab does not exist.
+   * Already-tracked tabs return true without a query.
+   */
+  abstract ensureLiveTab: (tabId: number) => Promise<boolean>;
+  /**
    * Begins monitoring a freshly-injected frame: commands it to start when an
    * account is logged in. Called by the injection path once a frame's scripts
    * are in place.

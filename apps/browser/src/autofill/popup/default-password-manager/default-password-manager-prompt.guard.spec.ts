@@ -60,9 +60,12 @@ describe("DefaultPasswordManagerPromptGuard", () => {
     expect(createUrlTree).not.toHaveBeenCalled();
   });
 
-  it("should redirect to default-password-manager-prompt on fresh install", async () => {
-    await TestBed.runInInjectionContext(async () => await DefaultPasswordManagerPromptGuard());
-    expect(createUrlTree).toHaveBeenCalledWith(["/default-password-manager-prompt"]);
+  it("does not redirect to the password-manager prompt on a fresh install", async () => {
+    const result = await TestBed.runInInjectionContext(
+      async () => await DefaultPasswordManagerPromptGuard(),
+    );
+    expect(result).toBe(true);
+    expect(createUrlTree).not.toHaveBeenCalled();
   });
 
   it("should return true when not a fresh install", async () => {
@@ -91,7 +94,6 @@ describe("DefaultPasswordManagerPromptGuard", () => {
       async () => await DefaultPasswordManagerPromptGuard(),
     );
     expect(result).toBe(true);
-    expect(mockDefaultPasswordManagerPromptService.setPromptDismissed).toHaveBeenCalled();
     expect(createUrlTree).not.toHaveBeenCalled();
   });
 

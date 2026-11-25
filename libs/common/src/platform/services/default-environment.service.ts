@@ -132,14 +132,15 @@ export const PRODUCTION_REGIONS: RegionConfig[] = [
 ];
 
 /**
- * The default region when starting the app.
+ * Private builds start on a self-hosted server. Cloud regions stay available,
+ * but they are not the first-run choice.
  */
-const DEFAULT_REGION = Region.US;
+const DEFAULT_REGION = Region.SelfHosted;
 
 /**
- * The default region configuration.
+ * Cloud web-vault fallback used only when a cloud region was explicitly chosen.
  */
-const DEFAULT_REGION_CONFIG = PRODUCTION_REGIONS.find((r) => r.key === DEFAULT_REGION);
+const DEFAULT_REGION_CONFIG = PRODUCTION_REGIONS.find((r) => r.key === Region.US);
 
 export class DefaultEnvironmentService implements EnvironmentService {
   private globalState: GlobalState<EnvironmentState | null>;
@@ -236,9 +237,13 @@ export class DefaultEnvironmentService implements EnvironmentService {
       region = Region.SelfHosted;
     }
 
-    // If self-hosted ensure urls are valid else fallback to default region
-    if (region == Region.SelfHosted && isEmpty(urls)) {
-      region = DEFAULT_REGION;
+    if (region == Region.SelfHosted && (urls == null || isEmpty(urls))) {
+      const empty = new EnvironmentUrls();
+      await this.globalState.update(() => ({
+        region: Region.SelfHosted,
+        urls: empty,
+      }));
+      return empty;
     }
 
     if (region != Region.SelfHosted) {
@@ -284,14 +289,9 @@ export class DefaultEnvironmentService implements EnvironmentService {
    * Helper for building the environment from state. Performs some general sanitization to avoid invalid regions and urls.
    */
   protected buildEnvironment(region: Region, urls: Urls) {
-    // Unknown regions are treated as self-hosted
+    // Unknown regions, including a fresh install, are self-hosted.
     if (this.getRegionConfig(region) == null) {
       region = Region.SelfHosted;
-    }
-
-    // If self-hosted ensure urls are valid else fallback to default region
-    if (region == Region.SelfHosted && isEmpty(urls)) {
-      region = DEFAULT_REGION;
     }
 
     // Load urls from region config
@@ -302,7 +302,7 @@ export class DefaultEnvironmentService implements EnvironmentService {
       }
     }
 
-    return new SelfHostedEnvironment(urls);
+    return new SelfHostedEnvironment(urls ?? new EnvironmentUrls());
   }
 
   async setCloudRegion(userId: UserId | null, region: CloudRegion) {

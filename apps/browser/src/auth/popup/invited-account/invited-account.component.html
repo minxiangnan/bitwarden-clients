@@ -1,0 +1,50 @@
+<p class="tw-mb-4 tw-text-sm tw-text-main">公开注册已关闭。请填写管理员邀请过的邮箱。</p>
+
+<bit-form-field>
+  <bit-label>服务器 URL</bit-label>
+  <input
+    #serverUrlField
+    id="invited-server-url"
+    type="text"
+    bitInput
+    data-testid="invited-server-url"
+    placeholder="https://vault.example.com"
+    (input)="onServerUrl($any($event.target).value)"
+  />
+</bit-form-field>
+
+<bit-form-field>
+  <bit-label>受邀邮箱</bit-label>
+  <input
+    id="invited-email"
+    type="email"
+    bitInput
+    data-testid="invited-email"
+    (input)="onEmail($any($event.target).value)"
+  />
+</bit-form-field>
+
+<bit-form-field>
+  <bit-label>名称（可选）</bit-label>
+  <input
+    id="invited-name"
+    type="text"
+    bitInput
+    data-testid="invited-name"
+    (input)="onName($any($event.target).value)"
+  />
+</bit-form-field>
+
+@if (error()) {
+  <p class="tw-mb-3 tw-text-sm tw-text-danger-600" data-testid="invited-account-error">
+    {{ error() }}
+  </p>
+}
+
+<auth-input-password
+  [email]="email() || 'invited@local'"
+  [flow]="registrationFlow"
+  [loading]="busy()"
+  [primaryButtonText]="{ key: 'createAccount' }"
+  (onPasswordFormSubmit)="submit($event)"
+></auth-input-password>

@@ -69,7 +69,6 @@ import {
   ALL_ITEMS_SCOPE,
   DecryptionFailureDialogComponent,
   DefaultVaultItemsTransferService,
-  NewExperienceDialogResult,
   NewExperienceDialogService,
   offersVaultChoice,
   resolveVaultScope,
@@ -120,10 +119,6 @@ const VaultState = {
 } as const;
 
 type VaultState = UnionOfValues<typeof VaultState>;
-
-// Resolved against the popup document at the extension root, not this file.
-const NEW_EXPERIENCE_LIGHT_IMG = "../../../../images/new-experience/new-experience.light.png";
-const NEW_EXPERIENCE_DARK_IMG = "../../../../images/new-experience/new-experience.dark.png";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
@@ -529,20 +524,11 @@ export class VaultComponent implements OnInit, OnDestroy {
    * been introduced to the product is not told what changed about it. The remaining rules are
    * shared with web and desktop, and live in {@link NewExperienceDialogService}.
    */
-  private async openNewExperienceDialog(userId: UserId, onboardingWelcomeDismissed: boolean) {
-    if (!onboardingWelcomeDismissed) {
-      return;
-    }
-
-    const result = await this.newExperienceDialogService.conditionallyOpen(userId, {
-      lightImgSrc: NEW_EXPERIENCE_LIGHT_IMG,
-      darkImgSrc: NEW_EXPERIENCE_DARK_IMG,
-    });
-    if (result !== NewExperienceDialogResult.Explore) {
-      return;
-    }
-
-    await this.vaultTourService.start(userId);
+  private async openNewExperienceDialog(
+    _userId: UserId,
+    _onboardingWelcomeDismissed: boolean,
+  ) {
+    return;
   }
 
   ngOnDestroy() {

@@ -14,7 +14,7 @@
     "description": "Extension name for the beta channel, MUST be less than 40 characters (Safari restriction)"
   },
   "extDesc": {
-    "message": "At home, at work, or on the go, Bitwarden easily secures all your passwords, passkeys, and sensitive information",
+    "message": "Self-hosted vault and authenticator. Passwords and codes stay on your server.",
     "description": "Extension description, MUST be less than 112 characters (Safari restriction)"
   },
   "loginOrCreateNewAccount": {
@@ -988,6 +988,9 @@
   "never": {
     "message": "Never"
   },
+  "neverForWebsite": {
+    "message": "Never for this site"
+  },
   "security": {
     "message": "Security"
   },
@@ -1450,6 +1453,10 @@
   "saveFailure": {
     "message": "Error saving",
     "description": "Error message shown when the system fails to save login details."
+  },
+  "untrustedCertificate": {
+    "message": "The server certificate is not trusted, so the save failed.",
+    "description": "Shown when a save fails because the server certificate is not trusted."
   },
   "saveFailureDetails": {
     "message": "Oh no! We couldn't save this. Try entering the details manually.",
@@ -2196,6 +2203,18 @@
   },
   "selfHostedEnvFormInvalid": {
     "message": "You must add either the base Server URL or at least one custom environment."
+  },
+  "serverUrlRequired": {
+    "message": "Enter the server URL."
+  },
+  "serverUrlInvalid": {
+    "message": "Enter a valid server URL, for example https://vault.example.com."
+  },
+  "serverUrlMustUseHttps": {
+    "message": "The server URL must use HTTPS. Only localhost and 127.0.0.1 may use HTTP."
+  },
+  "serverUnreachable": {
+    "message": "Could not reach that server. Check the address and your network."
   },
   "selfHostedEnvMustUseHttps": {
     "message": "URLs must use HTTPS."
@@ -8208,7 +8227,7 @@
   "transferItemsToOrganizationAction": {
     "message": "Click accept to transfer ownership of your items."
   },
-   "openTransferItemsHelpArticle": {
+  "openTransferItemsHelpArticle": {
     "message": "Open help article on transferring items"
   },
   "acceptTransfer": {
@@ -9313,5 +9332,422 @@
   },
   "requestAccessModalRequestCreatedSuccessV2": {
     "message": "Access requested"
+  },
+  "authenticator": {
+    "message": "Authenticator"
+  },
+  "authenticatorAdd": {
+    "message": "Add code"
+  },
+  "authenticatorEdit": {
+    "message": "Edit code"
+  },
+  "authenticatorIssuer": {
+    "message": "Issuer"
+  },
+  "authenticatorSecret": {
+    "message": "Secret key"
+  },
+  "authenticatorAlgorithm": {
+    "message": "Algorithm"
+  },
+  "authenticatorDigits": {
+    "message": "Digits"
+  },
+  "authenticatorPeriod": {
+    "message": "Period (seconds)"
+  },
+  "authenticatorFavorites": {
+    "message": "Favorites"
+  },
+  "authenticatorFavorite": {
+    "message": "Favorite"
+  },
+  "authenticatorUnfavorite": {
+    "message": "Unfavorite"
+  },
+  "authenticatorEmpty": {
+    "message": "No authenticator codes yet."
+  },
+  "authenticatorLoadError": {
+    "message": "Could not load authenticator codes."
+  },
+  "authenticatorCopied": {
+    "message": "Code copied"
+  },
+  "authenticatorImport": {
+    "message": "Import from vault"
+  },
+  "authenticatorImportHelp": {
+    "message": "Vault logins that already store a verification-code secret."
+  },
+  "authenticatorImportNone": {
+    "message": "No new vault codes to import."
+  },
+  "authenticatorImportOne": {
+    "message": "Import"
+  },
+  "authenticatorPasteUri": {
+    "message": "Paste otpauth link"
+  },
+  "authenticatorPasteFailed": {
+    "message": "Could not read the clipboard."
+  },
+  "authenticatorInvalidUri": {
+    "message": "That is not a valid otpauth link."
+  },
+  "authenticatorScanTab": {
+    "message": "Scan current tab"
+  },
+  "authenticatorScanEmpty": {
+    "message": "No QR code found on this tab."
+  },
+  "authenticatorScanUnsupported": {
+    "message": "QR scan needs a browser that can read QR codes. Paste the otpauth link instead."
+  },
+  "authenticatorScanFound": {
+    "message": "QR code read"
+  },
+  "authenticatorSecretHint": {
+    "message": "Paste a Base32 secret or an otpauth:// link"
+  },
+  "authenticatorAdvanced": {
+    "message": "Advanced"
+  },
+  "authenticatorType": {
+    "message": "Type"
+  },
+  "authenticatorTypeTotp": {
+    "message": "TOTP"
+  },
+  "authenticatorTypeSteam": {
+    "message": "Steam"
+  },
+  "authenticatorDefaultName": {
+    "message": "Account $NUMBER$",
+    "placeholders": {
+      "number": {
+        "content": "$1",
+        "example": "1"
+      }
+    }
+  },
+  "authenticatorSecretInvalid": {
+    "message": "Enter a valid Base32 secret."
+  },
+  "authenticatorSaveError": {
+    "message": "Could not save to the server. Check the connection and try again."
+  },
+  "serverSaveFailed": {
+    "message": "Could not save to the server. Check the connection and try again."
+  },
+  "authenticatorMissing": {
+    "message": "This code is no longer available."
+  },
+  "authenticatorDeleteConfirm": {
+    "message": "Confirm delete"
+  },
+  "authenticatorUndecryptable": {
+    "message": "This code could not be decrypted. It cannot be edited until it can be read."
+  },
+  "authenticatorMoveUp": {
+    "message": "Move up"
+  },
+  "authenticatorMoveDown": {
+    "message": "Move down"
+  },
+  "mcpAccess": {
+    "message": "MCP access"
+  },
+  "mcpAccessHelp": {
+    "message": "After creating a token, open an authenticator entry, turn on MCP access, and set an alias. An AI client can read only those current codes."
+  },
+  "mcpAllowRead": {
+    "message": "Allow MCP to read this code"
+  },
+  "mcpAlias": {
+    "message": "Alias"
+  },
+  "mcpAliasHint": {
+    "message": "For example, gitlab"
+  },
+  "mcpAllowHelp": {
+    "message": "You can fill the alias now. An AI client can read this code by that name only after the option above is on."
+  },
+  "mcpCreate": {
+    "message": "Create token"
+  },
+  "mcpRotate": {
+    "message": "Rotate token"
+  },
+  "mcpRevoke": {
+    "message": "Revoke token"
+  },
+  "mcpCopy": {
+    "message": "Copy token"
+  },
+  "mcpToken": {
+    "message": "Access token"
+  },
+  "mcpTokenOnce": {
+    "message": "This token is shown only once. Copy it into Claude or Cursor now. After you leave this page it cannot be shown again; rotate it if you lose it."
+  },
+  "mcpTokenCopied": {
+    "message": "Token copied"
+  },
+  "mcpTokenRevoked": {
+    "message": "Token revoked"
+  },
+  "mcpNoServer": {
+    "message": "This server does not have MCP turned on."
+  },
+  "mcpNeedToken": {
+    "message": "Create a token first in Settings → MCP access."
+  },
+  "mcpAliasRequired": {
+    "message": "Enter an alias."
+  },
+  "mcpAliasInvalid": {
+    "message": "Start the alias with a letter or number. Then use only letters, numbers, dots, underscores, and hyphens."
+  },
+  "mcpEnabledStatus": {
+    "message": "Token is active. $COUNT$ codes are shared.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "mcpRotateConfirm": {
+    "message": "Rotating invalidates the current token immediately. Entries that can be decrypted are shared again. The others need Allow MCP turned on once more."
+  },
+  "mcpRevokeConfirm": {
+    "message": "Revoking turns off MCP access for every shared code and clears its alias. To replace the token and keep those aliases, use Rotate token."
+  },
+  "mcpActionError": {
+    "message": "The MCP action failed. Check the connection and try again."
+  },
+  "mcpRewrapMissed": {
+    "message": "Turn Allow MCP on again for: $NAMES$",
+    "placeholders": {
+      "names": {
+        "content": "$1",
+        "example": "gitlab"
+      }
+    }
+  },
+  "authenticatorHelp": {
+    "message": "Help"
+  },
+  "authenticatorTools": {
+    "message": "More"
+  },
+  "authenticatorArrange": {
+    "message": "Order and groups"
+  },
+  "authenticatorArrangeHelp": {
+    "message": "This only changes how the list looks on this browser. Moving an item up or down on the edit page is what the server stores."
+  },
+  "authenticatorSort": {
+    "message": "Sort"
+  },
+  "authenticatorGroup": {
+    "message": "Group"
+  },
+  "authenticatorHide": {
+    "message": "Hide"
+  },
+  "authenticatorBackupHelp": {
+    "message": "Saves an encrypted secure note on the server. A downloaded JSON file is plaintext and is only for moving codes."
+  },
+  "authenticatorRecentEmpty": {
+    "message": "No codes have been copied yet."
+  },
+  "authenticatorCopyAction": {
+    "message": "Copy verification code"
+  },
+  "authenticatorTrash": {
+    "message": "Code trash"
+  },
+  "authenticatorTrashHelp": {
+    "message": "Deleted codes stay here until you restore them. Permanent delete removes them from the server."
+  },
+  "authenticatorTrashEmpty": {
+    "message": "Trash is empty."
+  },
+  "authenticatorRestore": {
+    "message": "Restore"
+  },
+  "authenticatorTrashPermanent": {
+    "message": "Delete permanently"
+  },
+  "passwordHealthClear": {
+    "message": "Nothing needs attention."
+  },
+  "passwordHealthBusy": {
+    "message": "Checking…"
+  },
+  "passwordPresetHint": {
+    "message": "One click generates this preset and copies it. Adjust the length and characters below."
+  },
+  "authenticatorHost": {
+    "message": "Website host"
+  },
+  "authenticatorHostHint": {
+    "message": "example: github.com"
+  },
+  "authenticatorUseHost": {
+    "message": "Use current website"
+  },
+  "authenticatorTags": {
+    "message": "Groups"
+  },
+  "authenticatorTagsHint": {
+    "message": "Comma-separated, for example Work, Personal"
+  },
+  "authenticatorCounter": {
+    "message": "Counter"
+  },
+  "authenticatorTypeHotp": {
+    "message": "HOTP"
+  },
+  "authenticatorSortManual": {
+    "message": "Manual order"
+  },
+  "authenticatorSortName": {
+    "message": "By name"
+  },
+  "authenticatorSortIssuer": {
+    "message": "By issuer"
+  },
+  "authenticatorGroupNone": {
+    "message": "No groups"
+  },
+  "authenticatorGroupIssuer": {
+    "message": "Group by issuer"
+  },
+  "authenticatorGroupTag": {
+    "message": "Group by tag"
+  },
+  "authenticatorOffline": {
+    "message": "The server is unreachable. Showing the last synced codes. You can view and copy them."
+  },
+  "authenticatorSyncedAt": {
+    "message": "Synced $TIME$",
+    "placeholders": {
+      "time": {
+        "content": "$1",
+        "example": "2026/11/23 14:00"
+      }
+    }
+  },
+  "authenticatorImportHint": {
+    "message": "Paste otpauth links, a Google migration link, or an Aegis, 2FAS, or Bitwarden export"
+  },
+  "authenticatorImportPaste": {
+    "message": "Import pasted text"
+  },
+  "authenticatorImportFile": {
+    "message": "Import image or file"
+  },
+  "authenticatorImportEmpty": {
+    "message": "No codes were found to import."
+  },
+  "authenticatorImportEncrypted": {
+    "message": "This backup is encrypted. Export an unencrypted JSON from the original app."
+  },
+  "authenticatorImported": {
+    "message": "Imported $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "authenticatorExport": {
+    "message": "Export JSON"
+  },
+  "authenticatorExportWarning": {
+    "message": "The export file contains plaintext secrets and is only for migration. The encrypted copy stays on the server."
+  },
+  "authenticatorBackup": {
+    "message": "Back up into the vault"
+  },
+  "authenticatorBackupSaved": {
+    "message": "Saved as an encrypted secure note."
+  },
+  "authenticatorRecent": {
+    "message": "Recent"
+  },
+  "authenticatorNext": {
+    "message": "Next"
+  },
+  "commandCopySiteTotp": {
+    "message": "Copy the verification code for the current website"
+  },
+  "passwordHealth": {
+    "message": "Password health"
+  },
+  "passwordHealthHelp": {
+    "message": "Checks short, simple, and reused passwords on this device. The exposure check sends only the first 5 characters of the password hash."
+  },
+  "passwordHealthLocal": {
+    "message": "Check weak and reused"
+  },
+  "passwordHealthExposed": {
+    "message": "Check exposure"
+  },
+  "passwordHealthWeak": {
+    "message": "Weak"
+  },
+  "passwordHealthReused": {
+    "message": "Reused"
+  },
+  "passwordHealthLeaked": {
+    "message": "Exposed"
+  },
+  "passwordPresetStrong": {
+    "message": "20-character password"
+  },
+  "passwordPresetPin": {
+    "message": "6-digit PIN"
+  },
+  "passwordPresetPhrase": {
+    "message": "5-word passphrase"
+  },
+  "passwordPresetCopied": {
+    "message": "Generated from the preset and copied"
+  },
+  "mcpHotpUnsupported": {
+    "message": "HOTP cannot be read over MCP. The counter changes on every use, so copy it in the extension."
+  },
+  "destructiveLogoutBody": {
+    "message": "Logging out drops changes on this browser that have not reached the server. Passwords and codes already saved stay on the server."
+  },
+  "destructiveNeverTitle": {
+    "message": "This website"
+  },
+  "destructiveNeverBody": {
+    "message": "This website will not be asked about saving again. Logins already saved stay."
+  },
+  "destructiveNeverAccept": {
+    "message": "Don't save"
+  },
+  "destructiveUriBody": {
+    "message": "This website address will be removed from the login."
+  },
+  "destructiveFieldBody": {
+    "message": "The contents of this field will be lost."
+  },
+  "destructiveDomainBody": {
+    "message": "This website will be asked about saving again."
+  },
+  "destructiveAuthenticatorTrashBody": {
+    "message": "The code moves to the trash and can be restored. MCP access for it turns off."
+  },
+  "destructiveDraftBody": {
+    "message": "The captured draft for this page will be cleared and cannot be restored."
   }
 }

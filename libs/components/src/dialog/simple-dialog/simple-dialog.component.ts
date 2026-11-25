@@ -55,6 +55,9 @@ export class SimpleDialogComponent implements AfterViewInit {
    */
   readonly hideIcon = input(false, { transform: booleanAttribute });
 
+  /** Cream card and brown shadow, used by destructive confirms. */
+  readonly cream = input(false, { transform: booleanAttribute });
+
   ngAfterViewInit() {
     const footerButtons = this.footer()?.buttons() ?? [];
 

@@ -1,0 +1,149 @@
+<popup-page [loading]="loading()">
+  <popup-header slot="header" [pageTitle]="'authenticator' | i18n">
+    <ng-container slot="end">
+      <button type="button" bitButton buttonType="primary" [disabled]="readOnly()" (click)="add()">
+        {{ "authenticatorAdd" | i18n }}
+      </button>
+      <app-pop-out />
+    </ng-container>
+  </popup-header>
+
+  @if (status() === "error") {
+    <p class="tw-mb-3 tw-text-sm tw-text-danger" role="alert">
+      {{ "authenticatorLoadError" | i18n }}
+    </p>
+  }
+
+  @if (readOnly()) {
+    <p
+      class="tw-mb-3 tw-rounded-lg tw-bg-background-alt tw-p-3 tw-text-sm tw-text-main"
+      role="status"
+    >
+      {{ "authenticatorOffline" | i18n }}
+    </p>
+  } @else if (syncedLabel()) {
+    <p class="tw-mb-3 tw-text-xs tw-text-muted">{{ syncedLabel() }}</p>
+  }
+
+  <div class="tw-mb-3 tw-flex tw-flex-col tw-gap-2">
+    <input
+      bitInput
+      type="search"
+      class="tw-w-full"
+      [placeholder]="'search' | i18n"
+      [attr.aria-label]="'search' | i18n"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+    />
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+      <button
+        type="button"
+        bitButton
+        [buttonType]="favoritesOnly() ? 'primary' : 'secondary'"
+        size="small"
+        [attr.aria-pressed]="favoritesOnly()"
+        (click)="favoritesOnly.set(!favoritesOnly())"
+      >
+        {{ "authenticatorFavorites" | i18n }}
+      </button>
+      <button
+        type="button"
+        bitButton
+        [buttonType]="recentOnly() ? 'primary' : 'secondary'"
+        size="small"
+        [attr.aria-pressed]="recentOnly()"
+        (click)="ui.recentOnly.set(!ui.recentOnly())"
+      >
+        {{ "authenticatorRecent" | i18n }}
+      </button>
+      <button
+        type="button"
+        bitButton
+        buttonType="secondary"
+        size="small"
+        [disabled]="scanning() || readOnly()"
+        (click)="scanCurrentPage()"
+      >
+        {{ "authenticatorScanTab" | i18n }}
+      </button>
+      <button type="button" bitButton buttonType="secondary" size="small" (click)="openTools()">
+        {{ "authenticatorTools" | i18n }}
+      </button>
+    </div>
+    @if (scanError()) {
+      <p class="tw-mb-0 tw-text-sm tw-text-danger" role="alert">{{ scanError() }}</p>
+    }
+  </div>
+
+  @if (visible().length === 0 && (status() === "ready" || status() === "offline")) {
+    <p class="tw-text-sm tw-text-muted">
+      {{ (recentOnly() ? "authenticatorRecentEmpty" : "authenticatorEmpty") | i18n }}
+    </p>
+  }
+
+  @for (group of groups(); track group.title) {
+    @if (group.title) {
+      <h2 class="tw-mb-2 tw-mt-3 tw-text-sm tw-font-semibold tw-text-main">{{ group.title }}</h2>
+    }
+    <ul class="tw-m-0 tw-list-none tw-p-0">
+      @for (entry of group.entries; track entry.id) {
+        <li
+          class="tw-mb-3 tw-rounded-xl tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-p-3"
+        >
+          <div class="tw-flex tw-items-start tw-gap-2">
+            <button
+              type="button"
+              class="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
+              [attr.aria-label]="'authenticatorCopyAction' | i18n"
+              (click)="copy(entry)"
+            >
+              <span class="tw-block tw-truncate tw-text-sm tw-font-semibold tw-text-main">
+                {{ entry.issuer ? entry.issuer + " · " + entry.name : entry.name }}
+              </span>
+              @if (aliases()[entry.id]) {
+                <span class="tw-block tw-truncate tw-text-xs tw-text-muted">{{
+                  aliases()[entry.id]
+                }}</span>
+              }
+              @if (entry.undecryptable) {
+                <span class="tw-block tw-text-sm tw-text-danger">{{
+                  "authenticatorUndecryptable" | i18n
+                }}</span>
+              } @else {
+                <app-authenticator-code
+                  [entry]="entry"
+                  (codeChange)="rememberCode(entry.id, $event)"
+                />
+              }
+            </button>
+            <button
+              type="button"
+              class="tw-border-0 tw-bg-transparent tw-p-1 tw-text-lg tw-leading-none"
+              [class.tw-text-primary-600]="entry.favorite"
+              [class.tw-text-muted]="!entry.favorite"
+              [disabled]="readOnly() || entry.undecryptable || busyId() !== null"
+              [attr.aria-label]="
+                (entry.favorite ? 'authenticatorUnfavorite' : 'authenticatorFavorite') | i18n
+              "
+              (click)="toggleFavorite(entry)"
+            >
+              {{ entry.favorite ? "★" : "☆" }}
+            </button>
+          </div>
+          <div class="tw-mt-2">
+            <button
+              type="button"
+              bitButton
+              buttonType="secondary"
+              size="small"
+              [disabled]="readOnly() || entry.undecryptable || busyId() !== null"
+              (click)="edit(entry)"
+            >
+              {{ "edit" | i18n }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</popup-page>

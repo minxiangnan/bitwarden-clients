@@ -7,7 +7,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { FillCipherPolicy } from "../services/abstractions/fill-cipher-policy";
-import { generateDomainMatchPatterns, isInvalidResponseStatusCode } from "../utils";
+import { generateDomainMatchPatterns } from "../utils";
 
 import {
   ActiveFormSubmissionRequests,
@@ -28,6 +28,20 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private modifyLoginCipherFormData: ModifyLoginCipherFormDataForTab = new Map();
   private clearLoginCipherFormDataSubject: Subject<void> = new Subject();
   private notificationFallbackTimeout: number | NodeJS.Timeout | null = null;
+  private pendingLoginFormData = new Map<
+    number,
+    { message: OverlayNotificationsExtensionMessage; sender: chrome.runtime.MessageSender }
+  >();
+  /**
+   * Username typed on an earlier step of the same tab and origin. Kept separately from the
+   * submission buffer so a password-only second step can still be saved.
+   * https://github.com/bitwarden/clients/issues/320
+   */
+  private capturedUsernames = new Map<
+    number,
+    { origin: string; username: string; expiresAt: number }
+  >();
+  private readonly capturedUsernameTtlMs = 2 * 60 * 1000;
   private readonly formSubmissionRequestMethods: Set<string> = new Set(["POST", "PUT", "PATCH"]);
   private readonly extensionMessageHandlers: OverlayNotificationsExtensionMessageHandlers = {
     generatedPasswordFilled: ({ message, sender }) =>
@@ -65,13 +79,15 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     message: OverlayNotificationsExtensionMessage,
     sender: chrome.runtime.MessageSender,
   ) {
-    if (await this.shouldInitAddLoginOrChangePasswordNotification(message, sender)) {
+    const shouldInit = await this.shouldInitAddLoginOrChangePasswordNotification(message, sender);
+    if (shouldInit) {
       const tabId = sender.tab?.id;
       if (tabId === undefined) {
         return;
       }
       this.websiteOriginsWithFields.set(tabId, this.getSenderUrlMatchPatterns(sender));
       this.setupWebRequestsListeners();
+      this.flushPendingLoginFormData(tabId);
     }
   }
 
@@ -150,7 +166,21 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     sender: chrome.runtime.MessageSender,
   ) => {
     const tabId = sender.tab?.id;
-    if (tabId === undefined || !this.websiteOriginsWithFields.has(tabId)) {
+    if (tabId === undefined) {
+      return;
+    }
+    if (!this.websiteOriginsWithFields.has(tabId)) {
+      // A React page often never qualifies its inputs, so collectPageDetailsResponse
+      // never registers the tab and this submission used to sit here forever.
+      // A password (or a password merged with an earlier username) registers the tab
+      // itself. A username alone still waits, so the first step of a two-step login
+      // does not open a prompt.
+      const pending = this.pendingLoginFormData.get(tabId);
+      const merged = this.mergePendingSubmission(pending?.message, message);
+      this.pendingLoginFormData.set(tabId, { message: merged, sender });
+      if (await this.ensureTabRegisteredForSubmission(tabId, merged, sender)) {
+        this.flushPendingLoginFormData(tabId);
+      }
       return;
     }
 
@@ -167,6 +197,19 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
 
     this.clearLoginCipherFormDataSubject.next();
     const formData = { uri, username, password, newPassword };
+    const origin = this.senderOrigin(sender);
+    if (formData.username) {
+      this.capturedUsernames.set(tabId, {
+        origin,
+        username: formData.username,
+        expiresAt: Date.now() + this.capturedUsernameTtlMs,
+      });
+    } else {
+      const remembered = this.capturedUsername(tabId, origin);
+      if (remembered) {
+        formData.username = remembered;
+      }
+    }
 
     const existingModifyLoginData = this.modifyLoginCipherFormData.get(tabId);
     if (existingModifyLoginData) {
@@ -178,6 +221,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     this.modifyLoginCipherFormData.set(tabId, formData);
 
     this.clearNotificationFallbackTimeout();
+    // A username by itself is not a login to save. Prompting now would discard it
+    // before the password step. The captured username is combined when the password arrives.
+    if (!formData.password && !formData.newPassword) {
+      return;
+    }
     this.notificationFallbackTimeout = setTimeout(() => {
       const modifyLoginData = this.modifyLoginCipherFormData.get(tabId);
       if (modifyLoginData) {
@@ -232,7 +280,15 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
         return false;
       }
 
-      return origins.some((origin) => excludedDomains[new URL(origin).hostname] !== undefined);
+      return origins.some((origin) => {
+        const url = new URL(origin);
+        // host keeps a non-default port, so "此网站永不" on 127.0.0.1:8776
+        // does not also hide prompts on 127.0.0.1:8000. hostname still matches
+        // older entries that were stored without a port.
+        return (
+          excludedDomains[url.host] !== undefined || excludedDomains[url.hostname] !== undefined
+        );
+      });
     } catch {
       return true;
     }
@@ -257,11 +313,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    * that are not from the tabs that have fillable form fields.
    */
   private generateRequestFilter(): chrome.webRequest.RequestFilter {
-    const websiteOrigins = Array.from(this.websiteOriginsWithFields.values());
-    const urls: string[] = [];
-    websiteOrigins.forEach((origins) => urls.push(...origins));
+    // Login calls often leave the page host (api.example.com, an auth provider).
+    // A host-only filter never sees them, so the save prompt never opens.
+    // The handlers still require a tab that captured a password.
     return {
-      urls,
+      urls: ["<all_urls>"],
       types: ["main_frame", "sub_frame", "xmlhttprequest"],
     };
   }
@@ -330,8 +386,33 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       return false;
     }
 
-    return false;
+    // Username-only, or any other incomplete capture, still needs the fields read
+    // from the page when a request is submitted without a form event.
+    return true;
   };
+
+  private senderOrigin(sender: chrome.runtime.MessageSender): string {
+    if (sender.origin) {
+      return sender.origin;
+    }
+    try {
+      return sender.tab?.url ? new URL(sender.tab.url).origin : "";
+    } catch {
+      return "";
+    }
+  }
+
+  private capturedUsername(tabId: number, origin: string): string {
+    const saved = this.capturedUsernames.get(tabId);
+    if (saved == null || saved.expiresAt < Date.now()) {
+      this.capturedUsernames.delete(tabId);
+      return "";
+    }
+    if (origin && saved.origin && saved.origin !== origin) {
+      return "";
+    }
+    return saved.username;
+  }
 
   /**
    * Determines whether the request is happening after a form submission. This is identified by a GET
@@ -414,8 +495,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       return;
     }
 
-    if (isInvalidResponseStatusCode(details.statusCode)) {
-      this.clearNotificationFallbackTimeout();
+    // 302 is how a classic form (GitLab) finishes. 401/422 is how a SPA
+    // reports a rejected login. Both are a completed submit, and the prompt
+    // should still appear. Only a cancelled request (0) or a 5xx keeps the
+    // click fallback alive instead of opening the bar on a failed request.
+    if (!this.submissionStatusShouldPrompt(details.statusCode)) {
       return;
     }
 
@@ -600,6 +684,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   ) => {
     this.activeFormSubmissionRequests.delete(requestId);
     this.modifyLoginCipherFormData.delete(tabId);
+    this.capturedUsernames.delete(tabId);
     this.websiteOriginsWithFields.delete(tabId);
     this.setupWebRequestsListeners();
   };
@@ -661,8 +746,76 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    *
    * @param tabId - The id of the tab that was removed
    */
+  /**
+   * A missing status is treated as success so callers that do not set one still prompt.
+   * 2xx, 3xx, and 4xx are completed attempts. 0 and 5xx are not.
+   */
+  private submissionStatusShouldPrompt(statusCode: number | undefined): boolean {
+    if (typeof statusCode !== "number") {
+      return true;
+    }
+    return statusCode > 0 && statusCode < 500;
+  }
+
+  private mergePendingSubmission(
+    previous: OverlayNotificationsExtensionMessage | undefined,
+    next: OverlayNotificationsExtensionMessage,
+  ): OverlayNotificationsExtensionMessage {
+    if (!previous) {
+      return next;
+    }
+    return {
+      ...next,
+      uri: next.uri || previous.uri,
+      username: next.username || previous.username,
+      password: next.password || previous.password,
+      newPassword: next.newPassword || previous.newPassword,
+    };
+  }
+
+  /**
+   * Registers a tab that reported a password before page details did.
+   * Returns false when the prompt is disabled, the site is excluded, or the
+   * sender has no URL to match.
+   */
+  private async ensureTabRegisteredForSubmission(
+    tabId: number,
+    message: OverlayNotificationsExtensionMessage,
+    sender: chrome.runtime.MessageSender,
+  ): Promise<boolean> {
+    if (this.websiteOriginsWithFields.has(tabId)) {
+      return true;
+    }
+    if (!message.password && !message.newPassword) {
+      return false;
+    }
+    if (!(await this.isAddLoginOrChangePasswordNotificationEnabled())) {
+      return false;
+    }
+    if (await this.isSenderFromExcludedDomain(sender)) {
+      return false;
+    }
+    const patterns = this.getSenderUrlMatchPatterns(sender);
+    if (!patterns.size) {
+      return false;
+    }
+    this.websiteOriginsWithFields.set(tabId, patterns);
+    this.setupWebRequestsListeners();
+    return true;
+  }
+
+  private flushPendingLoginFormData(tabId: number) {
+    const pending = this.pendingLoginFormData.get(tabId);
+    this.pendingLoginFormData.delete(tabId);
+    if (pending) {
+      void this.storeModifiedLoginFormData(pending.message, pending.sender);
+    }
+  }
+
   private handleTabRemoved = (tabId: number) => {
     this.modifyLoginCipherFormData.delete(tabId);
+    this.capturedUsernames.delete(tabId);
+    this.pendingLoginFormData.delete(tabId);
     if (this.websiteOriginsWithFields.has(tabId)) {
       this.websiteOriginsWithFields.delete(tabId);
       this.setupWebRequestsListeners();
@@ -677,6 +830,21 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    * @param changeInfo - The change info of the tab
    */
   private handleTabUpdated = (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
+    if (changeInfo.url) {
+      const pending = this.pendingLoginFormData.get(tabId);
+      if (pending) {
+        let nextOrigin = "";
+        try {
+          nextOrigin = new URL(changeInfo.url).origin;
+        } catch {
+          nextOrigin = "";
+        }
+        if (!nextOrigin || nextOrigin !== this.senderOrigin(pending.sender)) {
+          this.pendingLoginFormData.delete(tabId);
+        }
+      }
+    }
+
     if (changeInfo.status !== "loading" || !changeInfo.url) {
       return;
     }

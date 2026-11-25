@@ -1,0 +1,59 @@
+<popup-page [loading]="loading()">
+  <popup-header slot="header" [pageTitle]="'mcpAccess' | i18n" showBackButton>
+    <ng-container slot="end">
+      <app-pop-out />
+    </ng-container>
+  </popup-header>
+
+  @if (error()) {
+    <bit-callout type="danger" class="tw-mb-3">{{ error() }}</bit-callout>
+  }
+
+  @if (unsupported()) {
+    <bit-callout type="warning">{{ "mcpNoServer" | i18n }}</bit-callout>
+  } @else if (!loading()) {
+    <p class="tw-mb-3 tw-text-sm tw-text-muted">{{ "mcpAccessHelp" | i18n }}</p>
+
+    @if (revealedToken(); as token) {
+      <bit-callout type="warning" class="tw-mb-3">{{ "mcpTokenOnce" | i18n }}</bit-callout>
+      <label class="tw-mb-1 tw-block tw-text-sm" for="mcp-token">{{ "mcpToken" | i18n }}</label>
+      <textarea
+        id="mcp-token"
+        class="tw-mb-2 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-secondary-100 tw-bg-background tw-p-2 tw-text-sm tw-text-main"
+        rows="3"
+        readonly
+        [value]="token"
+      ></textarea>
+      <button type="button" bitButton buttonType="primary" [block]="true" (click)="copy()">
+        {{ "mcpCopy" | i18n }}
+      </button>
+      @if (rewrapNote()) {
+        <p class="tw-mt-3 tw-text-sm tw-text-muted">{{ rewrapNote() }}</p>
+      }
+    } @else if (!configured()) {
+      <button
+        type="button"
+        bitButton
+        buttonType="primary"
+        [block]="true"
+        [disabled]="busy()"
+        [loading]="busy()"
+        (click)="create()"
+      >
+        {{ "mcpCreate" | i18n }}
+      </button>
+    } @else {
+      <bit-callout type="success" class="tw-mb-3">
+        {{ "mcpEnabledStatus" | i18n: entryCount().toString() }}
+      </bit-callout>
+      <div class="tw-flex tw-flex-col tw-gap-2">
+        <button type="button" bitButton buttonType="secondary" [disabled]="busy()" (click)="rotate()">
+          {{ "mcpRotate" | i18n }}
+        </button>
+        <button type="button" bitButton buttonType="danger" [disabled]="busy()" (click)="revoke()">
+          {{ "mcpRevoke" | i18n }}
+        </button>
+      </div>
+    }
+  }
+</popup-page>

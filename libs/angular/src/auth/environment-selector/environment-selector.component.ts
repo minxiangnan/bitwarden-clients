@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
-import { Component, OnDestroy } from "@angular/core";
-import { Observable, Subject, map } from "rxjs";
+import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Observable, Subject, map, takeUntil } from "rxjs";
 
 import { AvailableRegionsService } from "@bitwarden/common/platform/abstractions/available-regions.service";
 import {
@@ -9,6 +9,7 @@ import {
   RegionConfig,
 } from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { isAllowedServerRequestUrl } from "@bitwarden/common/platform/misc/server-url";
 import {
   DialogService,
   IconModule,
@@ -29,8 +30,11 @@ import { SelfHostedEnvConfigDialogComponent } from "../self-hosted-env-config-di
   standalone: true,
   imports: [CommonModule, I18nPipe, IconModule, LinkModule, MenuModule, TypographyModule],
 })
-export class EnvironmentSelectorComponent implements OnDestroy {
+export class EnvironmentSelectorComponent implements OnInit, OnDestroy {
   protected ServerEnvironmentType = Region;
+  protected showCloudRegions = false;
+  protected baseUrl = "";
+  private savedBaseUrl = "";
   protected availableRegions$: Observable<RegionConfig[]> =
     this.availableRegionsService.availableRegions$;
   protected selectedRegion$: Observable<RegionConfig | undefined> =
@@ -50,9 +54,37 @@ export class EnvironmentSelectorComponent implements OnDestroy {
     private i18nService: I18nService,
   ) {}
 
+  ngOnInit() {
+    this.environmentService.environment$.pipe(takeUntil(this.destroy$)).subscribe((env) => {
+      this.savedBaseUrl = env.getUrls()?.base ?? "";
+      this.baseUrl = this.savedBaseUrl;
+    });
+  }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  protected async saveBaseUrl(): Promise<void> {
+    const base = this.baseUrl.trim();
+    if (!base || base === this.savedBaseUrl) {
+      return;
+    }
+    if (!isAllowedServerRequestUrl(base)) {
+      this.toastService.showToast({
+        variant: "error",
+        title: "",
+        message: this.i18nService.t("serverUrlMustUseHttps"),
+      });
+      return;
+    }
+    await this.environmentService.setEnvironment(Region.SelfHosted, { base });
+    this.toastService.showToast({
+      variant: "success",
+      title: "",
+      message: this.i18nService.t("environmentSaved"),
+    });
   }
 
   async toggle(option: Region) {

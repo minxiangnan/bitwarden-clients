@@ -20,6 +20,7 @@ import {
   NotificationType,
   NotificationTypes,
 } from "./abstractions/notification-bar";
+import { confirmNeverSave, neverSaveHost } from "./never-save-confirm";
 import { isAtRiskPasswordNotification } from "./utils";
 
 let notificationBarIframeInitData: NotificationBarIframeInitData = {};
@@ -60,6 +61,7 @@ function getI18n() {
     loginUpdateTaskSuccessAdditional: chrome.i18n.getMessage("loginUpdateTaskSuccessAdditional"),
     myVault: chrome.i18n.getMessage("myVault"),
     never: chrome.i18n.getMessage("never"),
+    neverForWebsite: chrome.i18n.getMessage("neverForWebsite"),
     newItem: chrome.i18n.getMessage("newItem"),
     nextSecurityTaskAction: chrome.i18n.getMessage("nextSecurityTaskAction"),
     notificationAddDesc: chrome.i18n.getMessage("notificationAddDesc"),
@@ -79,6 +81,7 @@ function getI18n() {
     saveAsNewLoginAction: chrome.i18n.getMessage("saveAsNewLoginAction"),
     saveFailure: chrome.i18n.getMessage("saveFailure"),
     saveFailureDetails: chrome.i18n.getMessage("saveFailureDetails"),
+    untrustedCertificate: chrome.i18n.getMessage("untrustedCertificate"),
     saveLogin: chrome.i18n.getMessage("saveLogin"),
     typeLogin: chrome.i18n.getMessage("typeLogin"),
     unlockToSave: chrome.i18n.getMessage("unlockToSave"),
@@ -212,6 +215,7 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
       theme: resolvedTheme,
       personalVaultIsAllowed: !personalVaultDisallowed,
       handleCloseNotification,
+      handleNeverAction,
       handleEditOrUpdateAction,
       i18n,
     };
@@ -287,6 +291,7 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
         notificationTestId,
         personalVaultIsAllowed: !personalVaultDisallowed,
         handleCloseNotification,
+        handleNeverAction,
         handleSaveAction,
         handleEditOrUpdateAction,
         i18n,
@@ -315,6 +320,21 @@ function handleCloseNotification(e: Event) {
     // FIXME (PM-33879): This value should be replaced with the resolved
     // user preference and/or removed entirely
     fadeOutNotification: true,
+  });
+}
+
+function handleNeverAction(e: Event) {
+  e.preventDefault();
+  const message = (key: string, fallback: string) => chrome.i18n.getMessage(key) || fallback;
+  void confirmNeverSave({
+    title: neverSaveHost(document.referrer, message("destructiveNeverTitle", "此网站")),
+    body: message("destructiveNeverBody", "以后这个网站不再询问保存。已经保存的登录不会删除。"),
+    acceptLabel: message("destructiveNeverAccept", "不再保存"),
+    cancelLabel: message("cancel", "取消"),
+  }).then((accepted) => {
+    if (accepted) {
+      sendPlatformMessage({ command: "bgNeverSave" });
+    }
   });
 }
 
@@ -377,7 +397,10 @@ function handleSaveCipherConfirmation(message: NotificationBarWindowMessage) {
   const i18n = getI18n();
   const resolvedTheme = getResolvedTheme(theme ?? ThemeTypes.Light);
   const resolvedType = resolveNotificationType(notificationBarIframeInitData);
-  const headerMessage = getConfirmationHeaderMessage(i18n, resolvedType, error);
+  const headerMessage =
+    error === "untrusted-certificate"
+      ? i18n.untrustedCertificate
+      : getConfirmationHeaderMessage(i18n, resolvedType, error);
   const notificationTestId = getNotificationTestId(resolvedType, true);
   appendHeaderMessageToTitle(headerMessage);
 
@@ -452,14 +475,8 @@ function handleWindowMessage(event: MessageEvent) {
   handler({ message });
 }
 
-function getTheme(globalThis: any, theme: NotificationBarIframeInitData["theme"]) {
-  if (theme === ThemeTypes.System) {
-    return globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-      ? ThemeTypes.Dark
-      : ThemeTypes.Light;
-  }
-
-  return theme;
+function getTheme(_globalThis: any, theme: NotificationBarIframeInitData["theme"]) {
+  return theme === ThemeTypes.Dark ? ThemeTypes.Dark : ThemeTypes.Light;
 }
 
 function getResolvedTheme(theme: Theme) {

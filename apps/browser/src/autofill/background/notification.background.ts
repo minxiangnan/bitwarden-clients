@@ -20,7 +20,7 @@ import {
 import { DomainSettingsService } from "@bitwarden/common/autofill/services/domain-settings.service";
 import { UserNotificationSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/user-notification-settings.service";
 import { ProductTierType } from "@bitwarden/common/billing/enums/product-tier-type.enum";
-import { NeverDomains } from "@bitwarden/common/models/domain/domain-service";
+import { NeverDomains, UriMatchStrategy } from "@bitwarden/common/models/domain/domain-service";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { ServerConfig } from "@bitwarden/common/platform/abstractions/config/server-config";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
@@ -51,6 +51,7 @@ import { SecurityTask } from "@bitwarden/common/vault/tasks/models/security-task
 // eslint-disable-next-line no-restricted-imports
 import { AuthPopoutType, openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
+import { serverCertificateUntrusted } from "../../platform/browser/server-certificate";
 // FIXME (PM-22628): Popup imports are forbidden in background
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -767,20 +768,51 @@ export default class NotificationBackground {
      * if an update has been made.
      */
     if (authStatus === AuthenticationStatus.Locked) {
-      if (!newPasswordFieldHasValue) {
-        return false;
+      // A changed-password field still queues the update prompt. A normal login
+      // (current password, no new-password field) used to be dropped while locked,
+      // so the bar never appeared after unlock.
+      if (newPasswordFieldHasValue) {
+        await this.pushChangePasswordToQueue(null, loginDomain, newPasswordFieldValue, tab, true);
+        return true;
       }
-      // This needs to be the call that includes the full form data
-      await this.pushChangePasswordToQueue(null, loginDomain, newPasswordFieldValue, tab, true);
-
-      return true;
+      if (currentPasswordFieldHasValue && newLoginNotificationIsEnabled) {
+        await this.pushAddLoginToQueue(
+          loginDomain,
+          {
+            username: usernameFieldValue,
+            url: data.uri,
+            password: currentPasswordFieldValue,
+          },
+          tab,
+          true,
+        );
+        return true;
+      }
+      return false;
     }
 
     const ciphersForURL: CipherView[] = await this.fillCipherPolicy.ciphersForUrl(
       data.uri,
       activeUserId,
       CipherUse.SavePrompt,
+      // Login save/update follows the host, even if the user changed the autofill default.
+      { defaultMatch: UriMatchStrategy.Host },
     );
+
+    // A login is a current password, not a "new password" field. Signup and
+    // change-password forms keep the older matching below.
+    if (currentPasswordFieldHasValue && !newPasswordFieldHasValue) {
+      return await this.offerLoginPrompt({
+        ciphersForURL,
+        username: usernameFieldValue ?? "",
+        password: currentPasswordFieldValue,
+        loginDomain,
+        tab,
+        data,
+        newLoginNotificationIsEnabled,
+        changePasswordNotificationIsEnabled,
+      });
+    }
 
     // Reducer structured to avoid subsequent array iterations
     const ciphersByInputMatchCategory = ciphersForURL.reduce<CiphersByInputMatchCategory>(
@@ -895,6 +927,136 @@ export default class NotificationBackground {
     }
 
     return false;
+  }
+
+  /**
+   * Same username and password on this tab already produced a bar. A second
+   * submit (the request completing, then the fallback timer) must not open another.
+   */
+  private loginPromptKeys = new Map<number, string>();
+
+  private loginPromptKey(username: string, password: string, kind: "save" | "update") {
+    return `${username.toLowerCase()}|${password}|${kind}`;
+  }
+
+  private alreadyOfferedLogin(
+    tab: chrome.tabs.Tab,
+    username: string,
+    password: string,
+    kind: "save" | "update",
+  ) {
+    return tab.id != null && this.loginPromptKeys.get(tab.id) === this.loginPromptKey(username, password, kind);
+  }
+
+  private rememberOfferedLogin(
+    tab: chrome.tabs.Tab,
+    username: string,
+    password: string,
+    kind: "save" | "update",
+  ) {
+    if (tab.id != null) {
+      this.loginPromptKeys.set(tab.id, this.loginPromptKey(username, password, kind));
+    }
+  }
+
+  /**
+   * Login decision for one exact host:
+   * unknown username -> save; known username with a different password -> update
+   * those ciphers (the bar lists them so the user can pick); identical -> nothing.
+   * A password with no username updates the single cipher for the host, or lists
+   * every cipher whose password differs.
+   */
+  private async offerLoginPrompt({
+    ciphersForURL,
+    username,
+    password,
+    loginDomain,
+    tab,
+    data,
+    newLoginNotificationIsEnabled,
+    changePasswordNotificationIsEnabled,
+  }: {
+    ciphersForURL: CipherView[];
+    username: string;
+    password: string;
+    loginDomain: string;
+    tab: chrome.tabs.Tab;
+    data: ModifyLoginCipherFormData;
+    newLoginNotificationIsEnabled: boolean;
+    changePasswordNotificationIsEnabled: boolean;
+  }): Promise<boolean> {
+    const normalized = username.trim().toLowerCase();
+    const sameUser = normalized
+      ? ciphersForURL.filter((cipher) => (cipher.login?.username ?? "").toLowerCase() === normalized)
+      : [];
+
+    if (normalized) {
+      if (sameUser.length === 0) {
+        if (!newLoginNotificationIsEnabled) {
+          return false;
+        }
+        if (this.alreadyOfferedLogin(tab, normalized, password, "save")) {
+          return true;
+        }
+        await this.pushAddLoginToQueue(
+          loginDomain,
+          { username, url: data.uri, password },
+          tab,
+        );
+        this.rememberOfferedLogin(tab, normalized, password, "save");
+        return true;
+      }
+      if (sameUser.some((cipher) => cipher.login?.password === password)) {
+        return false;
+      }
+      if (!changePasswordNotificationIsEnabled) {
+        return false;
+      }
+      if (this.alreadyOfferedLogin(tab, normalized, password, "update")) {
+        return true;
+      }
+      await this.pushChangePasswordToQueue(
+        sameUser.map((cipher) => cipher.id),
+        loginDomain,
+        password,
+        tab,
+      );
+      this.rememberOfferedLogin(tab, normalized, password, "update");
+      return true;
+    }
+
+    if (ciphersForURL.length === 0) {
+      if (!newLoginNotificationIsEnabled) {
+        return false;
+      }
+      if (this.alreadyOfferedLogin(tab, "", password, "save")) {
+        return true;
+      }
+      await this.pushAddLoginToQueue(loginDomain, { username: "", url: data.uri, password }, tab);
+      this.rememberOfferedLogin(tab, "", password, "save");
+      return true;
+    }
+
+    // This password is already stored for the host. Without a username there is
+    // nothing new to save and nothing to change.
+    if (ciphersForURL.some((cipher) => cipher.login?.password === password)) {
+      return false;
+    }
+    // One account: update it. Several: the bar lists them and the user picks.
+    if (!changePasswordNotificationIsEnabled) {
+      return false;
+    }
+    if (this.alreadyOfferedLogin(tab, "", password, "update")) {
+      return true;
+    }
+    await this.pushChangePasswordToQueue(
+      ciphersForURL.map((cipher) => cipher.id),
+      loginDomain,
+      password,
+      tab,
+    );
+    this.rememberOfferedLogin(tab, "", password, "update");
+    return true;
   }
 
   private async handleInputMatchScenario({
@@ -1313,27 +1475,22 @@ export default class NotificationBackground {
 
       this.notificationQueue.splice(i, 1);
 
-      // If the vault was locked, check if a cipher needs updating instead of creating a new one
+      // The unlock bar only held the typed login. Now that the vault is open,
+      // decide save, update, or nothing and show that bar. Do not write yet.
       if (queueMessage.wasVaultLocked) {
-        const allCiphers = await this.fillCipherPolicy.ciphersForUrl(
-          queueMessage.data.uri,
-          activeUserId,
-          CipherUse.SavePrompt,
+        const prompted = await this.triggerCipherNotification(
+          {
+            username: queueMessage.data.username || "",
+            password: queueMessage.data.password || "",
+            newPassword: "",
+            uri: queueMessage.data.uri,
+          },
+          tab,
         );
-        const existingCipher = allCiphers.find(
-          (c) =>
-            c.login?.username != null &&
-            c.login.username.toLowerCase() === queueMessage.data.username,
-        );
-
-        if (existingCipher != null) {
-          const password = queueMessage.data.password;
-          if (password == null) {
-            continue;
-          }
-          await this.updatePassword(existingCipher, password, resolvedEdit, tab, activeUserId);
-          return;
+        if (!prompted) {
+          await BrowserApi.tabSendMessage(tab, { command: "closeNotificationBar" });
         }
+        return;
       }
 
       folderId =
@@ -1357,10 +1514,31 @@ export default class NotificationBackground {
         await BrowserApi.tabSendMessage(tab, { command: "addedCipher" });
       } catch (error) {
         await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
-          error: error instanceof Error ? error.message : String(error),
+          error: await this.saveFailureCode(error),
         });
       }
     }
+  }
+
+  /**
+   * A transport failure against an HTTPS server is checked for a certificate
+   * rejection. That case uses a dedicated message instead of the generic save error.
+   */
+  private async saveFailureCode(error: unknown): Promise<string> {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/error sending request|Failed to fetch|NetworkError/i.test(message)) {
+      return message;
+    }
+    try {
+      const environment = await firstValueFrom(this.environmentService.environment$);
+      const apiUrl = environment?.getApiUrl() ?? "";
+      if (await serverCertificateUntrusted(apiUrl)) {
+        return "untrusted-certificate";
+      }
+    } catch {
+      return message;
+    }
+    return message;
   }
 
   /**
@@ -1439,7 +1617,7 @@ export default class NotificationBackground {
       }
     } catch (error) {
       await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
-        error: error instanceof Error ? error.message : String(error),
+        error: await this.saveFailureCode(error),
       });
     }
   }
@@ -1564,7 +1742,11 @@ export default class NotificationBackground {
   private async saveNever(tab: chrome.tabs.Tab) {
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       const queueMessage = this.notificationQueue[i];
-      if (queueMessage.tab.id !== tab.id || queueMessage.type !== NotificationType.AddLogin) {
+      if (
+        queueMessage.tab.id !== tab.id ||
+        (queueMessage.type !== NotificationType.AddLogin &&
+          queueMessage.type !== NotificationType.ChangePassword)
+      ) {
         continue;
       }
 
@@ -1574,10 +1756,18 @@ export default class NotificationBackground {
 
       this.notificationQueue.splice(i, 1);
       await BrowserApi.tabSendMessageData(tab, "closeNotificationBar");
+      this.loginPromptKeys.delete(tab.id);
 
-      const hostname = Utils.getHostname(queueMessage.data.uri ?? "") ?? "";
-      if (hostname) {
-        await this.cipherService.saveNeverDomain(hostname);
+      const source =
+        queueMessage.type === NotificationType.AddLogin ? queueMessage.data.uri : tab.url;
+      let host = "";
+      try {
+        host = source ? new URL(source).host : "";
+      } catch {
+        host = "";
+      }
+      if (host) {
+        await this.cipherService.saveNeverDomain(host);
       }
     }
   }
@@ -1923,6 +2113,7 @@ export default class NotificationBackground {
 
   private setupUnlockPopoutCloseListener() {
     chrome.tabs.onRemoved.addListener(async (tabId: number) => {
+      this.loginPromptKeys.delete(tabId);
       await this.handleUnlockPopoutClosed(tabId);
     });
   }

@@ -1,0 +1,209 @@
+<popup-page [loading]="loading()">
+  <popup-header slot="header" [pageTitle]="titleKey() | i18n" showBackButton>
+    <ng-container slot="end">
+      <app-pop-out />
+    </ng-container>
+  </popup-header>
+
+  @if (errorKey()) {
+    <p class="tw-mb-3 tw-text-sm tw-text-danger">{{ errorKey()! | i18n }}</p>
+  }
+
+  <form class="tw-flex tw-flex-col tw-gap-4" [formGroup]="form" (ngSubmit)="submit()">
+    @if (!editing()) {
+      <button
+        type="button"
+        bitButton
+        buttonType="primary"
+        block
+        [block]="true"
+        [disabled]="scanning() || saving()"
+        [loading]="scanning()"
+        (click)="scan()"
+      >
+        {{ "authenticatorScanTab" | i18n }}
+      </button>
+    }
+
+    <bit-form-field>
+      <bit-label>{{ "authenticatorSecret" | i18n }}</bit-label>
+      <textarea
+        bitInput
+        rows="3"
+        formControlName="secret"
+        [placeholder]="'authenticatorSecretHint' | i18n"
+        (paste)="onSecretPaste($event)"
+      ></textarea>
+    </bit-form-field>
+
+    <div
+      class="tw-rounded-xl tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-p-3"
+    >
+      <label class="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-main">
+        <input bitCheckbox type="checkbox" formControlName="mcpEnabled" />
+        {{ "mcpAllowRead" | i18n }}
+      </label>
+      <bit-form-field class="tw-mt-3">
+        <bit-label>{{ "mcpAlias" | i18n }}</bit-label>
+        <input
+          bitInput
+          type="text"
+          formControlName="mcpAlias"
+          [placeholder]="'mcpAliasHint' | i18n"
+        />
+      </bit-form-field>
+      <p class="tw-mb-0 tw-text-sm tw-text-muted">{{ "mcpAllowHelp" | i18n }}</p>
+    </div>
+
+    @if (editing()) {
+      <bit-form-field>
+        <bit-label>{{ "name" | i18n }}</bit-label>
+        <input bitInput type="text" formControlName="name" />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
+        <input bitInput type="text" formControlName="issuer" />
+      </bit-form-field>
+    }
+
+    <button
+      type="button"
+      class="tw-self-start tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"
+      [attr.aria-expanded]="advancedOpen()"
+      (click)="advancedOpen.set(!advancedOpen())"
+    >
+      {{ "authenticatorAdvanced" | i18n }}
+    </button>
+
+    @if (advancedOpen()) {
+      @if (!editing()) {
+        <bit-form-field>
+          <bit-label>{{ "name" | i18n }}</bit-label>
+          <input bitInput type="text" formControlName="name" />
+        </bit-form-field>
+        <bit-form-field>
+          <bit-label>{{ "authenticatorIssuer" | i18n }}</bit-label>
+          <input bitInput type="text" formControlName="issuer" />
+        </bit-form-field>
+      }
+      <bit-form-field>
+        <bit-label>{{ "authenticatorType" | i18n }}</bit-label>
+        <select bitInput [value]="otpType()" (change)="setOtpType($any($event.target).value)">
+          <option value="totp">{{ "authenticatorTypeTotp" | i18n }}</option>
+          <option value="hotp">{{ "authenticatorTypeHotp" | i18n }}</option>
+          <option value="steam">{{ "authenticatorTypeSteam" | i18n }}</option>
+        </select>
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorHost" | i18n }}</bit-label>
+        <input
+          bitInput
+          type="text"
+          formControlName="host"
+          [placeholder]="'authenticatorHostHint' | i18n"
+        />
+      </bit-form-field>
+      <button
+        type="button"
+        bitButton
+        buttonType="secondary"
+        size="small"
+        (click)="useCurrentHost()"
+      >
+        {{ "authenticatorUseHost" | i18n }}
+      </button>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorTags" | i18n }}</bit-label>
+        <input
+          bitInput
+          type="text"
+          formControlName="tagsText"
+          [placeholder]="'authenticatorTagsHint' | i18n"
+        />
+      </bit-form-field>
+      @if (otpType() === "hotp") {
+        <bit-form-field>
+          <bit-label>{{ "authenticatorCounter" | i18n }}</bit-label>
+          <input bitInput type="number" min="0" formControlName="counter" />
+        </bit-form-field>
+      }
+      <bit-form-field>
+        <bit-label>{{ "authenticatorAlgorithm" | i18n }}</bit-label>
+        <select bitInput formControlName="algorithm">
+          @for (algorithm of algorithms; track algorithm) {
+            <option [value]="algorithm">{{ algorithm }}</option>
+          }
+        </select>
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorDigits" | i18n }}</bit-label>
+        <input
+          bitInput
+          type="number"
+          [min]="minDigits"
+          [max]="maxDigits"
+          formControlName="digits"
+        />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "authenticatorPeriod" | i18n }}</bit-label>
+        <input
+          bitInput
+          type="number"
+          [min]="minPeriod"
+          [max]="maxPeriod"
+          formControlName="period"
+        />
+      </bit-form-field>
+      <bit-form-field>
+        <bit-label>{{ "notes" | i18n }}</bit-label>
+        <textarea bitInput rows="2" formControlName="notes"></textarea>
+      </bit-form-field>
+    }
+
+    <button
+      type="submit"
+      bitButton
+      buttonType="primary"
+      [block]="true"
+      [disabled]="saving()"
+      [loading]="saving()"
+    >
+      {{ "save" | i18n }}
+    </button>
+    @if (editing()) {
+      <div class="tw-flex tw-gap-2">
+        <button
+          type="button"
+          bitButton
+          buttonType="secondary"
+          size="small"
+          [disabled]="saving()"
+          (click)="move(-1)"
+        >
+          {{ "authenticatorMoveUp" | i18n }}
+        </button>
+        <button
+          type="button"
+          bitButton
+          buttonType="secondary"
+          size="small"
+          [disabled]="saving()"
+          (click)="move(1)"
+        >
+          {{ "authenticatorMoveDown" | i18n }}
+        </button>
+      </div>
+      <button
+        type="button"
+        bitButton
+        buttonType="danger"
+        [block]="true"
+        [disabled]="saving()"
+        (click)="remove()"
+      >
+        {{ "delete" | i18n }}
+      </button>
+    }
+  </form>
+</popup-page>

@@ -29,6 +29,8 @@ import { FieldView } from "@bitwarden/common/vault/models/view/field.view";
 import { IdentityView } from "@bitwarden/common/vault/models/view/identity.view";
 import { LoginView } from "@bitwarden/common/vault/models/view/login.view";
 import {
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogRef,
   CardComponent,
   CheckboxModule,
@@ -270,8 +272,22 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
     void this.dialogRef?.close();
   }
 
-  /** Removes an individual field at a specific index */
-  removeField(index: number) {
+  /** Removes an individual field at a specific index. Confirms when the field holds a name or value. */
+  async removeField(index: number) {
+    const field = this.fields.at(index)?.value;
+    const hasData = Boolean(field?.name?.toString().trim() || field?.value);
+    if (hasData) {
+      const confirmed = await this.dialogService.openSimpleDialog(
+        destructiveDialogOptions({
+          title: destructiveTitle(field?.name, this.i18nService.t("customFields")),
+          content: this.i18nService.t("destructiveFieldBody"),
+          acceptText: this.i18nService.t("delete"),
+        }),
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
     this.fields.removeAt(index);
     void this.dialogRef?.close();
   }

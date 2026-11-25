@@ -30,6 +30,8 @@ import {
   ButtonComponent,
   ButtonModule,
   DialogModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   FormFieldModule,
   IconButtonModule,
@@ -187,11 +189,13 @@ export class AddEditFolderDialogComponent implements AfterViewInit, OnInit {
 
   /** Delete the folder with when the user provides a confirmation */
   deleteFolder = async () => {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteFolder" },
-      content: { key: "deleteFolderPermanently" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.folder.name, this.i18nService.t("deleteFolder")),
+        content: this.i18nService.t("deleteFolderPermanently"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
 
     if (!confirmed) {
       return;

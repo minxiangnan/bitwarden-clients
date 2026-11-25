@@ -10,6 +10,7 @@ import { hasUserAgentBrand } from "@bitwarden/common/platform/misc/user-agent-da
 
 import { SafariApp } from "../../../browser/safariApp";
 import { BrowserApi } from "../../browser/browser-api";
+import { isSafariAppExtension } from "../../browser/safari-app-extension";
 import { OffscreenDocumentService } from "../../offscreen-document/abstractions/offscreen-document";
 import BrowserClipboardService from "../browser-clipboard.service";
 
@@ -48,6 +49,10 @@ export abstract class BrowserPlatformUtilsService implements PlatformUtilsServic
       this.deviceCache = DeviceType.ChromeExtension;
     } else if (BrowserPlatformUtilsService.isSafari(globalContext)) {
       this.deviceCache = DeviceType.SafariExtension;
+    } else if (globalContext.chrome) {
+      // Chromium whose user agent has no "Chrome/" token (headless Chrome, a UA
+      // override). Classifying that as Safari starts the Safari timeout loop.
+      this.deviceCache = DeviceType.ChromeExtension;
     }
 
     return this.deviceCache;
@@ -121,12 +126,8 @@ export abstract class BrowserPlatformUtilsService implements PlatformUtilsServic
     return this.getDevice() === DeviceType.DuckDuckGoExtension;
   }
 
-  private static isSafari(globalContext: Window | ServiceWorkerGlobalScope): boolean {
-    // Opera masquerades as Safari, so make sure we're not there first
-    return (
-      !BrowserPlatformUtilsService.isOpera(globalContext) &&
-      navigator.userAgent.indexOf(" Safari/") !== -1
-    );
+  private static isSafari(_globalContext: Window | ServiceWorkerGlobalScope): boolean {
+    return isSafariAppExtension();
   }
 
   private static safariVersion(): string {

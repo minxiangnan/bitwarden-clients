@@ -1,11 +1,20 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule } from "@angular/common";
-import { Component, Input, OnChanges, SimpleChanges, OnInit, OnDestroy } from "@angular/core";
+import {
+  Component,
+  inject,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  OnInit,
+  OnDestroy,
+} from "@angular/core";
 import { ReplaySubject, Subject, firstValueFrom, map, switchMap, takeUntil } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { Account, AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import {
   SemanticLogger,
@@ -13,7 +22,7 @@ import {
   ifEnabledSemanticLoggerProvider,
 } from "@bitwarden/common/tools/log";
 import { UserId } from "@bitwarden/common/types/guid";
-import { ButtonModule, DialogService } from "@bitwarden/components";
+import { ButtonModule, destructiveDialogOptions, DialogService } from "@bitwarden/components";
 import {
   CredentialGeneratorHistoryComponent as CredentialGeneratorHistoryToolsComponent,
   EmptyCredentialHistoryComponent,
@@ -46,6 +55,8 @@ export class CredentialGeneratorHistoryComponent implements OnChanges, OnInit, O
   private readonly destroyed = new Subject<void>();
   protected readonly hasHistory$ = new ReplaySubject<boolean>(1);
   protected readonly account$ = new ReplaySubject<Account>(1);
+
+  private readonly i18nService = inject(I18nService);
 
   constructor(
     private accountService: AccountService,
@@ -110,13 +121,13 @@ export class CredentialGeneratorHistoryComponent implements OnChanges, OnInit, O
   }
 
   clear = async () => {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "clearGeneratorHistoryTitle" },
-      content: { key: "clearGeneratorHistoryDescription" },
-      type: "warning",
-      acceptButtonText: { key: "clearHistory" },
-      cancelButtonText: { key: "cancel" },
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: this.i18nService.t("clearGeneratorHistoryTitle"),
+        content: this.i18nService.t("clearGeneratorHistoryDescription"),
+        acceptText: this.i18nService.t("clearHistory"),
+      }),
+    );
 
     if (confirmed) {
       await this.history.clear((await firstValueFrom(this.account$)).id);

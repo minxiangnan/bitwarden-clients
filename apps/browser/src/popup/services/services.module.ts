@@ -28,6 +28,7 @@ import {
   AUTOFILL_NUDGE_SERVICE,
   AUTO_CONFIRM_NUDGE_SERVICE,
   AutoConfirmNudgeService,
+  NudgesService,
 } from "@bitwarden/angular/vault";
 import { VaultProfileService } from "@bitwarden/angular/vault/services/vault-profile.service";
 import {
@@ -124,6 +125,7 @@ import {
   ObservableStorageService,
 } from "@bitwarden/common/platform/abstractions/storage.service";
 import { ActionsService } from "@bitwarden/common/platform/actions";
+import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import { IpcService } from "@bitwarden/common/platform/ipc";
 import { Message, MessageListener, MessageSender } from "@bitwarden/common/platform/messaging";
 // eslint-disable-next-line no-restricted-imports -- Used for dependency injection
@@ -141,6 +143,10 @@ import { WindowStorageService } from "@bitwarden/common/platform/storage/window-
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { SystemNotificationsService } from "@bitwarden/common/platform/system-notifications/system-notifications.service";
 import { UnsupportedSystemNotificationsService } from "@bitwarden/common/platform/system-notifications/unsupported-system-notifications.service";
+import {
+  DefaultThemeStateService,
+  ThemeStateService,
+} from "@bitwarden/common/platform/theming/theme-state.service";
 import { SendApiService } from "@bitwarden/common/tools/send/services/send-api.service.abstraction";
 import { InternalSendService } from "@bitwarden/common/tools/send/services/send.service.abstraction";
 import { CipherArchiveService } from "@bitwarden/common/vault/abstractions/cipher-archive.service";
@@ -262,6 +268,7 @@ import {
 } from "../../platform/system-notifications/browser-system-notification.service";
 import { fromChromeRuntimeMessaging } from "../../platform/utils/from-chrome-runtime-messaging";
 import { BrowserAutofillNudgeService } from "../../vault/popup/services/browser-autofill-nudge.service";
+import { QuietNudgesService } from "../../vault/popup/services/quiet-nudges.service";
 import { Fido2UserVerificationService } from "../../vault/services/fido2-user-verification.service";
 import { ForegroundCipherService } from "../../vault/services/foreground-cipher.service";
 import { ExtensionAnonLayoutWrapperDataService } from "../components/extension-anon-layout-wrapper/extension-anon-layout-wrapper-data.service";
@@ -312,7 +319,18 @@ const safeProviders: SafeProvider[] = [
   safeProvider(InlineMenuFieldQualificationService),
   safeProvider({
     provide: DEFAULT_VAULT_TIMEOUT,
-    useValue: VaultTimeoutStringType.OnRestart,
+    useValue: VaultTimeoutStringType.Never,
+  }),
+  safeProvider({
+    provide: ThemeStateService,
+    useFactory: (globalStateProvider: GlobalStateProvider) =>
+      new DefaultThemeStateService(globalStateProvider, ThemeTypes.Light),
+    deps: [GlobalStateProvider],
+  }),
+  safeProvider({
+    provide: NudgesService,
+    useClass: QuietNudgesService,
+    deps: [],
   }),
   safeProvider({
     provide: APP_INITIALIZER as SafeInjectionToken<() => Promise<void>>,
@@ -780,6 +798,10 @@ const safeProviders: SafeProvider[] = [
       AutoUnlockService,
       MessageSender,
       MessageListener,
+      ApiService,
+      EncryptService,
+      LegacyCompatKeyService,
+      KeyGenerationService,
     ],
   }),
   safeProvider({
@@ -934,6 +956,8 @@ const safeProviders: SafeProvider[] = [
       SessionTimeoutTypeService,
       PolicyService,
       MessagingServiceAbstraction,
+      AccountServiceAbstraction,
+      StateProvider,
     ],
   }),
   safeProvider({

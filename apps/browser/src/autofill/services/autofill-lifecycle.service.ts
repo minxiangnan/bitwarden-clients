@@ -98,8 +98,9 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
 
   /**
    * Add/remove facts for open tabs, seeded once at `init()` and then fed from
-   * `chrome.tabs.onCreated` / `onRemoved`. The live-tab set is the fold of this
-   * stream — no separate structure is mutated alongside it.
+   * `chrome.tabs.onCreated` / `onRemoved` / `onReplaced` / `onUpdated` / `onActivated`.
+   * The live-tab set is the fold of this stream — no separate structure is mutated
+   * alongside it.
    */
   private readonly tabEvent$ = new Subject<{ type: "add" | "remove"; tabId: number }>();
 
@@ -205,6 +206,9 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
     BrowserApi.addListener(chrome.runtime.onConnect, this.handleInjectedScriptPortConnection);
     BrowserApi.addListener(chrome.tabs.onRemoved, this.handleTabRemoved);
     BrowserApi.addListener(chrome.tabs.onCreated, this.handleTabCreated);
+    BrowserApi.addListener(chrome.tabs.onReplaced, this.handleTabReplaced);
+    BrowserApi.addListener(chrome.tabs.onUpdated, this.handleTabUpdated);
+    BrowserApi.addListener(chrome.tabs.onActivated, this.handleTabActivated);
 
     // Fold port events into the live port set. The accumulator is mutated in
     // place (no per-event allocation); reads go through `connectedPorts.value`.
@@ -423,8 +427,9 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
    * content script when the active account's authentication status crosses the
    * `LoggedOut` boundary. On `LoggedOut → logged-in`, sends `startAutofillMonitors`.
    * On `logged-in → LoggedOut`, sends both `stopAutofillMonitors` and
-   * `disableAutofiller`. Lock and unlock transitions emit no broadcast — monitors
-   * run across the lock boundary, and a running autofiller survives a lock.
+   * `disableAutofiller`. Locking does not stop monitors. Unlocking, including PIN
+   * unlock, re-sends `startAutofillMonitors` so shortcut and inline-menu collection
+   * resume if a content script stopped while the vault was locked.
    */
   private handleAuthStatusTransition(
     previousStatus: AuthenticationStatus | undefined,
@@ -439,6 +444,14 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
     const wasLoggedOut = previousStatus === AuthenticationStatus.LoggedOut;
     const isLoggedOut = currentStatus === AuthenticationStatus.LoggedOut;
     if (wasLoggedOut && !isLoggedOut) {
+      this.broadcastToInjectedScripts({ command: AutofillLifecycleCommand.start });
+      this.markConnectedFramesMonitoring(true);
+      return;
+    }
+    if (
+      previousStatus === AuthenticationStatus.Locked &&
+      currentStatus === AuthenticationStatus.Unlocked
+    ) {
       this.broadcastToInjectedScripts({ command: AutofillLifecycleCommand.start });
       this.markConnectedFramesMonitoring(true);
       return;
@@ -511,23 +524,86 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
   }
 
   private handleTabRemoved = (tabId: number) => {
-    this.tabRemovedSubject$.next(tabId);
-    this.tabEvent$.next({ type: "remove", tabId });
+    this.retireLiveTab(tabId);
   };
 
   private handleTabCreated = (tab: chrome.tabs.Tab) => {
-    if (tab.id == null) {
+    this.noteLiveTab(tab.id);
+  };
+
+  /**
+   * Prerender and instant-navigation swaps. The browser reports these as replaced,
+   * not removed, so the new id never arrives via `onCreated`.
+   */
+  private handleTabReplaced = (addedTabId: number, removedTabId: number) => {
+    this.retireLiveTab(removedTabId);
+    this.noteLiveTab(addedTabId);
+  };
+
+  /**
+   * Discard (Memory Saver) can assign a new tab id without `onCreated` or `onReplaced`.
+   * Drop the id while it is discarded, and record whatever id the browser reports once
+   * the tab is updated again — including the restored id.
+   */
+  private handleTabUpdated = (
+    tabId: number,
+    changeInfo: { discarded?: boolean; status?: string },
+    _tab?: chrome.tabs.Tab,
+  ) => {
+    if (changeInfo.discarded === true) {
+      this.retireLiveTab(tabId);
       return;
     }
-    this.tabEvent$.next({ type: "add", tabId: tab.id });
+    this.noteLiveTab(tabId);
   };
+
+  /** Focusing a restored tab is sometimes the first event that carries its new id. */
+  private handleTabActivated = (activeInfo: { tabId: number; windowId?: number }) => {
+    this.noteLiveTab(activeInfo.tabId);
+  };
+
+  /**
+   * Confirms an unknown tab id with the browser before a fill is allowed to use it.
+   * A missing or discarded tab is not added, so a stale or forged id still fails closed.
+   */
+  async ensureLiveTab(tabId: number): Promise<boolean> {
+    if (this.liveTabs.value.has(tabId)) {
+      return true;
+    }
+
+    let tab: chrome.tabs.Tab | null;
+    try {
+      tab = await BrowserApi.getTab(tabId);
+    } catch {
+      return false;
+    }
+    if (tab?.id == null || tab.discarded) {
+      return false;
+    }
+
+    this.noteLiveTab(tab.id);
+    return this.liveTabs.value.has(tab.id);
+  }
+
+  private noteLiveTab(tabId: number | undefined) {
+    if (tabId == null || this.liveTabs.value.has(tabId)) {
+      return;
+    }
+    this.tabEvent$.next({ type: "add", tabId });
+  }
+
+  private retireLiveTab(tabId: number) {
+    this.tabRemovedSubject$.next(tabId);
+    if (!this.liveTabs.value.has(tabId)) {
+      return;
+    }
+    this.tabEvent$.next({ type: "remove", tabId });
+  }
 
   private async seedLiveTabs() {
     const tabs = await BrowserApi.tabsQuery({});
     for (const tab of tabs) {
-      if (tab.id != null) {
-        this.tabEvent$.next({ type: "add", tabId: tab.id });
-      }
+      this.noteLiveTab(tab.id);
     }
   }
 }

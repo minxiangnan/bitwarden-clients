@@ -42,13 +42,31 @@ class MockNgZone extends NgZone {
 @Component({
   template: `
     <input #target appAutofocus />
+    <input #typed />
     <button type="button" #other>Other</button>
   `,
   imports: [AutofocusDirective],
 })
 class TestHostComponent {
   readonly target = viewChild.required<ElementRef<HTMLInputElement>>("target");
+  readonly typed = viewChild.required<ElementRef<HTMLInputElement>>("typed");
   readonly other = viewChild.required<ElementRef<HTMLButtonElement>>("other");
+}
+
+// Same reason as TestHostComponent: autofocus retries from ngAfterContentChecked.
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+@Component({
+  template: `
+    <div role="dialog">
+      <input #typed />
+      <button type="button" appAutofocus #target>取消</button>
+    </div>
+  `,
+  imports: [AutofocusDirective],
+})
+class TestHostDialogComponent {
+  readonly target = viewChild.required<ElementRef<HTMLButtonElement>>("target");
+  readonly typed = viewChild.required<ElementRef<HTMLInputElement>>("typed");
 }
 
 @Component({
@@ -160,7 +178,7 @@ describe("AutofocusDirective", () => {
       expect(document.activeElement).toBe(targetOf(fixture));
     });
 
-    it("re-asserts focus after the browser moves it elsewhere", () => {
+    it("re-asserts focus after the browser moves it to a button", () => {
       const fixture = createHost();
 
       fixture.componentInstance.other().nativeElement.focus();
@@ -169,6 +187,28 @@ describe("AutofocusDirective", () => {
       fixture.detectChanges();
 
       expect(document.activeElement).toBe(targetOf(fixture));
+    });
+
+    it("does not steal focus from an input the user is typing in", () => {
+      const fixture = createHost();
+      const typed = fixture.componentInstance.typed().nativeElement;
+
+      typed.focus();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(typed);
+    });
+
+    it("does steal focus when the autofocus target is a confirm dialog", () => {
+      const fixture = TestBed.createComponent(TestHostDialogComponent);
+      fixture.detectChanges();
+      const typed = fixture.componentInstance.typed().nativeElement;
+      const target = fixture.componentInstance.target().nativeElement;
+
+      typed.focus();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(target);
     });
 
     it("does not re-focus while it already holds focus", () => {

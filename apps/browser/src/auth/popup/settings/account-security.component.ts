@@ -41,6 +41,8 @@ import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/pl
 import {
   CardComponent,
   CheckboxModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   FormFieldModule,
   IconButtonModule,
@@ -533,15 +535,17 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
   }
 
   async logOut() {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "logOut" },
-      content: { key: "logOutConfirmation" },
-      type: "info",
-    });
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(account?.email, this.i18nService.t("logOut")),
+        content: this.i18nService.t("destructiveLogoutBody"),
+        acceptText: this.i18nService.t("logOut"),
+      }),
+    );
 
-    const userId = (await firstValueFrom(this.accountService.activeAccount$))?.id;
-    if (confirmed && userId != null) {
-      await this.logoutService.logout(userId, "userInitiated");
+    if (confirmed && account?.id != null) {
+      await this.logoutService.logout(account.id, "userInitiated");
     }
   }
 

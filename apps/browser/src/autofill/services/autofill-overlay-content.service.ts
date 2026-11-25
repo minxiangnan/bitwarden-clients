@@ -65,6 +65,7 @@ import {
   identityQualifiers,
   targetedFormCategoryFillTypes,
 } from "./autofill-constants";
+import { installProgrammaticLoginCapture } from "./programmatic-login-capture";
 
 export class AutofillOverlayContentService implements AutofillOverlayContentServiceInterface {
   pageDetailsUpdateRequired = false;
@@ -81,6 +82,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   private fieldsWithSubmitElements: WeakMap<FillableFormFieldElement, HTMLElement> = new WeakMap();
   private ignoredFieldTypes: Set<string> = new Set(AutoFillConstants.ExcludedInlineMenuTypes);
   private userFilledFields: Record<string, FillableFormFieldElement> | null = {};
+  /**
+   * Last non-empty login values. Pages clear fields before a scripted submit or the next
+   * step, and a full navigation destroys this script, so these are also sent to the
+   * background while they are still known.
+   */
+  private lastNonEmptyLoginFields = { username: "", password: "", newPassword: "" };
+  private loginCaptureTimer: ReturnType<typeof setTimeout> | null = null;
   private focusableElements: FocusableElement[] = [];
   private mostRecentlyFocusedField: ElementWithOpId<FormFieldElement> | null = null;
   private focusedFieldData: FocusedFieldData | null = null;
@@ -203,6 +211,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * `startMonitoring()` begins fresh. Idempotent.
    */
   stopMonitoring(): void {
+    this.flushCapturedLogin();
     this.isMonitoring = false;
     globalThis.document.removeEventListener(
       EVENTS.DOMCONTENTLOADED,
@@ -214,6 +223,12 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       this.handleVisibilityChangeEvent,
     );
     globalThis.removeEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
+    globalThis.removeEventListener("pagehide", this.flushCapturedLogin);
+    globalThis.removeEventListener("pointerdown", this.flushCapturedLogin, true);
+    globalThis.removeEventListener("keydown", this.flushCapturedLoginOnEnter, true);
+    this.uninstallProgrammaticCapture?.();
+    this.uninstallProgrammaticCapture = null;
+    this.removeHistoryFlush();
     this.removeOverlayRepositionEventListeners();
     this.removeRebuildSubFrameOffsetsListeners();
     this.removeSubFrameFocusOutListeners();
@@ -232,6 +247,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     this.submitElements.clear();
     this.focusableElements = [];
     this.clearUserFilledFields();
+    this.lastNonEmptyLoginFields = { username: "", password: "", newPassword: "" };
     this.mostRecentlyFocusedField = null;
     this.focusedFieldData = null;
     this.pageDetailsUpdateRequired = false;
@@ -738,13 +754,129 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * Returns the form field data used for add login and change password notifications.
    */
   private getFormFieldData = (): ModifyLoginCipherFormData => {
-    return {
-      uri: globalThis.document.URL,
+    const current = {
       username: this.userFilledFields?.["username"]?.value || "",
       password: this.userFilledFields?.["password"]?.value || "",
       newPassword: this.userFilledFields?.["newPassword"]?.value || "",
     };
+    return {
+      uri: globalThis.document.URL,
+      username:
+        current.username || this.lastNonEmptyLoginFields.username || this.liveUsernameFromPage(),
+      password:
+        current.password ||
+        this.lastNonEmptyLoginFields.password ||
+        this.liveLoginFieldValue([
+          'input[autocomplete="current-password"]',
+          'input[type="password"]:not([autocomplete="new-password"])',
+          'input[name="password" i]',
+          'input[name*="password" i]:not([autocomplete="new-password"])',
+        ]),
+      newPassword:
+        current.newPassword ||
+        this.lastNonEmptyLoginFields.newPassword ||
+        this.liveLoginFieldValue(['input[autocomplete="new-password"]']),
+    };
   };
+
+  /**
+   * Reads a login value straight from the DOM. Field qualification can lag a
+   * navigation, and the two-step password page still needs the username that is
+   * on screen when the user continues.
+   */
+  private liveLoginFieldValue(selectors: string[]): string {
+    for (const selector of selectors) {
+      const fields = globalThis.document.querySelectorAll<HTMLInputElement>(selector);
+      for (const field of fields) {
+        if (field.value) {
+          return field.value;
+        }
+        const remembered = field.dataset?.zhLastValue;
+        if (remembered) {
+          return remembered;
+        }
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Reads a username from fields a React page never marks with autocomplete.
+   * Labels such as "Username or email address" and names such as "user[login]" count.
+   */
+  private liveUsernameFromPage(): string {
+    const hinted = this.liveLoginFieldValue([
+      'input[autocomplete="username"]',
+      'input[autocomplete="email"]',
+      'input[type="email"]',
+      'input[type="hidden"][name*="user" i]',
+      'input[type="hidden"][name*="login" i]',
+      'input[type="hidden"][name*="email" i]',
+      'input[name="username" i]',
+      'input[name*="user" i]',
+      'input[name*="login" i]',
+      'input[name*="email" i]',
+      'input[id*="user" i]',
+      'input[id*="email" i]',
+      'input[placeholder*="email" i]',
+      'input[placeholder*="user" i]',
+      'input[aria-label*="email" i]',
+      'input[aria-label*="user" i]',
+    ]);
+    if (hinted) {
+      return hinted;
+    }
+
+    const inputs = globalThis.document.querySelectorAll<HTMLInputElement>(
+      'input[type="text"], input[type="email"], input:not([type])',
+    );
+    for (const field of inputs) {
+      if (!field.value || field.disabled || field.type === "password") {
+        continue;
+      }
+      const labelText = Array.from(field.labels ?? [])
+        .map((node) => node.textContent ?? "")
+        .join(" ");
+      const hint = `${field.name} ${field.id} ${field.placeholder} ${field.getAttribute("aria-label") ?? ""} ${labelText}`;
+      if (/user|email|e-mail|login|account|用户|邮箱|账号|帐号/i.test(hint)) {
+        return field.value;
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Sends the latest login fields to the background. Called when a field is filled, when the
+   * page is hidden, and before an in-page navigation clears the live fields.
+   */
+  flushCapturedLogin = () => {
+    if (this.loginCaptureTimer != null) {
+      clearTimeout(this.loginCaptureTimer);
+      this.loginCaptureTimer = null;
+    }
+    const data = this.getFormFieldData();
+    if (!data.username && !data.password && !data.newPassword) {
+      return;
+    }
+    void this.sendExtensionMessage("formFieldSubmitted", data);
+  };
+
+  private rememberLoginField(qualifier: string | undefined, value: string | undefined) {
+    if (
+      value == null ||
+      value === "" ||
+      (qualifier !== "username" && qualifier !== "password" && qualifier !== "newPassword")
+    ) {
+      return;
+    }
+    if (this.lastNonEmptyLoginFields[qualifier] === value) {
+      return;
+    }
+    this.lastNonEmptyLoginFields[qualifier] = value;
+    // A delayed flush is lost when the next click navigates before the timer fires,
+    // which drops the username on a two-step login.
+    this.flushCapturedLogin();
+  }
 
   /**
    * Helper method that facilitates registration of an event handler to a form field element.
@@ -977,6 +1109,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     this.userFilledFields[autofillFieldData.fieldQualifier] = clonedNode;
+    this.rememberLoginField(autofillFieldData.fieldQualifier, formFieldElement.value);
   }
 
   /**
@@ -1750,8 +1883,71 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     globalThis.addEventListener(EVENTS.MESSAGE, this.handleWindowMessageEvent);
     globalThis.document.addEventListener(EVENTS.VISIBILITYCHANGE, this.handleVisibilityChangeEvent);
     globalThis.addEventListener(EVENTS.FOCUSOUT, this.handleWindowFocusOutEvent);
+    globalThis.addEventListener("pagehide", this.flushCapturedLogin);
+    // pointerdown and Enter run before the page's handler clears the fields or calls fetch.
+    globalThis.addEventListener("pointerdown", this.flushCapturedLogin, true);
+    globalThis.addEventListener("keydown", this.flushCapturedLoginOnEnter, true);
+    this.installProgrammaticCapture();
+    this.installHistoryFlush();
     this.setOverlayRepositionEventListeners();
   };
+
+  private flushCapturedLoginOnEnter = (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      this.flushCapturedLogin();
+    }
+  };
+
+  private uninstallProgrammaticCapture: (() => void) | null = null;
+
+  private installProgrammaticCapture() {
+    if (this.uninstallProgrammaticCapture) {
+      return;
+    }
+    this.uninstallProgrammaticCapture = installProgrammaticLoginCapture(
+      globalThis.document,
+      this.flushCapturedLogin,
+    );
+  }
+
+  private originalPushState: History["pushState"] | null = null;
+
+  private originalReplaceState: History["replaceState"] | null = null;
+
+  /**
+   * A SPA login often calls history.pushState in the same turn that it removes the fields.
+   * Flush first so the username and password are already in the background.
+   */
+  private installHistoryFlush() {
+    if (this.originalPushState || !globalThis.history) {
+      return;
+    }
+    const history = globalThis.history;
+    this.originalPushState = history.pushState.bind(history);
+    this.originalReplaceState = history.replaceState.bind(history);
+    const flush = this.flushCapturedLogin;
+    const pushState = this.originalPushState;
+    const replaceState = this.originalReplaceState;
+    history.pushState = ((...args: Parameters<History["pushState"]>) => {
+      flush();
+      return pushState(...args);
+    }) as History["pushState"];
+    history.replaceState = ((...args: Parameters<History["replaceState"]>) => {
+      flush();
+      return replaceState(...args);
+    }) as History["replaceState"];
+  }
+
+  private removeHistoryFlush() {
+    if (this.originalPushState) {
+      globalThis.history.pushState = this.originalPushState;
+      this.originalPushState = null;
+    }
+    if (this.originalReplaceState) {
+      globalThis.history.replaceState = this.originalReplaceState;
+      this.originalReplaceState = null;
+    }
+  }
 
   /**
    * Handles window messages that are sent to the current frame. Will trigger a

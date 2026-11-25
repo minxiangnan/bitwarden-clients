@@ -579,7 +579,10 @@ export default class RuntimeBackground {
         break;
       }
       case "clearClipboard": {
-        await this.main.clearClipboard(msg.clipboardValue, msg.timeoutMs);
+        const clearMs = msg.timeoutMs ?? msg.clearMs;
+        if (clearMs) {
+          await this.main.clearClipboard(msg.clipboardValue, clearMs);
+        }
         break;
       }
       case "reloadExtension": {

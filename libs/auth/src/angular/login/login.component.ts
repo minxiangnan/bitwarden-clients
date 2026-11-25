@@ -7,11 +7,21 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  viewChild,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute, Params, Router, RouterModule } from "@angular/router";
-import { firstValueFrom, Subject, take, takeUntil, skip, combineLatest, startWith } from "rxjs";
+import {
+  filter,
+  firstValueFrom,
+  Subject,
+  take,
+  takeUntil,
+  skip,
+  combineLatest,
+  startWith,
+} from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { LockIcon, VaultIcon, WaveIcon } from "@bitwarden/assets/svg";
@@ -32,12 +42,16 @@ import { ClientType, HttpStatusCode } from "@bitwarden/common/enums";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
 import { BroadcasterService } from "@bitwarden/common/platform/abstractions/broadcaster.service";
-import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
+import {
+  EnvironmentService,
+  Region,
+} from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { ValidationService } from "@bitwarden/common/platform/abstractions/validation.service";
+import { describeServerUrl } from "@bitwarden/common/platform/misc/server-url";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { PasswordStrengthServiceAbstraction } from "@bitwarden/common/tools/password-strength";
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
@@ -103,6 +117,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   isKnownDevice = false;
   loginUiState: LoginUiState = LoginUiState.EMAIL_ENTRY;
   ssoRequired = false;
+  /** Self-hosted server address shown on the extension's email step. */
+  serverUrl = "";
+  private serverUrlTouched = false;
+  private readonly serverUrlField = viewChild<ElementRef<HTMLInputElement>>("serverUrlField");
+  serverUrlError = "";
 
   formGroup = this.formBuilder.group(
     {
@@ -165,6 +184,21 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (this.clientType === ClientType.Desktop) {
       await this.desktopOnInit();
+    }
+
+    if (this.clientType === ClientType.Browser) {
+      this.formGroup.controls.rememberEmail.setValue(true);
+      const env = await firstValueFrom(this.environmentService.environment$);
+      const remembered = env.getUrls()?.base ?? "";
+      // A live [value] binding writes the previous model back over keystrokes.
+      // Apply the remembered URL once, and only while the field is still untouched.
+      if (!this.serverUrlTouched) {
+        this.serverUrl = remembered;
+        const field = this.serverUrlField()?.nativeElement;
+        if (field) {
+          field.value = remembered;
+        }
+      }
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -382,6 +416,10 @@ export class LoginComponent implements OnInit, OnDestroy {
    * @param error The error object.
    */
   private async handleSubmitError(error: unknown) {
+    if (await this.untrustedServerCertificate(error)) {
+      this.validationService.showError(new Error(this.i18nService.t("untrustedCertificate")));
+      return;
+    }
     // Handle error responses
     if (error instanceof ErrorResponse) {
       switch (error.statusCode) {
@@ -410,6 +448,46 @@ export class LoginComponent implements OnInit, OnDestroy {
       // Allow all other errors to be handled by toast
       this.validationService.showError(error);
     }
+  }
+
+  private async untrustedServerCertificate(error: unknown): Promise<boolean> {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/Failed to fetch|error sending request|NetworkError/i.test(message)) {
+      return false;
+    }
+    const chromeApi = (globalThis as { chrome?: any }).chrome;
+    if (chromeApi?.webRequest?.onErrorOccurred == null) {
+      return false;
+    }
+    const environment = await firstValueFrom(this.environmentService.environment$);
+    const url = environment.getApiUrl();
+    if (!url.startsWith("https://")) {
+      return false;
+    }
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (untrusted: boolean) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        chromeApi.webRequest.onErrorOccurred.removeListener(listener);
+        resolve(untrusted);
+      };
+      const listener = (details: { error?: string }) => {
+        if (details.error?.includes("CERT")) {
+          finish(true);
+        }
+      };
+      chromeApi.webRequest.onErrorOccurred.addListener(listener, {
+        urls: [`${new URL(url).origin}/*`],
+      });
+      fetch(url).then(
+        () => finish(false),
+        () => setTimeout(() => finish(false), 400),
+      );
+      setTimeout(() => finish(false), 1500);
+    });
   }
 
   /**
@@ -613,6 +691,13 @@ export class LoginComponent implements OnInit, OnDestroy {
    * client-specific flows (e.g. SSO invited-user redirect) that need a different title/subtitle/icon.
    */
   protected async continuePressed(mpEntryLayoutOverride?: Partial<AnonLayoutWrapperData>) {
+    if (this.serverUrlBlocksContinue) {
+      const verdict = describeServerUrl(this.serverUrl);
+      if (verdict.status !== "ok") {
+        this.serverUrlError = this.serverUrlMessage(verdict.status);
+      }
+      return;
+    }
     // Add a new entry to the browser's history so that there is a history entry to go back to
     history.pushState({}, "", window.location.href);
     await this.continue(mpEntryLayoutOverride);
@@ -623,6 +708,20 @@ export class LoginComponent implements OnInit, OnDestroy {
    * @param mpEntryLayoutOverride See {@link continuePressed}.
    */
   protected async continue(mpEntryLayoutOverride?: Partial<AnonLayoutWrapperData>): Promise<void> {
+    if (this.clientType === ClientType.Browser && !(await this.applyServerUrl())) {
+      return;
+    }
+    if (this.clientType === ClientType.Browser) {
+      this.formGroup.controls.rememberEmail.setValue(true);
+      // The password hash is derived from the prelogin response. Wait until the
+      // self-hosted identity URL is active so that request does not hit the cloud.
+      this.passwordPreloginService.clearCache();
+      await firstValueFrom(
+        this.environmentService.environment$.pipe(
+          filter((env) => env.getIdentityUrl().startsWith(this.serverUrl)),
+        ),
+      );
+    }
     const isEmailValid = this.validateEmail();
     if (!isEmailValid) {
       return;
@@ -641,6 +740,52 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     this.prefetchPasswordPreloginData();
     await this.toggleLoginUiState(LoginUiState.MASTER_PASSWORD_ENTRY, override);
+  }
+
+  /**
+   * The extension's 继续 button stays disabled until the server field is a URL
+   * the client will actually accept. Web login has no server field.
+   */
+  protected get serverUrlBlocksContinue(): boolean {
+    return (
+      this.clientType === ClientType.Browser && describeServerUrl(this.serverUrl).status !== "ok"
+    );
+  }
+
+  protected onServerUrlInput(value: string): void {
+    this.serverUrlTouched = true;
+    this.serverUrl = value;
+    const verdict = describeServerUrl(value);
+    this.serverUrlError =
+      verdict.status === "ok" || verdict.status === "empty"
+        ? ""
+        : this.serverUrlMessage(verdict.status);
+  }
+
+  /**
+   * Writes the extension's server field as a self-hosted environment.
+   * A missing scheme becomes https://. HTTP is accepted only for loopback.
+   */
+  private async applyServerUrl(): Promise<boolean> {
+    const verdict = describeServerUrl(this.serverUrl);
+    if (verdict.status !== "ok") {
+      this.serverUrlError = this.serverUrlMessage(verdict.status);
+      return false;
+    }
+    this.serverUrlError = "";
+    await this.environmentService.setEnvironment(Region.SelfHosted, { base: verdict.base });
+    this.serverUrl = verdict.base;
+    return true;
+  }
+
+  private serverUrlMessage(reason: "empty" | "invalid" | "https"): string {
+    if (reason === "empty") {
+      return this.i18nService.t("serverUrlRequired");
+    }
+    if (reason === "invalid") {
+      return this.i18nService.t("serverUrlInvalid");
+    }
+    return this.i18nService.t("serverUrlMustUseHttps");
   }
 
   /**

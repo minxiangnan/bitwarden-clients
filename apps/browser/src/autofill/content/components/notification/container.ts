@@ -21,6 +21,7 @@ import {
 
 export type NotificationContainerProps = NotificationBarIframeInitData & {
   handleCloseNotification: (e: Event) => void;
+  handleNeverAction?: (e: Event) => void;
   handleSaveAction: (e: Event) => void;
   handleEditOrUpdateAction: (e: Event) => void;
 } & {
@@ -39,6 +40,7 @@ export type NotificationContainerProps = NotificationBarIframeInitData & {
 export function NotificationContainer({
   handleCloseNotification,
   handleEditOrUpdateAction,
+  handleNeverAction,
   handleSaveAction,
   ciphers,
   collections,
@@ -74,6 +76,7 @@ export function NotificationContainer({
           : nothing
       }
       ${NotificationFooter({
+        handleNeverAction,
         handleSaveAction,
         collections,
         folders,
@@ -93,7 +96,7 @@ const notificationContainerStyles = (theme: Theme) => css`
   right: 20px;
   border: 1px solid ${themes[theme].secondary["300"]};
   border-radius: ${spacing["4"]};
-  box-shadow: -2px 4px 6px 0px #0000001a;
+  box-shadow: -2px 4px 6px 0px rgba(61, 57, 41, 0.12);
   background-color: ${themes[theme].background.alt};
   width: 400px;
 

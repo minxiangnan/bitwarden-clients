@@ -1,3 +1,4 @@
+import "../../../../../platform/i18n/force-zh-cn";
 import { AutofillOverlayElement } from "../../../../enums/autofill-overlay.enum";
 
 import { AutofillInlineMenuList } from "./autofill-inline-menu-list";

@@ -4,7 +4,7 @@ import { Router } from "@angular/router";
 import { map } from "rxjs";
 
 import { AbstractThemingService } from "@bitwarden/angular/platform/services/theming/theming.service.abstraction";
-import { BitwardenLogo } from "@bitwarden/assets/svg";
+import { ZhMark } from "@bitwarden/assets/svg";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { ThemeTypes } from "@bitwarden/common/platform/enums";
 import {
@@ -55,7 +55,7 @@ export class WelcomePageComponent implements OnInit {
     { initialValue: false },
   );
 
-  protected readonly logo = BitwardenLogo;
+  protected readonly logo = ZhMark;
   protected readonly backgroundIllustration = computed(() =>
     this.isDarkTheme() ? WelcomeBackgroundDark : WelcomeBackgroundLight,
   );

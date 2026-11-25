@@ -234,6 +234,9 @@ describe("Fido2Background", () => {
         enablePasskeysMock$.next(true);
         await flushPromises();
 
+        expect(BrowserApi.unregisterContentScriptsMv3).toHaveBeenCalledWith({
+          ids: [Fido2ContentScriptId.PageScript, Fido2ContentScriptId.ContentScript],
+        });
         expect(BrowserApi.registerContentScriptsMv3).toHaveBeenCalledWith([
           {
             id: Fido2ContentScriptId.PageScript,
@@ -247,7 +250,6 @@ describe("Fido2Background", () => {
             ...sharedRegistrationOptions,
           },
         ]);
-        expect(BrowserApi.unregisterContentScriptsMv3).not.toHaveBeenCalled();
       });
 
       it("unregisters the page-script.js and content-script.js content scripts when the enablePasskeys setting is set to `false`", async () => {

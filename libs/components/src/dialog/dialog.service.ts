@@ -248,6 +248,9 @@ export class DialogService {
       data: simpleDialogOptions,
       disableClose: simpleDialogOptions.disableClose,
       positionStrategy: new CenterPositionStrategy(),
+      ...(simpleDialogOptions.focusCancel
+        ? { backdropClass: ["tw-fixed", "tw-inset-0", "zh-destructive-scrim"] }
+        : {}),
     });
   }
 

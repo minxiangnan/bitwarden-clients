@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angula
 import { Router, ActivatedRoute } from "@angular/router";
 import {
   BehaviorSubject,
+  EMPTY,
   filter,
   firstValueFrom,
   timer,
@@ -41,6 +42,8 @@ import {
   AsyncActionsModule,
   AnonLayoutWrapperDataService,
   ButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   FormFieldModule,
   IconButtonModule,
@@ -206,7 +209,31 @@ export class LockComponent implements OnInit, OnDestroy {
       await this.desktopOnInit();
     } else if (this.clientType === ClientType.Browser) {
       this.biometricUnlockBtnText = this.lockComponentService.getBiometricsUnlockBtnText();
+      this.leaveWhenRestartUnlocks();
     }
+  }
+
+  /**
+   * A restart can paint this screen before the background finishes restoring the
+   * never-lock key. Once that key is back in memory, continue into the vault.
+   * A lock the person asked for does not restore the key, so this screen stays.
+   */
+  private leaveWhenRestartUnlocks() {
+    this.accountService.activeAccount$
+      .pipe(
+        switchMap((account) => {
+          if (account?.id == null) {
+            return EMPTY;
+          }
+          return this.keyService.userKey$(account.id) ?? EMPTY;
+        }),
+        filter((key) => key != null),
+        take(1),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        void this.ngZone.run(() => this.router.navigate(["/tabs/current"]));
+      });
   }
 
   private listenForUnlockOptionsChanges() {
@@ -421,12 +448,13 @@ export class LockComponent implements OnInit, OnDestroy {
   }
 
   async logOut() {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "logOut" },
-      content: { key: "logOutConfirmation" },
-      acceptButtonText: { key: "logOut" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.activeAccount?.email, this.i18nService.t("logOut")),
+        content: this.i18nService.t("destructiveLogoutBody"),
+        acceptText: this.i18nService.t("logOut"),
+      }),
+    );
 
     if (confirmed && this.activeAccount != null) {
       await this.logoutService.logout(this.activeAccount.id, "userInitiated");

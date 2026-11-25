@@ -156,6 +156,12 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
   }
 
   constructor() {
+    // The background constructs this service as well. A service worker has no
+    // window, and messaging itself has no receiver: Chrome then lists
+    // "Could not establish connection. Receiving end does not exist."
+    if (typeof globalThis.document === "undefined") {
+      return;
+    }
     void sendExtensionMessage("getUserPremiumStatus").then((premiumStatus) => {
       this.premiumEnabled = !!premiumStatus?.result;
     });

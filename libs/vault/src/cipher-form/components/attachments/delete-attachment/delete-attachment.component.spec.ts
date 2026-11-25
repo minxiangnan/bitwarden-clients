@@ -78,9 +78,12 @@ describe("DeleteAttachmentComponent", () => {
     await component.delete();
 
     expect(openSimpleDialog).toHaveBeenCalledWith({
-      title: { key: "deleteAttachment" },
-      content: { key: "permanentlyDeleteAttachmentConfirmation" },
-      type: "warning",
+      title: "attachment-filename",
+      content: "permanentlyDeleteAttachmentConfirmation",
+      type: "danger",
+      acceptButtonText: "delete",
+      cancelButtonText: { key: "cancel" },
+      focusCancel: true,
     });
 
     expect(deleteAttachmentWithServer).not.toHaveBeenCalled();
@@ -90,9 +93,12 @@ describe("DeleteAttachmentComponent", () => {
     await component.delete();
 
     expect(openSimpleDialog).toHaveBeenCalledWith({
-      title: { key: "deleteAttachment" },
-      content: { key: "permanentlyDeleteAttachmentConfirmation" },
-      type: "warning",
+      title: "attachment-filename",
+      content: "permanentlyDeleteAttachmentConfirmation",
+      type: "danger",
+      acceptButtonText: "delete",
+      cancelButtonText: { key: "cancel" },
+      focusCancel: true,
     });
 
     // Called with cipher id and attachment id

@@ -432,7 +432,12 @@ export class CipherFormComponent implements AfterViewInit, OnInit, OnChanges, Ci
         });
         return;
       }
-      throw e;
+      this.toastService.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18nService.t("serverSaveFailed"),
+      });
+      return;
     }
 
     // Clear the cache after successful save

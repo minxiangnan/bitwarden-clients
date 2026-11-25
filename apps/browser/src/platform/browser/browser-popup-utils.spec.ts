@@ -454,6 +454,24 @@ describe("BrowserPopupUtils", () => {
     });
   });
 
+  describe("showLockScreen", () => {
+    it("reloads the same window onto the unlock screen", () => {
+      const replace = jest.fn();
+      const win = {
+        location: {
+          href: "chrome-extension://ext/popup/index.html?uilocation=popout#/tabs/vault",
+          replace,
+        },
+      } as unknown as Window;
+
+      BrowserPopupUtils.showLockScreen(win);
+
+      expect(replace).toHaveBeenCalledWith(
+        "chrome-extension://ext/popup/index.html?uilocation=popout#/lock",
+      );
+    });
+  });
+
   describe("closeCurrentPopupOrPopout", () => {
     const win = {} as Window;
 

@@ -25,7 +25,10 @@ import {
   vaultScopeCommands,
 } from "@bitwarden/vault";
 
+import { AuthenticatorActive, AuthenticatorInactive } from "../authenticator/authenticator-icons";
+import { AuthenticatorService } from "../authenticator/popup/authenticator.service";
 import { HealthAccessService } from "../dirt/health/popup/services/health-access.service";
+import { SHOW_SEND } from "../tools/popup/send-v2/send-visibility";
 import { VaultPopupListTableFiltersService } from "../vault/popup/services/vault-popup-list-table-filters.service";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -34,6 +37,14 @@ import { VaultPopupListTableFiltersService } from "../vault/popup/services/vault
   selector: "app-tabs-v2",
   templateUrl: "./tabs-v2.component.html",
   standalone: false,
+  styles: [
+    `
+      :host ::ng-deep bit-bottom-navigation button {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+      }
+    `,
+  ],
 })
 export class TabsV2Component {
   constructor(
@@ -43,6 +54,7 @@ export class TabsV2Component {
   ) {}
 
   private sendPolicyService = inject(SendPolicyService);
+  private authenticatorService = inject(AuthenticatorService);
   private healthAccessService = inject(HealthAccessService);
   private readonly listFiltersService = inject(VaultPopupListTableFiltersService);
   private readonly vaultBasePath = inject(VAULT_BASE_ROUTE);
@@ -65,49 +77,71 @@ export class TabsV2Component {
     map((disableSend) => !disableSend),
   );
 
+  private authenticatorSupported$ = this.authenticatorService.supported$;
+
   protected navButtons$: Observable<BottomNavigationButton[]> = combineLatest([
     this.showSettingsBerry$.pipe(startWith(false)),
     this.sendEnabled$.pipe(startWith(true)),
     this.healthNavButton$.pipe(startWith(undefined)),
+    this.authenticatorSupported$.pipe(startWith(false)),
     toObservable(this.listFiltersService.cachedVaultScopeId).pipe(startWith(null)),
     toObservable(this.listFiltersService.cachedVaultScopeCollection).pipe(startWith(null)),
   ]).pipe(
-    map(([showBerry, sendEnabled, healthNavButton, scopeId, collectionSegment]) => {
-      const scope = parseVaultScope(scopeId, collectionSegment) ?? ALL_ITEMS_SCOPE;
-      const vaultPage = vaultScopeCommands(scope, this.vaultBasePath).join("/");
-      const buttons: BottomNavigationButton[] = [
-        {
-          label: "vault",
-          page: vaultPage,
-          icon: VaultInactive,
-          iconActive: VaultActive,
-        },
-        {
-          label: "generator",
-          page: "/tabs/generator",
-          icon: GeneratorInactive,
-          iconActive: GeneratorActive,
-        },
-        ...(sendEnabled
-          ? [
-              {
-                label: "send",
-                page: "/tabs/send",
-                icon: SendInactive,
-                iconActive: SendActive,
-              } as BottomNavigationButton,
-            ]
-          : []),
-        ...(healthNavButton ? [healthNavButton] : []),
-        {
-          label: "settings",
-          page: "/tabs/settings",
-          icon: SettingsInactive,
-          iconActive: SettingsActive,
-          showBerry,
-        },
-      ];
-      return buttons;
-    }),
+    map(
+      ([
+        showBerry,
+        sendEnabled,
+        healthNavButton,
+        authenticatorSupported,
+        scopeId,
+        collectionSegment,
+      ]) => {
+        const scope = parseVaultScope(scopeId, collectionSegment) ?? ALL_ITEMS_SCOPE;
+        const vaultPage = vaultScopeCommands(scope, this.vaultBasePath).join("/");
+        const buttons: BottomNavigationButton[] = [
+          {
+            label: "vault",
+            page: vaultPage,
+            icon: VaultInactive,
+            iconActive: VaultActive,
+          },
+          {
+            label: "generator",
+            page: "/tabs/generator",
+            icon: GeneratorInactive,
+            iconActive: GeneratorActive,
+          },
+          ...(authenticatorSupported
+            ? [
+                {
+                  label: "authenticator",
+                  page: "/tabs/authenticator",
+                  icon: AuthenticatorInactive,
+                  iconActive: AuthenticatorActive,
+                } as BottomNavigationButton,
+              ]
+            : []),
+          ...(SHOW_SEND && sendEnabled
+            ? [
+                {
+                  label: "send",
+                  page: "/tabs/send",
+                  icon: SendInactive,
+                  iconActive: SendActive,
+                } as BottomNavigationButton,
+              ]
+            : []),
+          ...(healthNavButton ? [healthNavButton] : []),
+          {
+            label: "settings",
+            page: "/tabs/settings",
+            icon: SettingsInactive,
+            iconActive: SettingsActive,
+            showBerry,
+          },
+        ];
+        return buttons;
+      },
+    ),
   );
 }

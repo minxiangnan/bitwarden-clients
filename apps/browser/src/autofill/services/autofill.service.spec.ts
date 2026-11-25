@@ -1094,29 +1094,34 @@ describe("AutofillService", () => {
       });
     });
 
-    it("does not return a TOTP value if the user does not have premium features", async () => {
+    it("returns a TOTP value stored on the user's server without a premium flag", async () => {
+      const totpCode = "654321";
       autofillOptions.cipher.login.totp = "totp";
-      // `mock<CipherView>` auto-stubs this to a truthy function; it is a boolean on a real cipher.
       autofillOptions.cipher.organizationUseTotp = false;
       jest
         .spyOn(billingAccountProfileStateService, "hasPremiumFromAnySource$")
         .mockImplementation(() => of(false));
       jest.spyOn(autofillService, "getShouldAutoCopyTotp").mockResolvedValue(true);
+      totpService.getCode$.mockReturnValue(of({ code: totpCode, period: 30 }));
 
       const autofillResult = await autofillService.doAutoFill(autofillOptions);
 
-      expect(autofillService.getShouldAutoCopyTotp).not.toHaveBeenCalled();
-      expect(totpService.getCode$).not.toHaveBeenCalled();
-      expect(autofillResult).toEqual({ outcome: AutofillOutcome.Filled });
+      expect(totpService.getCode$).toHaveBeenCalledWith("totp");
+      expect(autofillResult).toEqual({
+        outcome: AutofillOutcome.Filled,
+        totp: totpCode,
+        canAutoCopyTotp: true,
+      });
     });
 
-    it("leaves the passed cipher's TOTP seed intact when the user does not have premium features", async () => {
+    it("leaves the passed cipher's TOTP seed intact when filling", async () => {
       autofillOptions.cipher.login.totp = "totp";
-      // `mock<CipherView>` auto-stubs this to a truthy function; it is a boolean on a real cipher.
       autofillOptions.cipher.organizationUseTotp = false;
       jest
         .spyOn(billingAccountProfileStateService, "hasPremiumFromAnySource$")
         .mockImplementation(() => of(false));
+      totpService.getCode$.mockReturnValue(of({ code: "654321", period: 30 }));
+      jest.spyOn(autofillService, "getShouldAutoCopyTotp").mockResolvedValue(false);
 
       await autofillService.doAutoFill(autofillOptions);
 
@@ -1171,16 +1176,25 @@ describe("AutofillService", () => {
       expect(autofillResult).toEqual({ outcome: AutofillOutcome.Filled });
     });
 
-    it("reports a fill with no TOTP if the user cannot access premium and the organization does not use TOTP", async () => {
-      autofillOptions.cipher.login.totp = "totp";
-      autofillOptions.cipher.organizationUseTotp = false;
-      jest
-        .spyOn(billingAccountProfileStateService, "hasPremiumFromAnySource$")
-        .mockImplementation(() => of(false));
+    it("copies an authenticator code when the login item has no TOTP seed", async () => {
+      autofillOptions.cipher.login.totp = undefined;
+      autofillOptions.tab.url = "https://github.com/login";
+      autofillOptions.pageDetails[0].tab.url = "https://github.com/login";
+      autofillOptions.pageDetails[0].details.url = "https://github.com/login";
+      autofillService.setAuthenticatorTotpLookup(async () => "otpauth://totp/GitHub?secret=SECRET");
+      jest.spyOn(autofillService, "getShouldAutoCopyTotp").mockResolvedValue(true);
+      totpService.getCode$.mockReturnValue(of({ code: "111222", period: 30 }));
 
       const autofillResult = await autofillService.doAutoFill(autofillOptions);
 
-      expect(autofillResult).toEqual({ outcome: AutofillOutcome.Filled });
+      expect(totpService.getCode$).toHaveBeenCalledWith(
+        "otpauth://totp/GitHub?secret=SECRET",
+      );
+      expect(autofillResult).toEqual({
+        outcome: AutofillOutcome.Filled,
+        totp: "111222",
+        canAutoCopyTotp: true,
+      });
     });
 
     // The preference decides whether the code may be copied without asking, not whether the

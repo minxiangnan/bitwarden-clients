@@ -2,6 +2,8 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { BehaviorSubject, Observable, Subject, Subscription } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
+import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { BadgeSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/badge-settings.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { UserId } from "@bitwarden/common/types/guid";
@@ -22,6 +24,7 @@ describe("AutofillBadgeUpdaterService", () => {
   let setState: jest.Mock;
   let activeAccount$: BehaviorSubject<{ id: UserId } | null>;
   let enableBadgeCounter$: BehaviorSubject<boolean>;
+  let authStatus$: BehaviorSubject<AuthenticationStatus>;
   let changed$: Subject<void>;
   let fillCipherPolicy: MockProxy<FillCipherPolicy>;
   let emissions: unknown[];
@@ -36,11 +39,14 @@ describe("AutofillBadgeUpdaterService", () => {
     setState = jest.fn();
     activeAccount$ = new BehaviorSubject<{ id: UserId } | null>({ id: userId });
     enableBadgeCounter$ = new BehaviorSubject(true);
+    authStatus$ = new BehaviorSubject(AuthenticationStatus.Unlocked);
     changed$ = new Subject<void>();
     fillCipherPolicy = mock<FillCipherPolicy>();
     fillCipherPolicy.changed$.mockReturnValue(changed$);
     fillCipherPolicy.ciphersForUrl.mockResolvedValue([mock<CipherView>(), mock<CipherView>()]);
     emissions = [];
+    const authService = mock<AuthService>();
+    authService.authStatusFor$.mockReturnValue(authStatus$);
 
     new AutofillBadgeUpdaterService(
       { setState } as unknown as BadgeService,
@@ -48,6 +54,7 @@ describe("AutofillBadgeUpdaterService", () => {
       fillCipherPolicy,
       { enableBadgeCounter$ } as unknown as BadgeSettingsServiceAbstraction,
       mock<LogService>(),
+      authService,
     ).init();
   });
 
@@ -118,5 +125,24 @@ describe("AutofillBadgeUpdaterService", () => {
     expect(fillCipherPolicy.changed$).not.toHaveBeenCalled();
     expect(fillCipherPolicy.ciphersForUrl).not.toHaveBeenCalled();
     expect(emissions).toEqual([undefined]);
+  });
+
+  it("clears the count while locked and recounts on unlock without a cipher change", async () => {
+    authStatus$.next(AuthenticationStatus.Locked);
+    subscribeToBadgeState();
+    changed$.next();
+    await flushPromises();
+
+    expect(fillCipherPolicy.ciphersForUrl).not.toHaveBeenCalled();
+    expect(emissions.at(-1)).toBeUndefined();
+
+    authStatus$.next(AuthenticationStatus.Unlocked);
+    await flushPromises();
+
+    expect(fillCipherPolicy.ciphersForUrl).toHaveBeenCalledWith(tab.url, userId, CipherUse.Badge);
+    expect(emissions.at(-1)).toEqual({
+      state: { text: "2" },
+      priority: BadgeStatePriority.Default,
+    });
   });
 });

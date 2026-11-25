@@ -13,6 +13,8 @@ import { AttachmentView } from "@bitwarden/common/vault/models/view/attachment.v
 import {
   AsyncActionsModule,
   ButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   ToastService,
@@ -56,11 +58,13 @@ export class DeleteAttachmentComponent {
   ) {}
 
   delete = async () => {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteAttachment" },
-      content: { key: "permanentlyDeleteAttachmentConfirmation" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(this.attachment.fileName, this.i18nService.t("deleteAttachment")),
+        content: this.i18nService.t("permanentlyDeleteAttachmentConfirmation"),
+        acceptText: this.i18nService.t("delete"),
+      }),
+    );
 
     if (!confirmed) {
       return;

@@ -48,6 +48,7 @@ import { InternalFolderService } from "../../vault/abstractions/folder/folder.se
 import { CipherData } from "../../vault/models/data/cipher.data";
 import { Cipher } from "../../vault/models/domain/cipher";
 import { CipherResponse } from "../../vault/models/response/cipher.response";
+import { AUTHENTICATOR_SYNC_SNAPSHOT } from "../../vault/services/key-state/authenticator.state";
 import { ConfigService } from "../abstractions/config/config.service";
 import { LogService } from "../abstractions/log.service";
 import { SdkService } from "../abstractions/sdk/sdk.service";
@@ -194,6 +195,60 @@ describe("DefaultSyncService", () => {
         of({ hasMasterPassword: true } satisfies UserDecryptionOptions),
       );
       stateProvider.getUser.mockReturnValue(mock());
+    });
+
+    it("stores authenticator entries included in the sync response", async () => {
+      const update = jest.fn(async (fn: (current: unknown) => unknown) => fn(null));
+      const genericState = mock<SingleUserState<unknown>>();
+      stateProvider.getUser.mockImplementation((_userId, key) => {
+        if (key === AUTHENTICATOR_SYNC_SNAPSHOT) {
+          return { update } as never;
+        }
+        return genericState;
+      });
+      apiService.getSync.mockResolvedValue(
+        new SyncResponse({
+          profile: {
+            id: user1,
+            accountKeys: {
+              publicKeyEncryptionKeyPair: {
+                wrappedPrivateKey: "wrappedPrivateKey",
+                publicKey: "publicKey",
+              },
+            },
+          },
+          authenticatorEntries: [
+            {
+              id: "entry-1",
+              name: "enc-name",
+              secret: "enc-secret",
+              algorithm: "SHA1",
+              digits: 6,
+              period: 30,
+              favorite: true,
+              sortOrder: 2,
+            },
+          ],
+        }),
+      );
+
+      await sut.fullSync(true);
+
+      expect(stateProvider.getUser).toHaveBeenCalledWith(user1, AUTHENTICATOR_SYNC_SNAPSHOT);
+      const snapshot = update.mock.calls
+        .map((call) => call[0](null))
+        .find((value) => value != null && (value as { source?: string }).source === "sync") as {
+        entries: { id: string; secret: string }[];
+      };
+      expect(snapshot.entries[0]).toEqual(
+        expect.objectContaining({ id: "entry-1", secret: "enc-secret" }),
+      );
+    });
+
+    it("does not write an authenticator snapshot when the sync response omits the field", async () => {
+      await sut.fullSync(true);
+
+      expect(stateProvider.getUser).not.toHaveBeenCalledWith(user1, AUTHENTICATOR_SYNC_SNAPSHOT);
     });
 
     describe("key management sync handler", () => {

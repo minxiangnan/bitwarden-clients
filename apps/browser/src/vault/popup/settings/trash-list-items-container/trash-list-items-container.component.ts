@@ -15,6 +15,8 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { CipherId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import {
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   IconButtonModule,
   ItemModule,
@@ -146,11 +148,13 @@ export class TrashListItemsContainerComponent {
       return;
     }
 
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteItem" },
-      content: { key: "permanentlyDeleteItemConfirmation" },
-      type: "warning",
-    });
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title: destructiveTitle(cipher.name, this.i18nService.t("deleteItem")),
+        content: this.i18nService.t("permanentlyDeleteItemConfirmation"),
+        acceptText: this.i18nService.t("authenticatorTrashPermanent"),
+      }),
+    );
 
     if (!confirmed) {
       return;

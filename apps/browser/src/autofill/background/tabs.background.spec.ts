@@ -141,6 +141,24 @@ describe("TabsBackground", () => {
       expect(overlayBackground.updateOverlayCiphers).not.toHaveBeenCalled();
     });
 
+    it("refreshes the menu and inline ciphers when the vault unlocks, including with a PIN", async () => {
+      authStatuses$.next({
+        [userId]: AuthenticationStatus.Locked,
+        [otherUserId]: AuthenticationStatus.Unlocked,
+      });
+      await settle();
+      jest.clearAllMocks();
+
+      authStatuses$.next({
+        [userId]: AuthenticationStatus.Unlocked,
+        [otherUserId]: AuthenticationStatus.Unlocked,
+      });
+      await settle();
+
+      expect(mainBackground.refreshMenu).toHaveBeenCalledTimes(1);
+      expect(overlayBackground.updateOverlayCiphers).toHaveBeenCalledTimes(1);
+    });
+
     it("keeps refreshing after a refresh fails", async () => {
       mainBackground.refreshMenu.mockRejectedValueOnce(new Error("failed"));
 

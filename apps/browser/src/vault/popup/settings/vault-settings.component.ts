@@ -28,6 +28,7 @@ import { Vfo1I18nPipe } from "@bitwarden/vault";
 
 import { FORCE_TARGETING_RULES_UPDATE_COMMAND } from "../../../autofill/services/targeting-rules-data.service";
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
+import { formatZhDateTime } from "../../../platform/popup/format-zh-datetime";
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
 import { ImportUpgradeNavigationService } from "../../../tools/popup/settings/import/import-upgrade-navigation.service";
@@ -137,7 +138,7 @@ export class VaultSettingsComponent implements OnInit, OnDestroy {
   private async setLastSync() {
     const last = await this.syncService.getLastSync();
     if (last != null) {
-      this.lastSync = last.toLocaleDateString() + " " + last.toLocaleTimeString();
+      this.lastSync = formatZhDateTime(last);
     } else {
       this.lastSync = this.i18nService.t("never");
     }

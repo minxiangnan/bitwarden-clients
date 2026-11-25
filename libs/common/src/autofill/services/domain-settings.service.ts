@@ -79,7 +79,7 @@ const DEFAULT_URI_MATCH_STRATEGY = new UserKeyDefinition(
   DOMAIN_SETTINGS_DISK,
   "defaultUriMatchStrategy",
   {
-    deserializer: (value: UriMatchStrategySetting) => value ?? UriMatchStrategy.Domain,
+    deserializer: (value: UriMatchStrategySetting) => value ?? UriMatchStrategy.Host,
     clearOn: [],
   },
 );
@@ -268,7 +268,7 @@ export class DefaultDomainSettingsService implements DomainSettingsService {
 
     this.defaultUriMatchStrategyState = this.stateProvider.getActive(DEFAULT_URI_MATCH_STRATEGY);
     this.defaultUriMatchStrategy$ = this.defaultUriMatchStrategyState.state$.pipe(
-      map((x) => x ?? UriMatchStrategy.Domain),
+      map((x) => x ?? UriMatchStrategy.Host),
     );
 
     this.enableFillAssistState = this.stateProvider.getGlobal(ENABLE_FILL_ASSIST);

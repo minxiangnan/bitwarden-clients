@@ -31,12 +31,13 @@ describe("IntroCarouselGuard", () => {
     expect(result).toBe(true);
   });
 
-  it("should navigate to intro-carousel route when dismissed is false", async () => {
+  it("stays on login even when the carousel has not been dismissed", async () => {
     TestBed.overrideProvider(IntroCarouselService, {
       useValue: { introCarouselState$: of(false) },
     });
 
-    await TestBed.runInInjectionContext(async () => await IntroCarouselGuard());
-    expect(createUrlTree).toHaveBeenCalledWith(["/intro-carousel"]);
+    const result = await TestBed.runInInjectionContext(async () => await IntroCarouselGuard());
+    expect(result).toBe(true);
+    expect(createUrlTree).not.toHaveBeenCalled();
   });
 });

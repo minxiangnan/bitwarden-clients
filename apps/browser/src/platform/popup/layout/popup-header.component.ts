@@ -15,10 +15,9 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { of } from "rxjs";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
-import { BitwardenLogo, BitwardenLogoBeta } from "@bitwarden/assets/svg";
+import { ZhMark } from "@bitwarden/assets/svg";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
-import { flagEnabled } from "@bitwarden/common/platform/misc/flags";
 import {
   AsyncActionsModule,
   ButtonType,
@@ -76,7 +75,7 @@ export class PopupHeaderComponent {
     { initialValue: false },
   );
 
-  protected readonly logo = flagEnabled("prereleaseBuild") ? BitwardenLogoBeta : BitwardenLogo;
+  protected readonly logo = ZhMark;
 
   /**
    * Background treatment of the page title bar.
@@ -155,10 +154,8 @@ export class PopupHeaderComponent {
   /** The title bar is gone for the life of the page, so the back button moves to the app bar. */
   protected readonly titleBarSuppressed = computed(() => this.vfo1Enabled() && this.hideTitleBar());
 
-  /** The app bar sits on the nav background, which only `side-nav` is legible against. */
-  protected readonly backButtonType = computed<ButtonType>(() =>
-    this.titleBarSuppressed() ? "side-nav" : "primaryGhost",
-  );
+  /** Both bars are cream, so the ghost button stays readable in light and dark mode. */
+  protected readonly backButtonType = computed<ButtonType>(() => "primaryGhost");
 
   protected readonly titleBarHidden = computed(
     () =>
@@ -202,7 +199,7 @@ export class PopupHeaderComponent {
    */
   protected readonly headerClasses = computed(() => {
     if (this.vfo1Enabled()) {
-      return "";
+      return "zh-popup-header";
     }
 
     const classes = [
@@ -221,7 +218,7 @@ export class PopupHeaderComponent {
     ];
 
     classes.push(
-      "tw-bg-bg-primary",
+      "zh-popup-header",
       this.background() === "alt" && !this.pageScrolled()
         ? "tw-border-transparent"
         : "tw-border-border-base",
@@ -274,8 +271,8 @@ export class PopupHeaderComponent {
     // The transparent bar keeps the border box so both treatments collapse to the same height.
     classes.push(
       ...(this.background() === "alt"
-        ? ["tw-bg-transparent", "tw-border-transparent"]
-        : ["tw-bg-bg-tertiary", "tw-border-border-base"]),
+        ? ["zh-popup-header", "tw-border-transparent"]
+        : ["zh-popup-header", "tw-border-border-base"]),
     );
 
     /** The back button's own padding stands in for the title bar's start padding. */

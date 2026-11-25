@@ -1,17 +1,28 @@
 import { TestBed } from "@angular/core/testing";
 import { mock, MockProxy } from "jest-mock-extended";
-import { of } from "rxjs";
+import { BehaviorSubject, of } from "rxjs";
 
 import {
   UserDecryptionOptions,
   UserDecryptionOptionsServiceAbstraction,
 } from "@bitwarden/auth/common";
+import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { LogoutService } from "@bitwarden/common/auth/logout";
 import { DeviceTrustServiceAbstraction } from "@bitwarden/common/key-management/device-trust/abstractions/device-trust.service.abstraction";
 import { MasterPasswordUnlockService } from "@bitwarden/common/key-management/master-password/abstractions/master-password-unlock.service";
+import { InternalMasterPasswordServiceAbstraction } from "@bitwarden/common/key-management/master-password/abstractions/master-password.service.abstraction";
+import {
+  MasterKeyWrappedUserKey,
+  MasterPasswordSalt,
+  MasterPasswordUnlockData,
+} from "@bitwarden/common/key-management/master-password/types/master-password.types";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { ToastService } from "@bitwarden/components";
+import { KeyService } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService, PBKDF2KdfConfig, SymmetricCryptoKey } from "@bitwarden/legacy-crypto";
 import { UserId } from "@bitwarden/user-core";
 import { UserKeyRotationServiceAbstraction } from "@bitwarden/user-crypto-management";
 
@@ -43,6 +54,8 @@ describe("KeyRotationDialogService", () => {
     mockMasterPasswordUnlockService = mock<MasterPasswordUnlockService>();
     mockUserDecryptionOptionsService = mock<UserDecryptionOptionsServiceAbstraction>();
     mockDeviceTrustService = mock<DeviceTrustServiceAbstraction>();
+    const keyService = mock<KeyService>();
+    keyService.userKey$.mockReturnValue(of(null));
 
     mockI18nService.t.mockImplementation((key) => `${key}-used-i18n`);
 
@@ -55,10 +68,18 @@ describe("KeyRotationDialogService", () => {
         { provide: LogoutService, useValue: mockLogoutService },
         { provide: MasterPasswordUnlockService, useValue: mockMasterPasswordUnlockService },
         {
+          provide: InternalMasterPasswordServiceAbstraction,
+          useValue: mock<InternalMasterPasswordServiceAbstraction>(),
+        },
+        {
           provide: UserDecryptionOptionsServiceAbstraction,
           useValue: mockUserDecryptionOptionsService,
         },
         { provide: DeviceTrustServiceAbstraction, useValue: mockDeviceTrustService },
+        { provide: ApiService, useValue: mock<ApiService>() },
+        { provide: EncryptService, useValue: mock<EncryptService>() },
+        { provide: KeyService, useValue: keyService },
+        { provide: LogService, useValue: mock<LogService>() },
       ],
     });
 
@@ -68,6 +89,55 @@ describe("KeyRotationDialogService", () => {
   describe("rotateKeys", () => {
     beforeEach(() => {
       mockMasterPasswordUnlockService.proofOfDecryption.mockResolvedValue(true);
+    });
+
+    it("re-encrypts authenticator entries from the profile key when userKey$ does not change", async () => {
+      const oldKey = new SymmetricCryptoKey(new Uint8Array(64).fill(1));
+      const newKey = new SymmetricCryptoKey(new Uint8Array(64).fill(2));
+      (TestBed.inject(KeyService) as MockProxy<KeyService>).userKey$.mockReturnValue(
+        new BehaviorSubject(oldKey) as never,
+      );
+      mockUserKeyRotationService.rotateUserKey.mockResolvedValue(true);
+      const passwords = TestBed.inject(
+        InternalMasterPasswordServiceAbstraction,
+      ) as MockProxy<InternalMasterPasswordServiceAbstraction>;
+      passwords.masterPasswordUnlockData$.mockReturnValue(
+        of(
+          new MasterPasswordUnlockData(
+            "salt" as MasterPasswordSalt,
+            new PBKDF2KdfConfig(600000),
+            "2.old" as MasterKeyWrappedUserKey,
+          ),
+        ),
+      );
+      passwords.unwrapUserKeyFromMasterPasswordUnlockData.mockResolvedValue(newKey as never);
+      const api = TestBed.inject(ApiService) as MockProxy<ApiService>;
+      api.getProfile.mockResolvedValue({ key: { encryptedString: "2.new" } } as never);
+      api.send.mockImplementation(async (method: string, path: string) => {
+        if (path === "/authenticator/rotate" && method === "GET") {
+          return { required: true, wrappedOldUserKey: "2.old", oldUserKeyId: null };
+        }
+        if (path === "/authenticator") {
+          return {
+            data: [{ id: "entry-1", name: "2.name", secret: "2.secret" }],
+            object: "list",
+          };
+        }
+        return { data: [], object: "list" };
+      });
+      const encrypt = TestBed.inject(EncryptService) as MockProxy<EncryptService>;
+      encrypt.decryptString.mockResolvedValue("plain");
+      encrypt.encryptString.mockResolvedValue({ toJSON: () => "2.enc" } as never);
+
+      const result = await sut.rotateKeys(masterPassword, mockUserId);
+
+      expect(result).toBe(true);
+      expect(passwords.unwrapUserKeyFromMasterPasswordUnlockData).toHaveBeenCalledWith(
+        masterPassword,
+        expect.objectContaining({ masterKeyWrappedUserKey: "2.new" }),
+      );
+      expect(api.send).toHaveBeenCalledWith("PUT", "/authenticator/rotate", expect.anything(), true, true);
+      expect(mockLogoutService.logout).toHaveBeenCalledWith(mockUserId, "userKeyRotation");
     });
 
     it("shows error toast when proof of decryption fails", async () => {

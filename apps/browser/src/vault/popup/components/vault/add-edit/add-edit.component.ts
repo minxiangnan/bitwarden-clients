@@ -33,6 +33,8 @@ import {
   ChipActionComponent,
   SearchModule,
   IconButtonModule,
+  destructiveDialogOptions,
+  destructiveTitle,
   DialogService,
   ToastService,
 } from "@bitwarden/components";
@@ -556,13 +558,30 @@ export class AddEditComponent implements OnInit, OnDestroy {
   }
 
   delete = async () => {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "deleteItem" },
-      content: {
-        key: "deleteItemConfirmation",
-      },
-      type: "warning",
-    });
+    const cipher = this.config.originalCipher;
+    const permanent = Boolean(cipher?.deletedDate);
+    let title = this.i18nService.t("deleteItem");
+    try {
+      if (cipher?.id) {
+        const userId = await firstValueFrom(this.userId$);
+        const stored = await this.cipherService.get(cipher.id, userId);
+        if (stored) {
+          const view = await this.cipherService.decrypt(stored, userId);
+          title = destructiveTitle(view?.name, title);
+        }
+      }
+    } catch (e) {
+      this.logService.error(e);
+    }
+    const confirmed = await this.dialogService.openSimpleDialog(
+      destructiveDialogOptions({
+        title,
+        content: this.i18nService.t(
+          permanent ? "permanentlyDeleteItemConfirmation" : "deleteItemConfirmation",
+        ),
+        acceptText: this.i18nService.t(permanent ? "authenticatorTrashPermanent" : "delete"),
+      }),
+    );
 
     if (!confirmed) {
       return false;
@@ -573,6 +592,11 @@ export class AddEditComponent implements OnInit, OnDestroy {
       await this.deleteCipher(activeUserId);
     } catch (e) {
       this.logService.error(e);
+      this.toastService.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18nService.t("serverSaveFailed"),
+      });
       return false;
     }
 
