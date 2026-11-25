@@ -12,6 +12,7 @@ import {
 } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { getOptionalUserId } from "@bitwarden/common/auth/services/account.service";
@@ -88,12 +89,72 @@ type AuthenticatorState = {
 
 const EMPTY_STATE: AuthenticatorState = { status: "loading", entries: [] };
 
+/** The server kept a newer revision. The local form must not overwrite it. */
+export class AuthenticatorConflictError extends Error {
+  constructor() {
+    super("Authenticator entry was changed on another device.");
+  }
+}
+
+function isConflict(error: unknown): boolean {
+  return error instanceof ErrorResponse && error.statusCode === 409;
+}
+
+function newClientId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.bind(globalThis.crypto);
+  if (uuid) {
+    return uuid();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const nibble = (Math.random() * 16) | 0;
+    const value = char === "x" ? nibble : (nibble & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+function duplicateIds(entries: AuthenticatorEntryView[]): string[] {
+  const groups = new Map<string, AuthenticatorEntryView[]>();
+  for (const entry of entries) {
+    if (entry.undecryptable || !entry.secret || entry.deletedAt) {
+      continue;
+    }
+    const key = [
+      entry.secret.trim().toUpperCase(),
+      entry.issuer.trim().toLowerCase(),
+      entry.name.trim(),
+      entry.algorithm,
+      entry.digits,
+      entry.period,
+    ].join("|");
+    const group = groups.get(key) ?? [];
+    group.push(entry);
+    groups.set(key, group);
+  }
+  const drop: string[] = [];
+  for (const group of groups.values()) {
+    if (group.length < 2) {
+      continue;
+    }
+    const ranked = [...group].sort((left, right) => {
+      if (left.revisionDate !== right.revisionDate) {
+        return left.revisionDate < right.revisionDate ? 1 : -1;
+      }
+      return left.id < right.id ? -1 : 1;
+    });
+    for (const extra of ranked.slice(1)) {
+      drop.push(extra.id);
+    }
+  }
+  return drop;
+}
+
 @Injectable({ providedIn: "root" })
 export class AuthenticatorService {
   private readonly stateSubject = new BehaviorSubject<AuthenticatorState>(EMPTY_STATE);
   private refreshGeneration = 0;
   /** Ciphertext fingerprint already decrypted into stateSubject. */
   private lastPublishedKey: string | null = null;
+  private droppingDuplicates = false;
 
   readonly state$ = this.stateSubject.asObservable();
 
@@ -166,12 +227,19 @@ export class AuthenticatorService {
   ): Promise<void> {
     const key = snapshotKey(encrypted);
     if (key === this.lastPublishedKey && this.stateSubject.value.status === "ready") {
+      if (syncedAt && syncedAt !== this.stateSubject.value.syncedAt) {
+        this.stateSubject.next({ ...this.stateSubject.value, syncedAt });
+      }
       return;
     }
     const generation = ++this.refreshGeneration;
     try {
       const entries = await this.decryptAll(encrypted, userId);
       if (generation !== this.refreshGeneration) {
+        return;
+      }
+      if (await this.dropDuplicates(entries)) {
+        await this.refresh(userId);
         return;
       }
       this.lastPublishedKey = key;
@@ -204,6 +272,10 @@ export class AuthenticatorService {
       const encrypted = await this.api.list();
       const entries = await this.decryptAll(encrypted, activeUserId);
       if (generation !== this.refreshGeneration) {
+        return;
+      }
+      if (await this.dropDuplicates(entries)) {
+        await this.refresh(activeUserId);
         return;
       }
       const syncedAt = new Date().toISOString();
@@ -242,20 +314,45 @@ export class AuthenticatorService {
 
   async save(draft: AuthenticatorDraft, id?: string, sortOrder?: number): Promise<string> {
     const userId = await this.requireUserId();
+    this.assertOnline();
     this.assertEditable(id);
+    const existing = id
+      ? this.stateSubject.value.entries.find((entry) => entry.id === id)
+      : undefined;
     const request = await this.encryptDraft(draft, userId, id, sortOrder);
-    const saved = id ? await this.api.update(id, request) : await this.api.create(request);
-    // The server write already succeeded. A later refresh failure must not look like a local-only save.
     try {
-      await this.refresh(userId);
+      const saved = existing
+        ? await this.api.update(id as string, {
+            ...request,
+            revisionDate: existing.revisionDate,
+          })
+        : await this.api.create({ ...request, id: id ?? newClientId() });
+      // The server write already succeeded. A later refresh failure must not look like a local-only save.
+      try {
+        await this.refresh(userId);
+      } catch (error) {
+        this.logService.error(error);
+      }
+      return saved.id;
     } catch (error) {
-      this.logService.error(error);
+      if (error instanceof AuthenticatorConflictError) {
+        throw error;
+      }
+      if (isConflict(error)) {
+        try {
+          await this.refresh(userId);
+        } catch (refreshError) {
+          this.logService.error(refreshError);
+        }
+        throw new AuthenticatorConflictError();
+      }
+      throw error;
     }
-    return saved.id;
   }
 
   async remove(id: string): Promise<void> {
     const userId = await this.requireUserId();
+    this.assertOnline();
     await this.api.delete(id);
     try {
       await this.api.deleteMcpEntry("authenticator", id);
@@ -314,6 +411,37 @@ export class AuthenticatorService {
       });
     }
     return imports;
+  }
+
+  private assertOnline(): void {
+    if (this.stateSubject.value.status === "offline") {
+      throw new Error("当前离线，只能查看，不能修改。");
+    }
+  }
+
+  private async dropDuplicates(entries: AuthenticatorEntryView[]): Promise<boolean> {
+    if (this.droppingDuplicates) {
+      return false;
+    }
+    const ids = duplicateIds(entries);
+    if (ids.length === 0) {
+      return false;
+    }
+    this.droppingDuplicates = true;
+    let removed = false;
+    try {
+      for (const id of ids) {
+        try {
+          await this.api.delete(id);
+          removed = true;
+        } catch (error) {
+          this.logService.error(error);
+        }
+      }
+      return removed;
+    } finally {
+      this.droppingDuplicates = false;
+    }
   }
 
   private assertEditable(id?: string): void {

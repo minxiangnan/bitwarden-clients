@@ -49,6 +49,8 @@ export type AuthenticatorEntryView = {
 
 /** camelCase body for POST and PUT. Name, issuer, secret, and notes are EncStrings. */
 export type AuthenticatorEntryRequest = {
+  /** Client id for POST. A repeat with the same id updates that row. */
+  id?: string;
   name: string;
   issuer?: string;
   secret: string;
@@ -58,6 +60,8 @@ export type AuthenticatorEntryRequest = {
   notes?: string;
   favorite?: boolean;
   sortOrder?: number;
+  /** Revision last read. The server rejects the write when a newer one is stored. */
+  revisionDate?: string;
 };
 
 export function normalizeAlgorithm(value: unknown): AuthenticatorAlgorithm {

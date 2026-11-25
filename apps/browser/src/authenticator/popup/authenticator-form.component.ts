@@ -43,7 +43,12 @@ import {
 } from "../authenticator.models";
 import { normalizeAlias } from "../mcp/mcp-crypto";
 
-import { AuthenticatorDraft, AuthenticatorService, draftFromView } from "./authenticator.service";
+import {
+  AuthenticatorConflictError,
+  AuthenticatorDraft,
+  AuthenticatorService,
+  draftFromView,
+} from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
 
 @Component({
@@ -299,8 +304,22 @@ export class AuthenticatorFormComponent implements OnInit {
       } else if (!mcpEnabled && this.mcpWasEnabled() && entryId) {
         await this.mcp.disableAuthenticator(entryId);
       }
+      // The first save notifies other devices before the alias write. Touch the entry again
+      // so they reload after the alias is stored. Vaultwarden 1.2.2 notifies on that update.
+      if (entryId && (mcpEnabled || this.mcpWasEnabled())) {
+        await this.authenticator.save(draft, entryId);
+      }
       await this.router.navigate(["/tabs/authenticator"]);
-    } catch {
+    } catch (error) {
+      if (error instanceof AuthenticatorConflictError) {
+        this.toast.showToast({
+          variant: "error",
+          title: null,
+          message: "这条验证码刚在别的设备上改过，已重新加载，没有覆盖。",
+        });
+        await this.router.navigate(["/tabs/authenticator"]);
+        return;
+      }
       this.errorKey.set("authenticatorSaveError");
       this.toast.showToast({
         variant: "error",

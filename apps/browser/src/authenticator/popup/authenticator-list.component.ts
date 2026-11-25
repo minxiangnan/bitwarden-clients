@@ -110,6 +110,11 @@ export class AuthenticatorListComponent {
       this.mcp.aliasEpoch();
       void this.loadAliases();
     });
+    // A hub sync bumps syncedAt even when the ciphertext is unchanged, which is how an
+    // alias-only change reaches an already open popup.
+    this.authenticator.state$.subscribe(() => {
+      void this.loadAliases();
+    });
   }
 
   private async loadAliases(): Promise<void> {
