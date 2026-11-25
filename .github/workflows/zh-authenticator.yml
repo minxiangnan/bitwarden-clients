@@ -1,0 +1,66 @@
+# Builds the Simplified Chinese authenticator extension from main.
+# Tag pushes must already be ancestors of main. This workflow does not create or move tags.
+
+name: 验证器版
+
+on:
+  push:
+    tags:
+      - "v-zh-authenticator-*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Chrome, Edge, Firefox
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out main or the tag on main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require this commit to be on main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+
+      - name: Get Node version
+        id: node
+        run: |
+          node_nvmrc=$(cat .nvmrc)
+          echo "version=${node_nvmrc/v/}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          cache: npm
+          cache-dependency-path: package-lock.json
+          node-version: ${{ steps.node.outputs.version }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Chrome, Edge, and Firefox
+        working-directory: apps/browser
+        run: |
+          set -euo pipefail
+          npm run dist:chrome
+          npm run dist:edge
+          npm run dist:firefox
+          version=$(node -p "require('./package.json').version")
+          mv dist/dist-chrome.zip "dist/zh-authenticator-chrome-${version}.zip"
+          mv dist/dist-edge.zip "dist/zh-authenticator-edge-${version}.zip"
+          mv dist/dist-firefox.zip "dist/zh-authenticator-firefox-${version}.zip"
+
+      - name: Upload zips
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: zh-authenticator-${{ github.sha }}
+          path: apps/browser/dist/zh-authenticator-*.zip
+          if-no-files-found: error

@@ -2,6 +2,8 @@
 
 当前版本：**1.1.7**（标签 `v-zh-authenticator-1.1.7`）。扩展清单版本是 `2026.11.7`，Chrome 能把它认成比 `2026.11.6` 新的一版。保存时带上读到的 `revisionDate`，服务器若已有更新会拒绝这次写入。别名变化也会跟着通知刷新。离线时不能改。
 
+最终分支是 `main`。`v-zh-authenticator-*` 标签都在 `main` 的历史上。构建从 `main` 的当前提交，或从这些标签检出。
+
 这个发布包把三部分合在一起，可以直接装进浏览器使用：
 
 - 自动填充（普通输入框、Shadow DOM、没有 `<form>` 的登录框）
@@ -78,13 +80,25 @@ NODE_OPTIONS=--max-old-space-size=8192 npm run build:oss:selfhost:prod
 
 ## 2. 安装扩展
 
-发布页有三个 zip：
+发布页挂在对应的 `v-zh-authenticator-*` 标签上，有三个 zip：
 
 | 文件 | 浏览器 |
 | --- | --- |
-| `bitwarden-chrome-mv3.zip` | Chrome |
-| `bitwarden-edge-mv3.zip` | Edge |
-| `bitwarden-firefox.zip` | Firefox |
+| `zh-authenticator-chrome-<版本>.zip` | Chrome |
+| `zh-authenticator-edge-<版本>.zip` | Edge |
+| `zh-authenticator-firefox-<版本>.zip` | Firefox |
+
+本地打包装也从 `main` 或该标签开始。仓库根目录执行 `npm ci` 之后：
+
+```bash
+git checkout main
+cd apps/browser
+npm run dist:chrome
+npm run dist:edge
+npm run dist:firefox
+```
+
+推送 `v-zh-authenticator-*` 标签，或在 Actions 里手动运行「验证器版」，都会用 `.github/workflows/zh-authenticator.yml` 构建。工作流先确认这次提交已经在 `main` 上，再打上面三个包。它不创建、不移动、不删除标签。
 
 Chrome 和 Edge 用「加载未打包的扩展」。不要直接把 zip 拖进 `chrome://extensions`。
 
