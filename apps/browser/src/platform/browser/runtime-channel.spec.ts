@@ -2,6 +2,7 @@ import {
   PAGE_CACHE_DISCONNECT,
   connectPagePort,
   consumeRuntimeLastError,
+  isClosedBrowserTarget,
   isPageCacheDisconnect,
   sendRuntimeMessage,
 } from "./runtime-channel";
@@ -33,6 +34,16 @@ describe("runtime channel", () => {
 
       expect(consumeRuntimeLastError()).toBe(PAGE_CACHE_DISCONNECT);
       expect(isPageCacheDisconnect(PAGE_CACHE_DISCONNECT)).toBe(true);
+    });
+  });
+
+  describe("closed browser targets", () => {
+    it("recognizes a tab or frame that is already gone", () => {
+      expect(isClosedBrowserTarget(new Error("No tab with id: 998824803."))).toBe(true);
+      expect(isClosedBrowserTarget(new Error("No frame with id 2 in tab 3."))).toBe(true);
+      expect(isClosedBrowserTarget(new Error("Frame with ID 0 was removed."))).toBe(true);
+      expect(isClosedBrowserTarget(new Error("The tab was closed."))).toBe(true);
+      expect(isClosedBrowserTarget(new Error("Could not establish connection."))).toBe(false);
     });
   });
 

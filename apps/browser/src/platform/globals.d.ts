@@ -64,7 +64,7 @@ type OperaSidebarAction = {
    *
    * @link https://dev.opera.com/extensions/sidebar-action-api/#method-setbadgetext
    */
-  setBadgeText: (details: { text: string; tabId?: number }) => void;
+  setBadgeText: (details: { text: string; tabId?: number }, callback?: () => void) => void;
   /**
    * *Not supported on mac*
    *
@@ -76,7 +76,10 @@ type OperaSidebarAction = {
    *
    * @link https://dev.opera.com/extensions/sidebar-action-api/#method-setbadgebackgroundcolor
    */
-  setBadgeBackgroundColor: (details: { color: ColorArray | string; tabId?: number }) => void;
+  setBadgeBackgroundColor: (
+    details: { color: ColorArray | string; tabId?: number },
+    callback?: () => void,
+  ) => void;
   /**
    * *Not supported on mac*
    *

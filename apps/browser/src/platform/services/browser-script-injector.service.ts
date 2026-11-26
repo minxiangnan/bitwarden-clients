@@ -8,6 +8,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 
 import { BrowserApi } from "../browser/browser-api";
+import { isClosedBrowserTarget } from "../browser/runtime-channel";
 
 import {
   CommonScriptInjectionDetails,
@@ -58,6 +59,9 @@ export class BrowserScriptInjectorService extends ScriptInjectorService {
           world: mv3Details?.world ?? chrome.scripting.ExecutionWorld.ISOLATED,
         });
       } catch (error) {
+        if (isClosedBrowserTarget(error)) {
+          return;
+        }
         // Swallow errors for host permissions, since this is believed to be a Manifest V3 Chrome bug
         // @TODO remove when the bugged behaviour is resolved
         if (

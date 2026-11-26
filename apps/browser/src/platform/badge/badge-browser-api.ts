@@ -17,6 +17,7 @@ import { Utils } from "@bitwarden/common/platform/misc/utils";
 
 import { BrowserApi } from "../browser/browser-api";
 import { fromChromeEvent } from "../browser/from-chrome-event";
+import { consumeRuntimeLastError, isClosedBrowserTarget } from "../browser/runtime-channel";
 
 import { BadgeIcon, IconPaths } from "./icon";
 
@@ -188,11 +189,11 @@ export class DefaultBadgeBrowserApi implements BadgeBrowserApi {
       return;
     }
 
-    if (this.useSyncApiCalls) {
-      await this.badgeAction.setIcon({ path, tabId });
-    } else {
-      await new Promise<void>((resolve) => this.badgeAction.setIcon({ path, tabId }, resolve));
-    }
+    await this.runActionCall(
+      this.useSyncApiCalls
+        ? () => this.badgeAction.setIcon({ path, tabId })
+        : (done) => this.badgeAction.setIcon({ path, tabId }, done),
+    );
   }
 
   private async setSidebarActionIcon(path: IconPaths, tabId?: number) {
@@ -207,41 +208,83 @@ export class DefaultBadgeBrowserApi implements BadgeBrowserApi {
       return;
     }
 
-    if (this.isOperaSidebar(this.sidebarAction)) {
-      await new Promise<void>((resolve) =>
-        (this.sidebarAction as OperaSidebarAction).setIcon({ path, tabId }, () => resolve()),
-      );
+    const sidebarAction = this.sidebarAction;
+    if (this.isOperaSidebar(sidebarAction)) {
+      await this.runActionCall((done) => sidebarAction.setIcon({ path, tabId }, done));
     } else {
-      await this.sidebarAction.setIcon({ path, tabId });
+      await this.runActionCall(() => sidebarAction.setIcon({ path, tabId }));
     }
   }
 
   private async setActionText(text: string, tabId?: number) {
     if (this.badgeAction?.setBadgeText) {
-      await this.badgeAction.setBadgeText({ text, tabId });
+      await this.runActionCall(
+        this.useSyncApiCalls
+          ? () => this.badgeAction.setBadgeText({ text, tabId })
+          : (done) => this.badgeAction.setBadgeText({ text, tabId }, done),
+      );
     }
   }
 
   private async setSideBarText(text: string, tabId?: number) {
-    if (!this.sidebarAction) {
+    const sidebarAction = this.sidebarAction;
+    if (!sidebarAction) {
       return;
     }
 
-    if (this.isOperaSidebar(this.sidebarAction)) {
-      this.sidebarAction.setBadgeText({ text, tabId });
-    } else if (this.sidebarAction) {
+    if (this.isOperaSidebar(sidebarAction)) {
+      await this.runActionCall((done) => sidebarAction.setBadgeText({ text, tabId }, done));
+    } else {
       // Firefox
       const title = `Bitwarden${Utils.isNullOrEmpty(text) ? "" : ` [${text}]`}`;
-      await this.sidebarAction.setTitle({ title, tabId });
+      await this.runActionCall(() => sidebarAction.setTitle({ title, tabId }));
     }
   }
 
   private async setBackgroundColor(color: string, tabId?: number) {
     if (this.badgeAction && this.badgeAction?.setBadgeBackgroundColor) {
-      await this.badgeAction.setBadgeBackgroundColor({ color, tabId });
+      await this.runActionCall(
+        this.useSyncApiCalls
+          ? () => this.badgeAction.setBadgeBackgroundColor({ color, tabId })
+          : (done) => this.badgeAction.setBadgeBackgroundColor({ color, tabId }, done),
+      );
     }
-    if (this.sidebarAction && this.isOperaSidebar(this.sidebarAction)) {
-      this.sidebarAction.setBadgeBackgroundColor({ color, tabId });
+    const sidebarAction = this.sidebarAction;
+    if (sidebarAction && this.isOperaSidebar(sidebarAction)) {
+      await this.runActionCall((done) =>
+        sidebarAction.setBadgeBackgroundColor({ color, tabId }, done),
+      );
+    }
+  }
+
+  /**
+   * Toolbar badge calls target one tab. A prerendered or closed tab rejects
+   * with "No tab with id" and also sets lastError. Read it, and do not surface
+   * that expected miss.
+   */
+  private async runActionCall(invoke: (done: () => void) => unknown): Promise<void> {
+    let pending: unknown;
+    try {
+      pending = invoke(() => {
+        consumeRuntimeLastError();
+      });
+    } catch (error) {
+      consumeRuntimeLastError();
+      if (!isClosedBrowserTarget(error)) {
+        throw error;
+      }
+      return;
+    }
+
+    if (pending != null && typeof (pending as { then?: unknown }).then === "function") {
+      try {
+        await pending;
+      } catch (error) {
+        consumeRuntimeLastError();
+        if (!isClosedBrowserTarget(error)) {
+          throw error;
+        }
+      }
     }
   }
 

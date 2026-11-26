@@ -61,6 +61,7 @@ describe("extension update selection", () => {
   it("compares numeric segments so 1.1.10 is newer than 1.1.9", () => {
     expect(compareVersions("1.1.10", "1.1.9")).toBeGreaterThan(0);
     expect(isNewerVersion("1.1.9", AUTHENTICATOR_RELEASE_VERSION)).toBe(false);
+    expect(isNewerVersion("1.2.0", "1.1.9")).toBe(true);
     expect(isNewerVersion("1.1.8", "1.1.9")).toBe(false);
   });
 

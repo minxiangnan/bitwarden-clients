@@ -13,7 +13,11 @@ import { BrowserPlatformUtilsService } from "../services/platform-utils/browser-
 
 import { registerContentScriptsPolyfill } from "./browser-api.register-content-scripts-polyfill";
 import { ExtensionInstallType } from "./extension-install-type";
-import { consumeRuntimeLastError } from "./runtime-channel";
+import {
+  consumeRuntimeLastError,
+  isClosedBrowserTarget,
+  isClosedBrowserTargetMessage,
+} from "./runtime-channel";
 
 export class BrowserApi {
   static isWebExtensionsApi: boolean = typeof browser !== "undefined";
@@ -258,15 +262,24 @@ export class BrowserApi {
       return null;
     }
 
-    if (BrowserApi.isManifestVersion(3)) {
-      return await chrome.tabs.get(tabId);
-    }
+    try {
+      if (BrowserApi.isManifestVersion(3)) {
+        return await chrome.tabs.get(tabId);
+      }
 
-    return new Promise((resolve) =>
-      chrome.tabs.get(tabId, (tab) => {
-        resolve(tab);
-      }),
-    );
+      return await new Promise((resolve) => {
+        chrome.tabs.get(tabId, (tab) => {
+          const message = consumeRuntimeLastError();
+          resolve(isClosedBrowserTargetMessage(message) ? null : tab);
+        });
+      });
+    } catch (error) {
+      consumeRuntimeLastError();
+      if (isClosedBrowserTarget(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   static async getTabFromCurrentWindow(): Promise<chrome.tabs.Tab> | null {
@@ -286,15 +299,24 @@ export class BrowserApi {
    * Fetch the currently open browser tab
    */
   static async getCurrentTab(): Promise<chrome.tabs.Tab> | null {
-    if (BrowserApi.isManifestVersion(3)) {
-      return await chrome.tabs.getCurrent();
-    }
+    try {
+      if (BrowserApi.isManifestVersion(3)) {
+        return await chrome.tabs.getCurrent();
+      }
 
-    return new Promise((resolve) =>
-      chrome.tabs.getCurrent((tab) => {
-        resolve(tab);
-      }),
-    );
+      return await new Promise((resolve) =>
+        chrome.tabs.getCurrent((tab) => {
+          consumeRuntimeLastError();
+          resolve(tab);
+        }),
+      );
+    } catch (error) {
+      consumeRuntimeLastError();
+      if (isClosedBrowserTarget(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -305,12 +327,21 @@ export class BrowserApi {
   static async closeTab(tabId: number): Promise<void> {
     if (tabId) {
       if (BrowserApi.isWebExtensionsApi) {
-        await browser.tabs.remove(tabId).catch((error) => {
-          throw new Error("[BrowserApi] Failed to remove current tab: " + error.message);
+        await browser.tabs.remove(tabId).catch((error: unknown) => {
+          if (isClosedBrowserTarget(error)) {
+            return;
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error("[BrowserApi] Failed to remove current tab: " + message);
         });
       } else if (BrowserApi.isChromeApi) {
-        await chrome.tabs.remove(tabId).catch((error) => {
-          throw new Error("[BrowserApi] Failed to remove current tab: " + error.message);
+        await chrome.tabs.remove(tabId).catch((error: unknown) => {
+          consumeRuntimeLastError();
+          if (isClosedBrowserTarget(error)) {
+            return;
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error("[BrowserApi] Failed to remove current tab: " + message);
         });
       }
     }
@@ -325,15 +356,21 @@ export class BrowserApi {
   static async navigateTabToUrl(tabId: number, url: URL): Promise<void> {
     if (tabId) {
       if (BrowserApi.isWebExtensionsApi) {
-        await browser.tabs.update(tabId, { url: url.href }).catch((error) => {
-          throw new Error("Failed to navigate tab to URL: " + error.message);
+        await browser.tabs.update(tabId, { url: url.href }).catch((error: unknown) => {
+          if (isClosedBrowserTarget(error)) {
+            return;
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error("Failed to navigate tab to URL: " + message);
         });
       } else if (BrowserApi.isChromeApi) {
-        chrome.tabs.update(tabId, { url: url.href }, () => {
-          if (chrome.runtime.lastError) {
-            throw new Error("Failed to navigate tab to URL: " + chrome.runtime.lastError.message);
+        const pending = chrome.tabs.update(tabId, { url: url.href }, () => {
+          const message = consumeRuntimeLastError();
+          if (message && !isClosedBrowserTargetMessage(message)) {
+            throw new Error("Failed to navigate tab to URL: " + message);
           }
         });
+        BrowserApi.silenceClosedTarget(pending);
       }
     }
   }
@@ -468,6 +505,13 @@ export class BrowserApi {
    */
   private static silenceMissingReceiver(pending: unknown): void {
     void Promise.resolve(pending).catch((): void => undefined);
+  }
+
+  /** The callback already read lastError. Swallow the matching promise rejection. */
+  private static silenceClosedTarget(pending: unknown): void {
+    void Promise.resolve(pending).catch((): void => {
+      consumeRuntimeLastError();
+    });
   }
 
   static getRuntimeURL(path: string): string {
@@ -650,7 +694,10 @@ export class BrowserApi {
 
   static createNewTab(url: string, active = true): Promise<chrome.tabs.Tab> {
     return new Promise((resolve) =>
-      chrome.tabs.create({ url: url, active: active }, (tab) => resolve(tab)),
+      chrome.tabs.create({ url: url, active: active }, (tab) => {
+        consumeRuntimeLastError();
+        resolve(tab);
+      }),
     );
   }
 
@@ -662,7 +709,18 @@ export class BrowserApi {
   static async getFrameDetails(
     details: chrome.webNavigation.GetFrameDetails,
   ): Promise<chrome.webNavigation.GetFrameResultDetails> {
-    return new Promise((resolve) => chrome.webNavigation.getFrame(details, resolve));
+    return new Promise((resolve) => {
+      try {
+        const pending = chrome.webNavigation.getFrame(details, (frame) => {
+          consumeRuntimeLastError();
+          resolve(frame);
+        });
+        BrowserApi.silenceClosedTarget(pending);
+      } catch {
+        consumeRuntimeLastError();
+        resolve(undefined);
+      }
+    });
   }
 
   /**
@@ -705,7 +763,18 @@ export class BrowserApi {
   static async getAllFrameDetails(
     tabId: chrome.tabs.Tab["id"],
   ): Promise<chrome.webNavigation.GetAllFrameResultDetails[]> {
-    return new Promise((resolve) => chrome.webNavigation.getAllFrames({ tabId }, resolve));
+    return new Promise((resolve) => {
+      try {
+        const pending = chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
+          consumeRuntimeLastError();
+          resolve(frames ?? []);
+        });
+        BrowserApi.silenceClosedTarget(pending);
+      } catch {
+        consumeRuntimeLastError();
+        resolve([]);
+      }
+    });
   }
 
   // Keep track of all the events registered in a Safari popup so we can remove
@@ -878,10 +947,19 @@ export class BrowserApi {
     });
   }
 
-  static async focusTab(tabId: number) {
-    // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    chrome.tabs.update(tabId, { active: true, highlighted: true });
+  static focusTab(tabId: number): Promise<void> {
+    return new Promise((resolve) => {
+      try {
+        const pending = chrome.tabs.update(tabId, { active: true, highlighted: true }, () => {
+          consumeRuntimeLastError();
+          resolve();
+        });
+        BrowserApi.silenceClosedTarget(pending);
+      } catch {
+        consumeRuntimeLastError();
+        resolve();
+      }
+    });
   }
 
   static closePopup(win: Window) {
@@ -1079,7 +1157,7 @@ export class BrowserApi {
    * @param details {@link "InjectDetails" https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/extensionTypes/InjectDetails}
    * @param scriptingApiDetails {@link "ExecutionWorld" https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/scripting/ExecutionWorld}
    */
-  static executeScriptInTab(
+  static async executeScriptInTab(
     tabId: number,
     details: chrome.extensionTypes.InjectDetails,
     scriptingApiDetails?: {
@@ -1097,16 +1175,33 @@ export class BrowserApi {
         target = { tabId };
       }
 
-      return chrome.scripting.executeScript({
-        target,
-        files: details.file ? [details.file] : null,
-        injectImmediately: details.runAt === "document_start",
-        world: scriptingApiDetails?.world || chrome.scripting.ExecutionWorld.ISOLATED,
-      });
+      try {
+        return await chrome.scripting.executeScript({
+          target,
+          files: details.file ? [details.file] : null,
+          injectImmediately: details.runAt === "document_start",
+          world: scriptingApiDetails?.world || chrome.scripting.ExecutionWorld.ISOLATED,
+        });
+      } catch (error) {
+        consumeRuntimeLastError();
+        if (isClosedBrowserTarget(error)) {
+          return undefined;
+        }
+        throw error;
+      }
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       chrome.tabs.executeScript(tabId, details, (result) => {
+        const message = consumeRuntimeLastError();
+        if (isClosedBrowserTargetMessage(message)) {
+          resolve(undefined);
+          return;
+        }
+        if (message) {
+          reject(new Error(message));
+          return;
+        }
         resolve(result);
       });
     });
@@ -1121,18 +1216,35 @@ export class BrowserApi {
    */
   static async executeFunctionInTab<R>(tabId: number, func: () => R): Promise<R | undefined> {
     if (BrowserApi.isManifestVersion(3)) {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        func,
-      });
-      return results?.[0]?.result as R | undefined;
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId },
+          func,
+        });
+        return results?.[0]?.result as R | undefined;
+      } catch (error) {
+        consumeRuntimeLastError();
+        if (isClosedBrowserTarget(error)) {
+          return undefined;
+        }
+        throw error;
+      }
     }
 
     // MV2 has no `func` parameter, so serialize the function source and inject it as code.
-    return new Promise((resolve) => {
-      chrome.tabs.executeScript(tabId, { code: `(${func.toString()})()` }, (results) =>
-        resolve(results?.[0] as R | undefined),
-      );
+    return new Promise((resolve, reject) => {
+      chrome.tabs.executeScript(tabId, { code: `(${func.toString()})()` }, (results) => {
+        const message = consumeRuntimeLastError();
+        if (isClosedBrowserTargetMessage(message)) {
+          resolve(undefined);
+          return;
+        }
+        if (message) {
+          reject(new Error(message));
+          return;
+        }
+        resolve(results?.[0] as R | undefined);
+      });
     });
   }
 

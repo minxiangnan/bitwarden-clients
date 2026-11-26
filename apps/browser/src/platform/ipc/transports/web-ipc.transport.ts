@@ -5,8 +5,6 @@ import { IncomingMessage, OutgoingMessage } from "@bitwarden/sdk-internal";
 
 import { BrowserApi } from "../../browser/browser-api";
 
-import { DESTINATION_UNREACHABLE_ERROR } from "./errors";
-
 /**
  * Transport for communicating with web vaults via content scripts for Manifest V3.
  *
@@ -69,19 +67,15 @@ export class WebIpcTransport {
     }
 
     // Verify the document hasn't changed (e.g., user navigated away) before delivering.
+    // A closed or replaced tab resolves no frame; the send below reads lastError and drops it.
     // If the browser doesn't support documentId on getFrame, skip the check and send anyway.
-    try {
-      const frame = await chrome.webNavigation.getFrame({
-        tabId: message.destination.Web.tab_id,
-        frameId: 0,
-      });
-      if (frame?.documentId != null && frame.documentId !== message.destination.Web.document_id) {
-        this.logService.warning("[IPC] Dropping message to Web tab: document has changed");
-        return;
-      }
-    } catch {
-      // Tab may have been closed, or API not available.
-      throw new Error(DESTINATION_UNREACHABLE_ERROR);
+    const frame = await BrowserApi.getFrameDetails({
+      tabId: message.destination.Web.tab_id,
+      frameId: 0,
+    });
+    if (frame?.documentId != null && frame.documentId !== message.destination.Web.document_id) {
+      this.logService.warning("[IPC] Dropping message to Web tab: document has changed");
+      return;
     }
 
     await BrowserApi.tabSendMessage(
