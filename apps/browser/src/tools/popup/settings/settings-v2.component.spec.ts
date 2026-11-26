@@ -137,6 +137,24 @@ describe("SettingsV2Component", () => {
     expect(el.querySelector("bit-callout")).toBeNull();
   });
 
+  it("shows a cream check-for-updates button", async () => {
+    mockBillingState.hasPremiumFromAnySource$.mockReturnValue(of(false));
+    pushActiveAccount();
+
+    const fixture = TestBed.createComponent(SettingsV2Component);
+    fixture.detectChanges();
+
+    const button = [...fixture.nativeElement.querySelectorAll("button")].find((element) =>
+      element.textContent?.includes("检查更新"),
+    ) as HTMLButtonElement | undefined;
+
+    const style = button?.getAttribute("style") ?? "";
+    expect(button).toBeTruthy();
+    expect(style).toContain("rgb(196, 83, 42)");
+    expect(style).toContain("rgb(250, 249, 245)");
+    expect(style).not.toContain("rgb(0, 0, 0)");
+  });
+
   it("hides the premium callout when user HAS premium", async () => {
     mockBillingState.hasPremiumFromAnySource$.mockReturnValue(of(true));
     pushActiveAccount();

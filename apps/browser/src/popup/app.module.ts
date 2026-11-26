@@ -46,6 +46,7 @@ import { BrowserLastPassImportPageFocus } from "../tools/popup/settings/import/b
 import { AppRoutingModule } from "./app-routing.module";
 import { AppComponent } from "./app.component";
 import { ExtensionAnonLayoutWrapperComponent } from "./components/extension-anon-layout-wrapper/extension-anon-layout-wrapper.component";
+import { ExtensionUpdateBannerComponent } from "./components/extension-update-banner.component";
 import { ServicesModule } from "./services/services.module";
 import { TabsV2Component } from "./tabs-v2.component";
 
@@ -89,6 +90,7 @@ import "../platform/popup/locales";
     CurrentAccountComponent,
     FormFieldModule,
     ExtensionAnonLayoutWrapperComponent,
+    ExtensionUpdateBannerComponent,
     CalloutModule,
     LinkModule,
   ],
