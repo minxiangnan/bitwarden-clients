@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component } from "@angular/core";
+import { ChangeDetectionStrategy, Component, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import {
   combineLatest,
@@ -34,6 +34,8 @@ import { CurrentAccountComponent } from "../../../auth/popup/account-switching/c
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
+import { CREAM, CREAM_LINE, INK, TERRACOTTA } from "../../../platform/update/extension-update";
+import { checkForExtensionUpdate } from "../../../platform/update/extension-update-background";
 
 @Component({
   templateUrl: "settings-v2.component.html",
@@ -56,6 +58,12 @@ import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.co
 })
 export class SettingsV2Component {
   readonly NudgeType = NudgeType;
+  protected readonly cream = CREAM;
+  protected readonly ink = INK;
+  protected readonly terracotta = TERRACOTTA;
+  protected readonly line = CREAM_LINE;
+  protected readonly checkingUpdate = signal(false);
+  protected readonly updateStatus = signal("");
 
   private readonly authenticatedAccount$: Observable<Account> =
     this.accountService.activeAccount$.pipe(
@@ -112,6 +120,14 @@ export class SettingsV2Component {
     private readonly dialogService: DialogService,
     private readonly autofillSettingsService: AutofillSettingsServiceAbstraction,
   ) {}
+
+  protected async checkForUpdate(): Promise<void> {
+    this.checkingUpdate.set(true);
+    this.updateStatus.set("正在检查…");
+    const result = await checkForExtensionUpdate({ force: true });
+    this.checkingUpdate.set(false);
+    this.updateStatus.set(result.statusText);
+  }
 
   protected openUpgradeDialog() {
     PremiumUpgradeDialogComponent.open(this.dialogService);

@@ -427,6 +427,10 @@ import {
   BrowserSystemNotificationService,
   isNotificationsSupported,
 } from "../platform/system-notifications/browser-system-notification.service";
+import {
+  startExtensionUpdateChecker,
+  watchExtensionUpdateBadge,
+} from "../platform/update/extension-update-background";
 import { fromChromeRuntimeMessaging } from "../platform/utils/from-chrome-runtime-messaging";
 import { ListViewsAnnouncerService } from "../vault/background/list-views-announcer.service";
 import { AtRiskCipherBadgeUpdaterService } from "../vault/services/at-risk-cipher-badge-updater.service";
@@ -1983,6 +1987,10 @@ export default class MainBackground {
     }
 
     await this.initOverlayAndTabsBackground();
+    watchExtensionUpdateBadge((name, stateFunction) =>
+      this.badgeService.setState(name, stateFunction),
+    );
+    startExtensionUpdateChecker();
     this.badgeService.startListening();
 
     return new Promise<void>((resolve) => {

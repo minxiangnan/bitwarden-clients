@@ -21,6 +21,26 @@
     </ng-container>
   </popup-header>
 
+  <div
+    [style.background]="cream"
+    [style.color]="ink"
+    [style.border]="'1px solid ' + line"
+    style="margin: 0 0 12px; border-radius: 12px; padding: 12px"
+  >
+    <button
+      type="button"
+      (click)="checkForUpdate()"
+      [disabled]="checkingUpdate()"
+      [style.background]="terracotta"
+      [style.color]="cream"
+      style="border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer"
+    >
+      检查更新
+    </button>
+    @if (updateStatus()) {
+      <p style="margin: 8px 0 0; font-size: 12px; line-height: 17px">{{ updateStatus() }}</p>
+    }
+  </div>
   <bit-item-group>
     <bit-item>
       <a bit-item-content routerLink="/account-security" [truncate]="false">
