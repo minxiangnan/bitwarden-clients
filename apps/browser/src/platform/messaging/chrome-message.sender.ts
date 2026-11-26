@@ -25,15 +25,18 @@ export class ChromeMessageSender implements MessageSender {
   ): void {
     const command = getCommand(commandDefinition);
     const sent = chrome.runtime.sendMessage(Object.assign(payload, { command: command }), () => {
-      if (chrome.runtime.lastError) {
-        const errorHandler = HANDLED_ERRORS[chrome.runtime.lastError.message];
+      const errorMessage = chrome.runtime.lastError?.message;
+      if (errorMessage) {
+        const errorHandler =
+          HANDLED_ERRORS[errorMessage] ??
+          (errorMessage.includes("back/forward cache") ? () => undefined : undefined);
         if (errorHandler != null) {
           errorHandler(this.logService, command);
           return;
         }
 
         this.logService.warning(
-          `Unhandled error while sending message with command '${command}': ${chrome.runtime.lastError.message}`,
+          `Unhandled error while sending message with command '${command}': ${errorMessage}`,
         );
       }
     });

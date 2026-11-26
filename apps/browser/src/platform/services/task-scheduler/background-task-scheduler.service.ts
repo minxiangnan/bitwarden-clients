@@ -4,6 +4,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { StateProvider } from "@bitwarden/common/platform/state";
 
 import { BrowserApi } from "../../browser/browser-api";
+import { consumeRuntimeLastError } from "../../browser/runtime-channel";
 import {
   BrowserTaskSchedulerPortActions,
   BrowserTaskSchedulerPortMessage,
@@ -45,6 +46,7 @@ export class BackgroundTaskSchedulerService extends BrowserTaskSchedulerServiceI
    * @param port - The port that was disconnected.
    */
   private handlePortOnDisconnect = (port: chrome.runtime.Port) => {
+    consumeRuntimeLastError();
     port.onMessage.removeListener(this.handlePortMessage);
     port.onDisconnect.removeListener(this.handlePortOnDisconnect);
     this.ports.delete(port);

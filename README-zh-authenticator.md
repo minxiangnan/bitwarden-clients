@@ -1,6 +1,6 @@
 # 简体中文 Bitwarden 浏览器扩展（自建验证器）
 
-当前版本：**1.1.7**（标签 `v-zh-authenticator-1.1.7`）。扩展清单版本是 `2026.11.7`，Chrome 能把它认成比 `2026.11.6` 新的一版。保存时带上读到的 `revisionDate`，服务器若已有更新会拒绝这次写入。别名变化也会跟着通知刷新。离线时不能改。
+当前版本：**1.1.8**（标签 `v-zh-authenticator-1.1.8`）。扩展清单版本是 `2026.11.8`。页面被放进前进/后退缓存时会先断开扩展端口，恢复页面后再连上，Chrome 扩展页不再出现 `Unchecked runtime.lastError`。保存时带上读到的 `revisionDate`，服务器若已有更新会拒绝这次写入。别名变化也会跟着通知刷新。离线时不能改。
 
 最终分支是 `main`。`v-zh-authenticator-*` 标签都在 `main` 的历史上。构建从 `main` 的当前提交，或从这些标签检出。
 
@@ -82,10 +82,10 @@ NODE_OPTIONS=--max-old-space-size=8192 npm run build:oss:selfhost:prod
 
 发布页挂在对应的 `v-zh-authenticator-*` 标签上，有三个 zip：
 
-| 文件 | 浏览器 |
-| --- | --- |
-| `zh-authenticator-chrome-<版本>.zip` | Chrome |
-| `zh-authenticator-edge-<版本>.zip` | Edge |
+| 文件                                  | 浏览器  |
+| ------------------------------------- | ------- |
+| `zh-authenticator-chrome-<版本>.zip`  | Chrome  |
+| `zh-authenticator-edge-<版本>.zip`    | Edge    |
 | `zh-authenticator-firefox-<版本>.zip` | Firefox |
 
 本地打包装也从 `main` 或该标签开始。仓库根目录执行 `npm ci` 之后：

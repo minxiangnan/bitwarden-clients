@@ -69,6 +69,7 @@ import { GeneratorHistoryService } from "@bitwarden/generator-history";
 // eslint-disable-next-line no-restricted-imports
 import { openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
+import { consumeRuntimeLastError } from "../../platform/browser/runtime-channel";
 // FIXME (PM-22628): Popup imports are forbidden in background
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -3665,6 +3666,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     try {
       port.postMessage(message);
     } catch (error) {
+      consumeRuntimeLastError();
       // Catch when the port.postMessage call triggers an error to ensure login execution continues.
       this.logService.error(error);
     }
@@ -3807,6 +3809,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * @param port - The port that was disconnected
    */
   private handlePortOnDisconnect = (port: chrome.runtime.Port) => {
+    consumeRuntimeLastError();
     const updateVisibilityDefaults = { isVisible: false, forceUpdate: true };
 
     if (port.name === AutofillOverlayPort.List) {

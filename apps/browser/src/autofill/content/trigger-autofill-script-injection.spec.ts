@@ -10,9 +10,12 @@ describe("TriggerAutofillScriptInjection", () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("../content/trigger-autofill-script-injection");
 
-      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
-        command: "triggerAutofillScriptInjection",
-      });
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        {
+          command: "triggerAutofillScriptInjection",
+        },
+        expect.any(Function),
+      );
     });
   });
 });

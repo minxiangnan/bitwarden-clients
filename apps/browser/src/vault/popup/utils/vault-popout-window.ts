@@ -4,6 +4,7 @@ import { CipherType } from "@bitwarden/common/vault/enums";
 
 import { BrowserApi } from "../../../platform/browser/browser-api";
 import BrowserPopupUtils from "../../../platform/browser/browser-popup-utils";
+import { consumeRuntimeLastError } from "../../../platform/browser/runtime-channel";
 
 const VaultPopoutType = {
   viewVaultItem: "vault_viewVaultItem",
@@ -128,9 +129,42 @@ async function openAddEditVaultItemPopout(
   );
   // Check if the an existing popup is already open
   try {
-    await chrome.runtime.sendMessage({
-      command: "reloadAddEditCipherData",
-      data: { cipherId, cipherType },
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (errorMessage?: string) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (errorMessage) {
+          reject(new Error(errorMessage));
+          return;
+        }
+        resolve();
+      };
+
+      let sent: unknown;
+      try {
+        sent = chrome.runtime.sendMessage(
+          {
+            command: "reloadAddEditCipherData",
+            data: { cipherId, cipherType },
+          },
+          () => finish(consumeRuntimeLastError()),
+        );
+      } catch (error) {
+        consumeRuntimeLastError();
+        finish(error instanceof Error ? error.message : "Could not establish connection.");
+        return;
+      }
+
+      // Chrome invokes the callback and also rejects the returned promise. Tests
+      // often only resolve the promise. Either result settles this wait.
+      void Promise.resolve(sent).then(
+        () => finish(),
+        (error: unknown) =>
+          finish(error instanceof Error ? error.message : "Could not establish connection."),
+      );
     });
     await BrowserApi.updateWindowProperties(existingPopup.windowId, {
       focused: true,

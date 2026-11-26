@@ -17,6 +17,7 @@ import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authenticatio
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
+import { consumeRuntimeLastError } from "../../platform/browser/runtime-channel";
 import { AutofillerCommand, AutofillLifecycleCommand } from "../enums/autofill-message.enums";
 import { AutofillPort } from "../enums/autofill-port.enum";
 import { assertSynchronousScope } from "../rx";
@@ -394,6 +395,7 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
    * from monitoring once the frame's last port is gone.
    */
   private handleInjectScriptPortOnDisconnect = (port: chrome.runtime.Port) => {
+    consumeRuntimeLastError();
     if (port.name !== AutofillPort.InjectedScript) {
       return;
     }

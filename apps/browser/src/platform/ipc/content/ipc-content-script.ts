@@ -1,5 +1,7 @@
 import { isIpcMessage, reconstructIpcMessage } from "@bitwarden/common/platform/ipc/ipc-message";
 
+import { connectPagePort, sendRuntimeMessage } from "../../browser/runtime-channel";
+
 const IPC_CONTENT_SCRIPT_PORT_NAME = "ipc-content-script-port";
 
 // Web -> Background
@@ -9,11 +11,11 @@ function sendExtensionMessage(message: unknown) {
     typeof browser.runtime !== "undefined" &&
     typeof browser.runtime.sendMessage !== "undefined"
   ) {
-    void browser.runtime.sendMessage(message);
+    void Promise.resolve(browser.runtime.sendMessage(message)).catch((): void => undefined);
     return;
   }
 
-  void chrome.runtime.sendMessage(message);
+  sendRuntimeMessage(message);
 }
 
 function handleWindowMessage(event: MessageEvent) {
@@ -69,15 +71,6 @@ function removeRuntimeMessageListener() {
  * is still functional, letting us detach our listeners before a freshly
  * re-injected content script registers its own.
  */
-function setupExtensionDisconnectAction(callback: (port: chrome.runtime.Port) => void) {
-  const port = chrome.runtime.connect({ name: IPC_CONTENT_SCRIPT_PORT_NAME });
-  const onDisconnect = (disconnectedPort: chrome.runtime.Port) => {
-    callback(disconnectedPort);
-    port.onDisconnect.removeListener(onDisconnect);
-  };
-  port.onDisconnect.addListener(onDisconnect);
-}
-
 function teardown() {
   window.removeEventListener("message", handleWindowMessage);
   removeRuntimeMessageListener();
@@ -100,6 +93,6 @@ ipcWindow.__bitwardenIpcContentScript?.teardown();
 
 window.addEventListener("message", handleWindowMessage);
 addRuntimeMessageListener();
-setupExtensionDisconnectAction(teardown);
+connectPagePort({ name: IPC_CONTENT_SCRIPT_PORT_NAME }, { onDisconnect: teardown });
 
 ipcWindow.__bitwardenIpcContentScript = { teardown };

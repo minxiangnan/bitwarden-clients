@@ -21,6 +21,7 @@ import {
 import { StorageService } from "@bitwarden/storage-core";
 
 import { BrowserApi } from "../browser/browser-api";
+import { consumeRuntimeLastError, postToRuntimePort } from "../browser/runtime-channel";
 import { MemoryStoragePortMessage } from "../storage/port-messages";
 import { portName } from "../storage/port-name";
 
@@ -123,6 +124,7 @@ export class LocalBackedSessionStorageService
         });
       });
       port.onDisconnect.addListener(() => {
+        consumeRuntimeLastError();
         updatesSubscription.unsubscribe();
         this.ports.delete(port);
         port.onMessage.removeListener(listenerCallback);
@@ -303,7 +305,7 @@ export class LocalBackedSessionStorageService
     port: chrome.runtime.Port,
     data: Omit<MemoryStoragePortMessage, "originator">,
   ) {
-    port.postMessage({
+    postToRuntimePort(port, {
       ...data,
       originator: "background",
     });

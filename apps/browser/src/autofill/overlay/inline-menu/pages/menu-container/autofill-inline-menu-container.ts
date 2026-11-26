@@ -1,6 +1,11 @@
 import { EVENTS } from "@bitwarden/common/autofill/constants";
 
 import { BrowserApi } from "../../../../../platform/browser/browser-api";
+import {
+  consumeRuntimeLastError,
+  isPageCacheDisconnect,
+  postToRuntimePort,
+} from "../../../../../platform/browser/runtime-channel";
 import { generateRandomChars, setElementStyles } from "../../../../utils";
 import {
   InitAutofillInlineMenuElementMessage,
@@ -33,6 +38,8 @@ const ALLOWED_BG_COMMANDS = new Set<string>([
 export class AutofillInlineMenuContainer {
   private readonly setElementStyles = setElementStyles;
   private port: chrome.runtime.Port | null = null;
+  private suspendedForPageCache = false;
+  private initMessage: InitAutofillInlineMenuElementMessage | null = null;
   /** Non-null asserted. */
   private portName!: string;
   /** Non-null asserted. */
@@ -77,6 +84,8 @@ export class AutofillInlineMenuContainer {
     this.token = generateRandomChars(32);
     this.extensionOrigin = BrowserApi.getRuntimeURL("")?.slice(0, -1);
     globalThis.addEventListener("message", this.handleWindowMessage);
+    globalThis.addEventListener("pagehide", this.handlePageHide);
+    globalThis.addEventListener("pageshow", this.handlePageShow);
   }
 
   /**
@@ -154,9 +163,46 @@ export class AutofillInlineMenuContainer {
    * @param message - The message containing the port name.
    */
   private setupPortMessageListener = (message: InitAutofillInlineMenuElementMessage) => {
-    this.port = chrome.runtime.connect({ name: this.portName });
+    this.initMessage = message;
+    this.openBackgroundPort();
     const initMessage = { ...message, token: this.token };
     this.postMessageToInlineMenuPageUnsafe(initMessage);
+  };
+
+  private openBackgroundPort() {
+    this.port = chrome.runtime.connect({ name: this.portName });
+    this.port?.onDisconnect.addListener(this.handlePortDisconnect);
+  }
+
+  private handlePageHide = (event: PageTransitionEvent) => {
+    if (!event.persisted || this.port == null) {
+      return;
+    }
+    this.suspendedForPageCache = true;
+    try {
+      this.port.disconnect();
+    } catch {
+      consumeRuntimeLastError();
+    }
+  };
+
+  private handlePageShow = (event: PageTransitionEvent) => {
+    if (!event.persisted || this.initMessage == null) {
+      return;
+    }
+    this.suspendedForPageCache = false;
+    if (this.port != null) {
+      return;
+    }
+    this.openBackgroundPort();
+  };
+
+  private handlePortDisconnect = () => {
+    const message = consumeRuntimeLastError();
+    this.port = null;
+    if (this.suspendedForPageCache || isPageCacheDisconnect(message)) {
+      this.suspendedForPageCache = true;
+    }
   };
 
   /**
@@ -200,7 +246,7 @@ export class AutofillInlineMenuContainer {
       return;
     }
 
-    this.port.postMessage(message);
+    postToRuntimePort(this.port, message);
   }
 
   /**

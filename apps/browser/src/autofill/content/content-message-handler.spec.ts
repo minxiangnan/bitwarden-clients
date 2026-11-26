@@ -109,13 +109,16 @@ describe("ContentMessageHandler", () => {
         window,
       );
 
-      expect(sendMessageSpy).toHaveBeenCalledWith({
-        command: "authResult",
-        code: "code",
-        state: "state",
-        lastpass: true,
-        referrer: "localhost",
-      });
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        {
+          command: "authResult",
+          code: "code",
+          state: "state",
+          lastpass: true,
+          referrer: "localhost",
+        },
+        expect.any(Function),
+      );
     });
 
     it("sends a webAuthnResult message", () => {
@@ -125,12 +128,15 @@ describe("ContentMessageHandler", () => {
         window,
       );
 
-      expect(sendMessageSpy).toHaveBeenCalledWith({
-        command: "webAuthnResult",
-        data: "data",
-        remember: true,
-        referrer: "localhost",
-      });
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        {
+          command: "webAuthnResult",
+          data: "data",
+          remember: true,
+          referrer: "localhost",
+        },
+        expect.any(Function),
+      );
     });
 
     it("sends a duoResult message", () => {
@@ -139,11 +145,14 @@ describe("ContentMessageHandler", () => {
 
       postWindowMessage({ command: command, code: mockCode }, "https://localhost/", window);
 
-      expect(sendMessageSpy).toHaveBeenCalledWith({
-        command: command,
-        code: mockCode,
-        referrer: "localhost",
-      });
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        {
+          command: command,
+          code: mockCode,
+          referrer: "localhost",
+        },
+        expect.any(Function),
+      );
     });
   });
 
@@ -160,7 +169,7 @@ describe("ContentMessageHandler", () => {
       forwardCommands.forEach((command) => {
         sendMockExtensionMessage({ command });
 
-        expect(sendMessageSpy).toHaveBeenCalledWith({ command });
+        expect(sendMessageSpy).toHaveBeenCalledWith({ command }, expect.any(Function));
       });
 
       expect(sendMessageSpy).toHaveBeenCalledTimes(forwardCommands.length);
@@ -184,7 +193,8 @@ describe("ContentMessageHandler", () => {
 
       portOnDisconnectAddListenerCallback(mock<chrome.runtime.Port>());
 
-      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("pagehide", expect.any(Function));
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("pageshow", expect.any(Function));
       expect(removeEventListenerSpy).toHaveBeenCalledWith("message", expect.any(Function));
       expect(chrome.runtime.onMessage.removeListener).toHaveBeenCalledTimes(1);
       expect(chrome.runtime.onMessage.removeListener).toHaveBeenCalledWith(expect.any(Function));

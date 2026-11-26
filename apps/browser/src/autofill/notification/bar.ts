@@ -4,6 +4,7 @@ import { Theme, ThemeTypes } from "@bitwarden/common/platform/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import type { FolderView } from "@bitwarden/common/vault/models/view/folder.view";
 
+import { sendRuntimeMessage } from "../../platform/browser/runtime-channel";
 import { NotificationCipherData } from "../content/components/cipher/types";
 import { CollectionView, I18n, OrgView } from "../content/components/common-types";
 import { AtRiskNotification } from "../content/components/notification/at-risk-password/container";
@@ -430,11 +431,7 @@ function sendPlatformMessage(
   msg: Record<string, unknown>,
   responseCallback?: (response: any) => void,
 ) {
-  chrome.runtime.sendMessage(msg, (response) => {
-    if (responseCallback) {
-      responseCallback(response);
-    }
-  });
+  sendRuntimeMessage(msg, responseCallback);
 }
 
 function removeIndividualVault(): boolean {

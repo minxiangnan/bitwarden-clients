@@ -1,4 +1,5 @@
 import "../../platform/i18n/force-zh-cn";
+import { sendRuntimeMessage } from "../../platform/browser/runtime-channel";
 import { EventSecurity } from "../utils/event-security";
 import { WebmapperCommand } from "../webmapper/messaging";
 
@@ -81,7 +82,7 @@ chrome.runtime.onMessage.addListener((event, sender, sendResponse) => {
       sendResponse(identifier);
     }
 
-    void chrome.runtime.sendMessage({
+    sendRuntimeMessage({
       command: "getClickedElementResponse",
       sender: "contextMenuHandler",
       identifier: identifier,

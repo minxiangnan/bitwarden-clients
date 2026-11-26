@@ -14,6 +14,7 @@ import {
 
 import { BrowserApi } from "../browser/browser-api";
 import { fromChromeEvent } from "../browser/from-chrome-event";
+import { consumeRuntimeLastError } from "../browser/runtime-channel";
 
 const popupClosedPortName = "new_popup";
 
@@ -205,5 +206,8 @@ export class PopupViewCacheBackgroundService {
  * Call in the foreground.
  **/
 export const initPopupClosedListener = () => {
-  chrome.runtime.connect({ name: popupClosedPortName });
+  const port = chrome.runtime.connect({ name: popupClosedPortName });
+  port?.onDisconnect.addListener(() => {
+    consumeRuntimeLastError();
+  });
 };

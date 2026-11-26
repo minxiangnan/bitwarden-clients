@@ -157,10 +157,13 @@ describe("VaultPopoutWindow", () => {
       );
 
       expect(openPopoutSpy).not.toHaveBeenCalled();
-      expect(sendMessageSpy).toHaveBeenCalledWith({
-        command: "reloadAddEditCipherData",
-        data: { cipherId: undefined, cipherType: CipherType.Login },
-      });
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        {
+          command: "reloadAddEditCipherData",
+          data: { cipherId: undefined, cipherType: CipherType.Login },
+        },
+        expect.any(Function),
+      );
       expect(updateWindowSpy).toHaveBeenCalledWith(456, { focused: true });
     });
   });

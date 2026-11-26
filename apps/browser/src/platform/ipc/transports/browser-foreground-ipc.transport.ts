@@ -3,6 +3,7 @@ import { IpcMessage, isIpcMessage, reconstructIpcMessage } from "@bitwarden/comm
 import { Endpoint, IncomingMessage, OutgoingMessage } from "@bitwarden/sdk-internal";
 
 import { BrowserApi } from "../../browser/browser-api";
+import { consumeRuntimeLastError } from "../../browser/runtime-channel";
 
 import { DESTINATION_UNREACHABLE_ERROR } from "./errors";
 import { IPC_FOREGROUND_PORT_NAME, IPC_FOREGROUND_WAKE_COMMAND } from "./ipc-foreground-port-name";
@@ -105,6 +106,7 @@ export class BrowserForegroundIpcTransport {
         },
       } satisfies IpcMessage);
     } catch {
+      consumeRuntimeLastError();
       throw new Error(DESTINATION_UNREACHABLE_ERROR);
     }
   }
