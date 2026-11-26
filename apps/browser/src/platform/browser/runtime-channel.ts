@@ -19,6 +19,30 @@ export function consumeRuntimeLastError(): string | undefined {
   }
 }
 
+/**
+ * A tab or frame disappeared during prerender, navigation, or close.
+ * These messages are expected and must not be logged on the extensions page.
+ */
+const CLOSED_BROWSER_TARGET =
+  /no tab with id|no frame with id|frame with id|the tab was closed|the frame was removed/i;
+
+export function isClosedBrowserTargetMessage(message: string | undefined | null): boolean {
+  return typeof message === "string" && CLOSED_BROWSER_TARGET.test(message);
+}
+
+export function isClosedBrowserTarget(error: unknown): boolean {
+  if (typeof error === "string") {
+    return isClosedBrowserTargetMessage(error);
+  }
+  if (error instanceof Error) {
+    return isClosedBrowserTargetMessage(error.message);
+  }
+  if (error != null && typeof error === "object" && "message" in error) {
+    return isClosedBrowserTargetMessage(String((error as { message: unknown }).message));
+  }
+  return false;
+}
+
 /** True when Chrome closed the port because the page entered the back/forward cache. */
 export function isPageCacheDisconnect(message: string | undefined): boolean {
   return typeof message === "string" && message.includes("back/forward cache");

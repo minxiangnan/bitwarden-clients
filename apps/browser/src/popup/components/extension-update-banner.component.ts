@@ -27,7 +27,7 @@ import {
 @Component({
   selector: "app-extension-update-banner",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [":host { display: block; }"],
+  styles: [":host { display: contents; }"],
   template: `
     @if (notice(); as current) {
       <section
@@ -102,7 +102,11 @@ export class ExtensionUpdateBannerComponent implements OnDestroy {
   };
 
   constructor() {
-    BrowserApi.addListener(chrome.storage.onChanged, this.onChanged);
+    try {
+      BrowserApi.addListener(chrome.storage.onChanged, this.onChanged);
+    } catch {
+      // A storage listener must not keep the login popup from opening.
+    }
     void this.refresh();
   }
 
@@ -121,14 +125,18 @@ export class ExtensionUpdateBannerComponent implements OnDestroy {
   }
 
   private async refresh(): Promise<void> {
-    const state = await readUpdateState();
-    this.notice.set(
-      noticeFor(
-        state,
-        AUTHENTICATOR_RELEASE_VERSION,
-        Date.now(),
-        detectBrowserKind(navigator.userAgent),
-      ),
-    );
+    try {
+      const state = await readUpdateState();
+      this.notice.set(
+        noticeFor(
+          state,
+          AUTHENTICATOR_RELEASE_VERSION,
+          Date.now(),
+          detectBrowserKind(navigator.userAgent),
+        ),
+      );
+    } catch {
+      this.notice.set(null);
+    }
   }
 }

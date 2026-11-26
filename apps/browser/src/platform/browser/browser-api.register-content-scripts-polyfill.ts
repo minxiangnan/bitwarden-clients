@@ -17,6 +17,7 @@
 import { ConsoleLogService } from "@bitwarden/common/platform/services/console-log.service";
 
 import { BrowserApi } from "./browser-api";
+import { isClosedBrowserTarget } from "./runtime-channel";
 
 let registerContentScripts: (
   contentScriptOptions: browser.contentScripts.RegisteredContentScriptOptions,
@@ -342,9 +343,7 @@ function buildRegisterContentScriptsPolyfill() {
     try {
       await promise;
     } catch (error) {
-      const targetErrors =
-        /^No frame with id \d+ in tab \d+.$|^No tab with id: \d+.$|^The tab was closed.$|^The frame was removed.$/;
-      if (!targetErrors.test(error?.message)) {
+      if (!isClosedBrowserTarget(error)) {
         throw error;
       }
     }

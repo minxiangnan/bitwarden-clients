@@ -394,6 +394,26 @@ describe("BrowserApi", () => {
 
       await expect(result).resolves.toEqual({ id: tabId });
     });
+
+    it("returns null when the tab has already closed", async () => {
+      jest.spyOn(BrowserApi, "manifestVersion", "get").mockReturnValue(3);
+      (chrome.tabs.get as jest.Mock).mockRejectedValue(new Error("No tab with id: 998824803."));
+
+      await expect(BrowserApi.getTab(998824803)).resolves.toBeNull();
+    });
+
+    it("reads lastError when manifest v2 reports a missing tab", async () => {
+      jest.spyOn(BrowserApi, "manifestVersion", "get").mockReturnValue(2);
+      Object.defineProperty(chrome.runtime, "lastError", {
+        configurable: true,
+        get: () => ({ message: "No tab with id: 4." }),
+      });
+      (chrome.tabs.get as jest.Mock).mockImplementation((_tabId, callback) => callback(undefined));
+
+      await expect(BrowserApi.getTab(4)).resolves.toBeNull();
+      expect(chrome.runtime.lastError?.message).toBe("No tab with id: 4.");
+      delete (chrome.runtime as { lastError?: chrome.runtime.LastError }).lastError;
+    });
   });
 
   describe("getBackgroundPage", () => {
@@ -995,6 +1015,17 @@ describe("BrowserApi", () => {
         expect.any(Function),
       );
       expect(result).toEqual(executeScriptResult);
+    });
+
+    it("ignores a frame that was removed before the script ran", async () => {
+      jest.spyOn(BrowserApi, "manifestVersion", "get").mockReturnValue(3);
+      (chrome.scripting.executeScript as jest.Mock).mockRejectedValue(
+        new Error("Frame with ID 0 was removed."),
+      );
+
+      await expect(
+        BrowserApi.executeScriptInTab(8, { file: "content/autofiller.js" }),
+      ).resolves.toBeUndefined();
     });
 
     it("calls the manifest v3 scripting API if the extension manifest is for v3", async () => {

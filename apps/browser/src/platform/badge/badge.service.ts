@@ -19,6 +19,8 @@ import {
 
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 
+import { isClosedBrowserTarget } from "../browser/runtime-channel";
+
 import { BadgeBrowserApi, RawBadgeState, Tab } from "./badge-browser-api";
 import { DefaultBadgeState } from "./consts";
 import { BadgeStatePriority } from "./priority";
@@ -190,6 +192,9 @@ export class BadgeService {
     try {
       await this.badgeApi.setState(newBadgeState, tabId);
     } catch (error) {
+      if (isClosedBrowserTarget(error)) {
+        return;
+      }
       this.logService.error("Failed to set badge state", error);
     }
   }

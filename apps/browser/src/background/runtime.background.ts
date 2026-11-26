@@ -51,6 +51,7 @@ import { AUTOFILL_DENIED } from "../autofill/types/fill-result";
 import { getSubFrameUrlVariations } from "../autofill/utils/url-variations";
 import { BrowserApi } from "../platform/browser/browser-api";
 import BrowserPopupUtils from "../platform/browser/browser-popup-utils";
+import { isClosedBrowserTarget } from "../platform/browser/runtime-channel";
 import { BrowserEnvironmentService } from "../platform/services/browser-environment.service";
 import BrowserInitialInstallService from "../platform/services/browser-initial-install.service";
 import { BrowserPlatformUtilsService } from "../platform/services/platform-utils/browser-platform-utils.service";
@@ -137,12 +138,15 @@ export default class RuntimeBackground {
         return true;
       }
 
-      void this.processMessageWithSender(msg, sender).catch((err) =>
+      void this.processMessageWithSender(msg, sender).catch((err) => {
+        if (isClosedBrowserTarget(err)) {
+          return;
+        }
         this.logService.error(
           `Error while processing message in RuntimeBackground '${msg?.command}'.`,
           err,
-        ),
-      );
+        );
+      });
       return false;
     };
 
@@ -152,7 +156,9 @@ export default class RuntimeBackground {
           try {
             await this.processMessage(message);
           } catch (err) {
-            this.logService.error(err);
+            if (!isClosedBrowserTarget(err)) {
+              this.logService.error(err);
+            }
           }
         }),
       )

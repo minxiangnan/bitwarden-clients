@@ -13,9 +13,9 @@
     </bit-callout>
   </div>
 } @else {
-  <div class="tw-flex tw-h-screen tw-w-screen tw-flex-col" appPopupFocusWrap>
-    <app-extension-update-banner></app-extension-update-banner>
-    <div [@routerTransition]="getRouteElevation(outlet)" class="tw-min-h-0 tw-w-full tw-flex-1">
+  <div class="tw-h-screen tw-w-screen" appPopupFocusWrap>
+    <div [@routerTransition]="getRouteElevation(outlet)" class="tw-size-full">
+      <app-extension-update-banner></app-extension-update-banner>
       <router-outlet #outlet="outlet"></router-outlet>
     </div>
     <bit-toast-container></bit-toast-container>
