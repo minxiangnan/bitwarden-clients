@@ -1,3 +1,5 @@
+import { sendRuntimeMessage } from "../../platform/browser/runtime-channel";
+
 (function () {
-  void chrome.runtime.sendMessage({ command: "triggerAutofillScriptInjection" });
+  sendRuntimeMessage({ command: "triggerAutofillScriptInjection" });
 })();

@@ -1,3 +1,4 @@
+import { sendRuntimeMessage } from "../../platform/browser/runtime-channel";
 import { AutofillerCommand, AutofillMessageCommand } from "../enums/autofill-message.enums";
 import { setupExtensionDisconnectAction } from "../utils";
 
@@ -56,7 +57,7 @@ function loadAutofiller() {
         sender: "autofiller",
       };
 
-      void chrome.runtime.sendMessage(msg);
+      sendRuntimeMessage(msg);
     }
   }
 

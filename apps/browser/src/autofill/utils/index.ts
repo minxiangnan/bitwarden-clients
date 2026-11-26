@@ -1,5 +1,6 @@
 import { AUTOFILL_ATTRIBUTES } from "@bitwarden/common/autofill/constants";
 
+import { connectPagePort } from "../../platform/browser/runtime-channel";
 import { FieldRect } from "../background/abstractions/overlay.background";
 import { AutofillPort } from "../enums/autofill-port.enum";
 import type { AutofillFieldReadonlyDisabledState } from "../models/autofill-field";
@@ -170,12 +171,7 @@ export function setElementStyles(
  * @param callback - Callback export function to run when the extension disconnects
  */
 export function setupExtensionDisconnectAction(callback: (port: chrome.runtime.Port) => void) {
-  const port = chrome.runtime.connect({ name: AutofillPort.InjectedScript });
-  const onDisconnectCallback = (disconnectedPort: chrome.runtime.Port) => {
-    callback(disconnectedPort);
-    port.onDisconnect.removeListener(onDisconnectCallback);
-  };
-  port.onDisconnect.addListener(onDisconnectCallback);
+  connectPagePort({ name: AutofillPort.InjectedScript }, { onDisconnect: callback });
 }
 
 /**

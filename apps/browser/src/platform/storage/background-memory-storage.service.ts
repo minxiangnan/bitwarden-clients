@@ -5,6 +5,7 @@ import { LogService } from "@bitwarden/logging";
 import { SerializedMemoryStorageService } from "@bitwarden/storage-core";
 
 import { BrowserApi } from "../browser/browser-api";
+import { consumeRuntimeLastError, postToRuntimePort } from "../browser/runtime-channel";
 
 import { MemoryStoragePortMessage } from "./port-messages";
 import { portName } from "./port-name";
@@ -27,6 +28,7 @@ export class BackgroundMemoryStorageService extends SerializedMemoryStorageServi
 
       const listenerCallback = this.onMessageFromForeground.bind(this);
       port.onDisconnect.addListener(() => {
+        consumeRuntimeLastError();
         this._ports.splice(this._ports.indexOf(port), 1);
         port.onMessage.removeListener(listenerCallback);
       });
@@ -86,7 +88,7 @@ export class BackgroundMemoryStorageService extends SerializedMemoryStorageServi
     port: chrome.runtime.Port,
     data: Omit<MemoryStoragePortMessage, "originator">,
   ) {
-    port.postMessage({
+    postToRuntimePort(port, {
       ...data,
       originator: "background",
     });

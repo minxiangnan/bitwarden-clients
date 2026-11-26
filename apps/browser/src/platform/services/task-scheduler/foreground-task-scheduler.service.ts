@@ -4,6 +4,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { ScheduledTaskName } from "@bitwarden/common/platform/scheduling";
 import { StateProvider } from "@bitwarden/common/platform/state";
 
+import { consumeRuntimeLastError, postToRuntimePort } from "../../browser/runtime-channel";
 import {
   BrowserTaskSchedulerPortActions,
   BrowserTaskSchedulerPortMessage,
@@ -19,6 +20,9 @@ export class ForegroundTaskSchedulerService extends BrowserTaskSchedulerServiceI
     super(logService, stateProvider);
 
     this.port = chrome.runtime.connect({ name: BrowserTaskSchedulerPortName });
+    this.port?.onDisconnect.addListener(() => {
+      consumeRuntimeLastError();
+    });
   }
 
   /**
@@ -66,6 +70,6 @@ export class ForegroundTaskSchedulerService extends BrowserTaskSchedulerServiceI
    * @param message - The message to send.
    */
   private sendPortMessage(message: BrowserTaskSchedulerPortMessage) {
-    this.port.postMessage(message);
+    postToRuntimePort(this.port, message);
   }
 }

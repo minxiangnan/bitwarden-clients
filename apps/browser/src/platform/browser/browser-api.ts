@@ -13,6 +13,7 @@ import { BrowserPlatformUtilsService } from "../services/platform-utils/browser-
 
 import { registerContentScriptsPolyfill } from "./browser-api.register-content-scripts-polyfill";
 import { ExtensionInstallType } from "./extension-install-type";
+import { consumeRuntimeLastError } from "./runtime-channel";
 
 export class BrowserApi {
   static isWebExtensionsApi: boolean = typeof browser !== "undefined";
@@ -430,8 +431,9 @@ export class BrowserApi {
 
     return new Promise<TResponse>((resolve, reject) => {
       const sent = chrome.tabs.sendMessage(tab.id, obj, options, (response) => {
-        if (chrome.runtime.lastError && rejectOnError) {
-          reject(new Error(chrome.runtime.lastError.message));
+        const errorMessage = consumeRuntimeLastError();
+        if (errorMessage && rejectOnError) {
+          reject(new Error(errorMessage));
           return;
         }
         resolve(response);
@@ -449,8 +451,12 @@ export class BrowserApi {
     options?: chrome.tabs.MessageSendOptions,
     responseCallback?: (response: T) => void,
   ) {
+    const callback = (response: T) => {
+      consumeRuntimeLastError();
+      responseCallback?.(response);
+    };
     BrowserApi.silenceMissingReceiver(
-      chrome.tabs.sendMessage<TabMessage, T>(tabId, message, options, responseCallback),
+      chrome.tabs.sendMessage<TabMessage, T>(tabId, message, options, callback),
     );
   }
 
@@ -535,10 +541,7 @@ export class BrowserApi {
     ) {
       const contexts = await chrome.runtime.getContexts({});
       return contexts.some((context) => {
-        if (
-          context.contextType === "POPUP" ||
-          context.contextType === "SIDE_PANEL"
-        ) {
+        if (context.contextType === "POPUP" || context.contextType === "SIDE_PANEL") {
           return true;
         }
         return (
@@ -855,9 +858,11 @@ export class BrowserApi {
     await chrome.sidePanel.setOptions(options);
   }
 
-  static sendMessage(subscriber: string, arg: any = {}) {
+  static sendMessage(subscriber: string, arg: any = {}): Promise<any> {
     const message = Object.assign({}, { command: subscriber }, arg);
-    const sent = chrome.runtime.sendMessage(message);
+    const sent = chrome.runtime.sendMessage(message, () => {
+      consumeRuntimeLastError();
+    }) as unknown as Promise<any>;
     BrowserApi.silenceMissingReceiver(sent);
     return sent;
   }
@@ -865,7 +870,10 @@ export class BrowserApi {
   static sendMessageWithResponse<TResponse>(subscriber: string, arg: any = {}) {
     const message = Object.assign({}, { command: subscriber }, arg);
     return new Promise<TResponse>((resolve) => {
-      const sent = chrome.runtime.sendMessage(message, resolve);
+      const sent = chrome.runtime.sendMessage(message, (response: TResponse) => {
+        consumeRuntimeLastError();
+        resolve(response);
+      });
       BrowserApi.silenceMissingReceiver(sent);
     });
   }

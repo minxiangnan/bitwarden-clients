@@ -4,6 +4,7 @@ import {
 } from "@bitwarden/common/platform/abstractions/fido2/fido2-client.service.abstraction";
 
 import { currentlyInSandboxedIframe, sendExtensionMessage } from "../../../autofill/utils";
+import { connectPagePort } from "../../../platform/browser/runtime-channel";
 import { Fido2PortName } from "../enums/fido2-port-name.enum";
 
 import { reportIframeAttributesWhenReady } from "./iframe-allow-reporter";
@@ -34,8 +35,7 @@ import { isSameOriginWithAncestors } from "./same-origin-with-ancestors";
   // Initialization logic, set up the messenger and connect a port to the background script.
   const messenger = Messenger.forDOMCommunication(globalContext.window);
   messenger.handler = handleFido2Message;
-  const port = chrome.runtime.connect({ name: Fido2PortName.InjectedScript });
-  port.onDisconnect.addListener(handlePortOnDisconnect);
+  connectPagePort({ name: Fido2PortName.InjectedScript }, { onDisconnect: handlePortOnDisconnect });
 
   // Report this frame's iframe `allow=` attributes to the background so the
   // Permissions Policy gate can consult them when evaluating cross-origin

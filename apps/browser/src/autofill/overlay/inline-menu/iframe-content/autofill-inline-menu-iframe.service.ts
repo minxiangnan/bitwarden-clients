@@ -1,8 +1,11 @@
 import { EVENTS } from "@bitwarden/common/autofill/constants";
 import { ThemeTypes } from "@bitwarden/common/platform/enums";
 
-
 import { BrowserApi } from "../../../../platform/browser/browser-api";
+import {
+  consumeRuntimeLastError,
+  isPageCacheDisconnect,
+} from "../../../../platform/browser/runtime-channel";
 import { sendExtensionMessage, setElementStyles } from "../../../utils";
 import { resolveTheme } from "../../../utils/resolve-theme";
 import {
@@ -15,6 +18,8 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
   private readonly setElementStyles = setElementStyles;
   private readonly sendExtensionMessage = sendExtensionMessage;
   private port: chrome.runtime.Port | null = null;
+  private suspendedForPageCache = false;
+  private closed = false;
   private portKey?: string;
   private readonly extensionOrigin: string;
   private iframeMutationObserver: MutationObserver;
@@ -78,6 +83,8 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
   ) {
     this.extensionOrigin = BrowserApi.getRuntimeURL("")?.slice(0, -1);
     this.iframeMutationObserver = new MutationObserver(this.handleMutations);
+    globalThis.addEventListener("pagehide", this.handlePageHide);
+    globalThis.addEventListener("pageshow", this.handlePageShow);
   }
 
   /**
@@ -186,7 +193,38 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
    *
    * @param port - The port that is disconnected
    */
+  private handlePageHide = (event: PageTransitionEvent) => {
+    if (!event.persisted || this.port == null) {
+      return;
+    }
+    this.suspendedForPageCache = true;
+    try {
+      this.port.disconnect();
+    } catch {
+      consumeRuntimeLastError();
+    }
+  };
+
+  private handlePageShow = (event: PageTransitionEvent) => {
+    if (!event.persisted || this.closed || this.port != null) {
+      return;
+    }
+    this.suspendedForPageCache = false;
+    this.setupPortMessageListener();
+  };
+
   private handlePortDisconnect = (port: chrome.runtime.Port) => {
+    const message = consumeRuntimeLastError();
+    if (this.closed) {
+      this.port = null;
+      return;
+    }
+    if (this.suspendedForPageCache || isPageCacheDisconnect(message)) {
+      this.suspendedForPageCache = true;
+      this.port = null;
+      return;
+    }
+
     if (port.name !== this.portName) {
       return;
     }
@@ -576,6 +614,9 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
    * Cleans up all event listeners, timeouts, and observers to prevent memory leaks.
    */
   destroy() {
+    this.closed = true;
+    globalThis.removeEventListener("pagehide", this.handlePageHide);
+    globalThis.removeEventListener("pageshow", this.handlePageShow);
     this.iframe?.removeEventListener(EVENTS.LOAD, this.setupPortMessageListener);
     this.clearAriaAlert();
     this.clearFadeInTimeout();
