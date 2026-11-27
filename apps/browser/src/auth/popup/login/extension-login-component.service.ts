@@ -6,13 +6,19 @@ import { firstValueFrom } from "rxjs";
 import { DefaultLoginComponentService, LoginComponentService } from "@bitwarden/auth/angular";
 import { SsoLoginServiceAbstraction } from "@bitwarden/common/auth/abstractions/sso-login.service.abstraction";
 import { SsoUrlService } from "@bitwarden/common/auth/sso-login";
-import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
+import {
+  EnvironmentService,
+  Region,
+  Urls,
+} from "@bitwarden/common/platform/abstractions/environment.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
 // eslint-disable-next-line no-restricted-imports
 import { CryptoFunctionService } from "@bitwarden/legacy-crypto";
 
 import { ExtensionAnonLayoutWrapperDataService } from "../../../popup/components/extension-anon-layout-wrapper/extension-anon-layout-wrapper-data.service";
+
+import { DEFAULT_LOGIN_EMAIL, initialSelfHostedServerUrl } from "./login-defaults";
 
 @Injectable()
 export class ExtensionLoginComponentService
@@ -84,5 +90,15 @@ export class ExtensionLoginComponentService
    */
   isLoginWithPasskeySupported(): boolean {
     return this.platformUtilsService.isChromium();
+  }
+
+  /** Fresh installs land on the fork's server. A saved environment is kept. */
+  initialBrowserServerUrl(region: Region, urls?: Urls): string {
+    return initialSelfHostedServerUrl(region, urls);
+  }
+
+  /** Used only when no email has been remembered on this browser. */
+  initialBrowserEmail(): string {
+    return DEFAULT_LOGIN_EMAIL;
   }
 }

@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   NgZone,
+  AfterViewInit,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -102,7 +103,7 @@ export enum LoginUiState {
     TooltipDirective,
   ],
 })
-export class LoginComponent implements OnInit, OnDestroy {
+export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
   // eslint-disable-next-line @angular-eslint/prefer-signals
   @ViewChild("masterPasswordInputRef") masterPasswordInputRef: ElementRef | undefined;
@@ -120,6 +121,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   /** Self-hosted server address shown on the extension's email step. */
   serverUrl = "";
   private serverUrlTouched = false;
+  private viewReady = false;
   private readonly serverUrlField = viewChild<ElementRef<HTMLInputElement>>("serverUrlField");
   serverUrlError = "";
 
@@ -189,7 +191,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.clientType === ClientType.Browser) {
       this.formGroup.controls.rememberEmail.setValue(true);
       const env = await firstValueFrom(this.environmentService.environment$);
-      const remembered = env.getUrls()?.base ?? "";
+      const saved = env.getUrls()?.base ?? "";
+      const remembered =
+        this.loginComponentService.initialBrowserServerUrl?.(env.getRegion(), env.getUrls()) ??
+        saved;
       // A live [value] binding writes the previous model back over keystrokes.
       // Apply the remembered URL once, and only while the field is still untouched.
       if (!this.serverUrlTouched) {
@@ -199,6 +204,15 @@ export class LoginComponent implements OnInit, OnDestroy {
           field.value = remembered;
         }
       }
+      if (!this.emailFormControl.value) {
+        const email = this.loginComponentService.initialBrowserEmail?.();
+        if (email) {
+          this.emailFormControl.setValue(email);
+        }
+      }
+      // The password input is not ready until the view exists.
+      this.restoreServerField();
+      this.focusMasterPassword();
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -209,6 +223,43 @@ export class LoginComponent implements OnInit, OnDestroy {
     // TODO: consider replacing with a `pageTitle` route resolver so the correct title
     // renders on first paint instead of flashing the default first.
     await this.applyOpenOrgInviteTitleOverride();
+  }
+
+  ngAfterViewInit(): void {
+    this.viewReady = true;
+    if (this.clientType === ClientType.Browser) {
+      this.restoreServerField();
+      this.focusMasterPassword();
+    }
+  }
+
+  /** The password box is on the same screen as the server and email. */
+  private focusMasterPassword(): void {
+    if (this.clientType !== ClientType.Browser || !this.viewReady) {
+      return;
+    }
+    const focus = () => this.masterPasswordInputRef?.nativeElement?.focus();
+    if (this.ngZone.isStable) {
+      focus();
+    } else {
+      this.ngZone.onStable.pipe(take(1), takeUntil(this.destroy$)).subscribe(focus);
+    }
+  }
+
+  /**
+   * The server box is not a form control. Going back restores the empty value
+   * from the first history entry, so write the current URL again after that.
+   */
+  private restoreServerField(): void {
+    const write = () => {
+      const field = this.serverUrlField()?.nativeElement;
+      if (field && field.value !== this.serverUrl) {
+        field.value = this.serverUrl;
+      }
+    };
+    write();
+    setTimeout(write, 0);
+    setTimeout(write, 50);
   }
 
   ngOnDestroy(): void {
@@ -360,6 +411,19 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (this.loginUiState !== LoginUiState.MASTER_PASSWORD_ENTRY) {
         return;
       }
+    }
+
+    if (this.clientType === ClientType.Browser) {
+      if (!(await this.applyServerUrl())) {
+        return;
+      }
+      this.passwordPreloginService.clearCache();
+      await firstValueFrom(
+        this.environmentService.environment$.pipe(
+          filter((env) => env.getIdentityUrl().startsWith(this.serverUrl)),
+        ),
+      );
+      await this.persistEmailIfValid();
     }
 
     const { email, masterPassword } = this.formGroup.value;
@@ -628,6 +692,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (this.loginUiState === LoginUiState.EMAIL_ENTRY) {
       this.loginComponentService.showBackButton(false);
+      this.restoreServerField();
 
       this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
         pageTitle: { key: "loginPageEmailEntryScreenTitle" },
@@ -725,6 +790,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     const isEmailValid = this.validateEmail();
     if (!isEmailValid) {
       return;
+    }
+    if (this.clientType === ClientType.Browser) {
+      await this.persistEmailIfValid();
     }
 
     const email = this.emailFormControl.value;
