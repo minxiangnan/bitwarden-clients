@@ -8,13 +8,13 @@ import { Policy } from "../../admin-console/models/domain/policy";
 import { AuthService } from "../../auth/abstractions/auth.service";
 import { AuthenticationStatus } from "../../auth/enums/authentication-status";
 import { FeatureFlag } from "../../enums/feature-flag.enum";
+import { UriMatchStrategy } from "../../models/domain/domain-service";
 import { ConfigService } from "../../platform/abstractions/config/config.service";
 import { Environment, EnvironmentService } from "../../platform/abstractions/environment.service";
 import { Utils } from "../../platform/misc/utils";
 import { UserId } from "../../types/guid";
 import { FormPurposeCategories } from "../constants";
 import { TargetingRulesByDomain, FormContent } from "../types";
-import { UriMatchStrategy } from "../../models/domain/domain-service";
 
 import { DefaultDomainSettingsService, DomainSettingsService } from "./domain-settings.service";
 
@@ -97,6 +97,20 @@ describe("DefaultDomainSettingsService", () => {
     it("uses host matching until the user chooses another strategy", async () => {
       expect(await firstValueFrom(domainSettingsService.defaultUriMatchStrategy$)).toBe(
         UriMatchStrategy.Host,
+      );
+      expect(await firstValueFrom(domainSettingsService.resolvedDefaultUriMatchStrategy$)).toBe(
+        UriMatchStrategy.Host,
+      );
+    });
+
+    it("keeps a strategy the user already saved", async () => {
+      await domainSettingsService.setDefaultUriMatchStrategy(UriMatchStrategy.Domain);
+
+      expect(await firstValueFrom(domainSettingsService.defaultUriMatchStrategy$)).toBe(
+        UriMatchStrategy.Domain,
+      );
+      expect(await firstValueFrom(domainSettingsService.resolvedDefaultUriMatchStrategy$)).toBe(
+        UriMatchStrategy.Domain,
       );
     });
   });

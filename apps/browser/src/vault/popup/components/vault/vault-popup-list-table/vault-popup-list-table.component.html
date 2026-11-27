@@ -189,8 +189,11 @@
               }
             </div>
           </div>
-          <span class="tw-text-muted tw-text-xs tw-truncate">
-            <app-vault-row-subtitle [cipher]="row.cipher"></app-vault-row-subtitle>
+          <span class="tw-flex tw-min-w-0 tw-items-center tw-gap-1">
+            <span class="tw-text-muted tw-text-xs tw-truncate">
+              <app-vault-row-subtitle [cipher]="row.cipher"></app-vault-row-subtitle>
+            </span>
+            <app-uri-match-badge [cipher]="row.cipher" />
           </span>
         </div>
       </button>

@@ -39,6 +39,16 @@
           {{ "edit" | i18n }}
         </button>
       }
+      @if (canSetUriMatch) {
+        <button
+          type="button"
+          bitMenuItem
+          (click)="openUriMatchRules()"
+          data-testid="uri-match-rule"
+        >
+          {{ "setUriMatchRule" | i18n }}
+        </button>
+      }
       @if (canEdit && canViewPassword) {
         @if ((canClone$ | async) && allows(RestrictedCipherAction.Clone)) {
           <a bitMenuItem (click)="clone()">

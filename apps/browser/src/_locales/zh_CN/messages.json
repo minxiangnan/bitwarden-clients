@@ -3127,6 +3127,19 @@
     "message": "主机",
     "description": "A URL's host value. For example, the host of https://sub.domain.com:443 is 'sub.domain.com:443'."
   },
+  "hostOptionRecommended": {
+    "message": "主机（推荐）",
+    "description": "URI match detection. The recommended default is the host, including the subdomain and port."
+  },
+  "setUriMatchRule": {
+    "message": "匹配规则"
+  },
+  "uriMatchMixed": {
+    "message": "多项"
+  },
+  "uriMatchDialogHint": {
+    "message": "选「默认」则跟随全局。多条网址时逐条保存。"
+  },
   "exact": {
     "message": "精确"
   },
