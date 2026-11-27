@@ -123,6 +123,8 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
   private serverUrlTouched = false;
   /** Browser login opens on the master password once the email and server are filled. */
   private openOnMasterPassword = false;
+  private viewReady = false;
+  private openedMasterPassword = false;
   private readonly serverUrlField = viewChild<ElementRef<HTMLInputElement>>("serverUrlField");
   serverUrlError = "";
 
@@ -216,6 +218,7 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
         this.loginUiState === LoginUiState.EMAIL_ENTRY &&
         Boolean(this.emailFormControl.value) &&
         describeServerUrl(this.serverUrl).status === "ok";
+      this.openMasterPasswordIfReady();
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -229,16 +232,29 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    if (this.clientType !== ClientType.Browser) {
+    this.viewReady = true;
+    this.openMasterPasswordIfReady();
+  }
+
+  /**
+   * ngOnInit is async, so the view can exist before the saved server and email
+   * are known. Open the password step only after both are ready.
+   */
+  private openMasterPasswordIfReady(): void {
+    if (
+      this.clientType !== ClientType.Browser ||
+      !this.viewReady ||
+      !this.openOnMasterPassword ||
+      this.openedMasterPassword
+    ) {
       return;
     }
+    this.openedMasterPassword = true;
     const field = this.serverUrlField()?.nativeElement;
     if (field && !this.serverUrlTouched && field.value !== this.serverUrl) {
       field.value = this.serverUrl;
     }
-    if (this.openOnMasterPassword) {
-      void this.continuePressed();
-    }
+    void this.continuePressed();
   }
 
   ngOnDestroy(): void {
