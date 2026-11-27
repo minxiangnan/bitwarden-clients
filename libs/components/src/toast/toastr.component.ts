@@ -14,6 +14,7 @@ import { ToastComponent } from "./toast.component";
       [title]="options?.payload?.title"
       [variant]="options?.payload?.variant"
       [message]="options?.payload?.message"
+      [compact]="!!options?.payload?.compact"
       [progressWidth]="width()"
       (onClose)="remove()"
     ></bit-toast>

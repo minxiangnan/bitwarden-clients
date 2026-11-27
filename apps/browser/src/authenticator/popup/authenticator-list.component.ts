@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
@@ -69,6 +69,10 @@ export class AuthenticatorListComponent {
   protected readonly scanning = signal(false);
   protected readonly scanError = signal<string | null>(null);
   protected readonly busyId = signal<string | null>(null);
+  /** The row that just copied its code. The check replaces the success toast. */
+  protected readonly copiedId = signal<string | null>(null);
+  /** Bumps on every copy so copying the same row restarts the check. */
+  private readonly copiedTick = signal(0);
 
   private readonly state = toSignal(this.authenticator.state$, {
     initialValue: {
@@ -112,8 +116,16 @@ export class AuthenticatorListComponent {
     });
     // A hub sync bumps syncedAt even when the ciphertext is unchanged, which is how an
     // alias-only change reaches an already open popup.
-    this.authenticator.state$.subscribe(() => {
+    this.authenticator.state$.pipe(takeUntilDestroyed()).subscribe(() => {
       void this.loadAliases();
+    });
+    effect((onCleanup) => {
+      const id = this.copiedId();
+      if (id == null || this.copiedTick() === 0) {
+        return;
+      }
+      const timer = setTimeout(() => this.copiedId.set(null), 1200);
+      onCleanup(() => clearTimeout(timer));
     });
   }
 
@@ -138,11 +150,8 @@ export class AuthenticatorListComponent {
       ? clipboardClearMs(await firstValueFrom(this.autofillSettings.clearClipboardDelay$))
       : undefined;
     this.platformUtils.copyToClipboard(value, clearMs ? { clearMs } : undefined);
-    this.toast.showToast({
-      variant: "success",
-      title: null,
-      message: this.i18n.t("authenticatorCopied"),
-    });
+    this.copiedId.set(entry.id);
+    this.copiedTick.update((tick) => tick + 1);
     this.ui.noteRecent(entry.id);
     if (entry.kind === "hotp" && !this.readOnly()) {
       try {

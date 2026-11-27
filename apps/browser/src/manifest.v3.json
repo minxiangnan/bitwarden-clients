@@ -3,7 +3,7 @@
   "minimum_chrome_version": "134.0",
   "name": "Bitwarden 验证器版",
   "short_name": "验证器版",
-  "version": "2026.11.14",
+  "version": "2026.11.15",
   "description": "自建密码库和验证器，数据保存在你的服务器上。",
   "default_locale": "zh_CN",
   "author": "Bitwarden Inc.",
