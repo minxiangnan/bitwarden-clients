@@ -25,7 +25,7 @@
         type="email"
         formControlName="email"
         bitInput
-        appAutofocus
+        [appAutofocus]="clientType !== ClientType.Browser"
         data-testid="login-email-input"
         (input)="onEmailInput($event)"
         (keyup.enter)="ssoRequired ? handleSsoClick() : continuePressed()"

@@ -28,6 +28,8 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { describeServerUrl } from "@bitwarden/common/platform/misc/server-url";
 import { FormFieldModule, LinkModule, ToastService } from "@bitwarden/components";
 
+import { initialSelfHostedServerUrl } from "../login/login-defaults";
+
 import { invitedAccountErrorText } from "./invited-account-error";
 
 @Component({
@@ -134,8 +136,8 @@ export class InvitedAccountComponent {
 
   private async rememberedServer(): Promise<void> {
     const env = await firstValueFrom(this.environment.environment$);
-    const remembered = env.getUrls()?.base ?? "";
-    if (!this.serverUrlTouched() && remembered) {
+    const remembered = initialSelfHostedServerUrl(env.getRegion(), env.getUrls());
+    if (!this.serverUrlTouched() && !this.serverUrl() && remembered) {
       this.applyServerUrl(remembered);
     }
   }

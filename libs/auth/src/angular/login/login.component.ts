@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   NgZone,
+  AfterViewInit,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -102,7 +103,7 @@ export enum LoginUiState {
     TooltipDirective,
   ],
 })
-export class LoginComponent implements OnInit, OnDestroy {
+export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
   // eslint-disable-next-line @angular-eslint/prefer-signals
   @ViewChild("masterPasswordInputRef") masterPasswordInputRef: ElementRef | undefined;
@@ -120,6 +121,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   /** Self-hosted server address shown on the extension's email step. */
   serverUrl = "";
   private serverUrlTouched = false;
+  /** Browser login opens on the master password once the email and server are filled. */
+  private openOnMasterPassword = false;
   private readonly serverUrlField = viewChild<ElementRef<HTMLInputElement>>("serverUrlField");
   serverUrlError = "";
 
@@ -189,7 +192,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.clientType === ClientType.Browser) {
       this.formGroup.controls.rememberEmail.setValue(true);
       const env = await firstValueFrom(this.environmentService.environment$);
-      const remembered = env.getUrls()?.base ?? "";
+      const saved = env.getUrls()?.base ?? "";
+      const remembered =
+        this.loginComponentService.initialBrowserServerUrl?.(env.getRegion(), env.getUrls()) ??
+        saved;
       // A live [value] binding writes the previous model back over keystrokes.
       // Apply the remembered URL once, and only while the field is still untouched.
       if (!this.serverUrlTouched) {
@@ -199,6 +205,17 @@ export class LoginComponent implements OnInit, OnDestroy {
           field.value = remembered;
         }
       }
+      if (!this.emailFormControl.value) {
+        const email = this.loginComponentService.initialBrowserEmail?.();
+        if (email) {
+          this.emailFormControl.setValue(email);
+        }
+      }
+      // The password input is not ready until the view exists.
+      this.openOnMasterPassword =
+        this.loginUiState === LoginUiState.EMAIL_ENTRY &&
+        Boolean(this.emailFormControl.value) &&
+        describeServerUrl(this.serverUrl).status === "ok";
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -209,6 +226,19 @@ export class LoginComponent implements OnInit, OnDestroy {
     // TODO: consider replacing with a `pageTitle` route resolver so the correct title
     // renders on first paint instead of flashing the default first.
     await this.applyOpenOrgInviteTitleOverride();
+  }
+
+  ngAfterViewInit(): void {
+    if (this.clientType !== ClientType.Browser) {
+      return;
+    }
+    const field = this.serverUrlField()?.nativeElement;
+    if (field && !this.serverUrlTouched && field.value !== this.serverUrl) {
+      field.value = this.serverUrl;
+    }
+    if (this.openOnMasterPassword) {
+      void this.continuePressed();
+    }
   }
 
   ngOnDestroy(): void {
@@ -725,6 +755,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     const isEmailValid = this.validateEmail();
     if (!isEmailValid) {
       return;
+    }
+    if (this.clientType === ClientType.Browser) {
+      await this.persistEmailIfValid();
     }
 
     const email = this.emailFormControl.value;

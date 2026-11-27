@@ -4,6 +4,7 @@ import { Params } from "@angular/router";
 
 import { MasterPasswordPolicyOptions } from "@bitwarden/common/admin-console/models/domain/master-password-policy-options";
 import { Policy } from "@bitwarden/common/admin-console/models/domain/policy";
+import { Region, Urls } from "@bitwarden/common/platform/abstractions/environment.service";
 
 import { HandleQueryParamErrorsResult } from "./handle-query-param-errors-result.type";
 
@@ -61,4 +62,15 @@ export abstract class LoginComponentService {
    * - Used by: Web
    */
   handleQueryParamErrors?: (params: Params) => Promise<HandleQueryParamErrorsResult>;
+
+  /**
+   * Server URL for the extension login field. Return a saved URL unchanged.
+   * Omit on clients that do not show a server field.
+   */
+  initialBrowserServerUrl?: (region: Region, urls?: Urls) => string;
+
+  /**
+   * Email to show when the extension has not remembered one.
+   */
+  initialBrowserEmail?: () => string;
 }
