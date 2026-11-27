@@ -218,6 +218,7 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
         this.loginUiState === LoginUiState.EMAIL_ENTRY &&
         Boolean(this.emailFormControl.value) &&
         describeServerUrl(this.serverUrl).status === "ok";
+      this.restoreServerField();
       this.openMasterPasswordIfReady();
     }
 
@@ -233,6 +234,9 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.viewReady = true;
+    if (this.clientType === ClientType.Browser) {
+      this.restoreServerField();
+    }
     this.openMasterPasswordIfReady();
   }
 
@@ -250,11 +254,24 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.openedMasterPassword = true;
-    const field = this.serverUrlField()?.nativeElement;
-    if (field && !this.serverUrlTouched && field.value !== this.serverUrl) {
-      field.value = this.serverUrl;
-    }
+    this.restoreServerField();
     void this.continuePressed();
+  }
+
+  /**
+   * The server box is not a form control. Going back restores the empty value
+   * from the first history entry, so write the current URL again after that.
+   */
+  private restoreServerField(): void {
+    const write = () => {
+      const field = this.serverUrlField()?.nativeElement;
+      if (field && field.value !== this.serverUrl) {
+        field.value = this.serverUrl;
+      }
+    };
+    write();
+    setTimeout(write, 0);
+    setTimeout(write, 50);
   }
 
   ngOnDestroy(): void {
@@ -674,6 +691,7 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.loginUiState === LoginUiState.EMAIL_ENTRY) {
       this.loginComponentService.showBackButton(false);
+      this.restoreServerField();
 
       this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
         pageTitle: { key: "loginPageEmailEntryScreenTitle" },
