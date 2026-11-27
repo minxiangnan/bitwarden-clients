@@ -1,5 +1,9 @@
 <form [bitSubmit]="submit" [formGroup]="formGroup">
-  <div [ngClass]="{ 'tw-hidden': loginUiState !== LoginUiState.EMAIL_ENTRY }">
+  <div
+    [ngClass]="{
+      'tw-hidden': clientType !== ClientType.Browser && loginUiState !== LoginUiState.EMAIL_ENTRY,
+    }"
+  >
     @if (clientType === ClientType.Browser) {
       <bit-form-field>
         <bit-label>服务器 URL</bit-label>
@@ -48,6 +52,7 @@
     <div class="tw-grid tw-gap-3">
       <!-- Continue button -->
       <button
+        *ngIf="clientType !== ClientType.Browser"
         type="button"
         bitButton
         block
@@ -107,7 +112,12 @@
     </div>
   </div>
 
-  <div [ngClass]="{ 'tw-hidden': loginUiState !== LoginUiState.MASTER_PASSWORD_ENTRY }">
+  <div
+    [ngClass]="{
+      'tw-hidden':
+        clientType !== ClientType.Browser && loginUiState !== LoginUiState.MASTER_PASSWORD_ENTRY,
+    }"
+  >
     <!-- Master Password input -->
     <bit-form-field class="!tw-mb-1">
       <bit-label>{{ "masterPass" | i18n }}</bit-label>

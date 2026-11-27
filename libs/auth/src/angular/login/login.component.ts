@@ -121,10 +121,7 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Self-hosted server address shown on the extension's email step. */
   serverUrl = "";
   private serverUrlTouched = false;
-  /** Browser login opens on the master password once the email and server are filled. */
-  private openOnMasterPassword = false;
   private viewReady = false;
-  private openedMasterPassword = false;
   private readonly serverUrlField = viewChild<ElementRef<HTMLInputElement>>("serverUrlField");
   serverUrlError = "";
 
@@ -214,12 +211,8 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
       // The password input is not ready until the view exists.
-      this.openOnMasterPassword =
-        this.loginUiState === LoginUiState.EMAIL_ENTRY &&
-        Boolean(this.emailFormControl.value) &&
-        describeServerUrl(this.serverUrl).status === "ok";
       this.restoreServerField();
-      this.openMasterPasswordIfReady();
+      this.focusMasterPassword();
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -236,26 +229,21 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
     this.viewReady = true;
     if (this.clientType === ClientType.Browser) {
       this.restoreServerField();
+      this.focusMasterPassword();
     }
-    this.openMasterPasswordIfReady();
   }
 
-  /**
-   * ngOnInit is async, so the view can exist before the saved server and email
-   * are known. Open the password step only after both are ready.
-   */
-  private openMasterPasswordIfReady(): void {
-    if (
-      this.clientType !== ClientType.Browser ||
-      !this.viewReady ||
-      !this.openOnMasterPassword ||
-      this.openedMasterPassword
-    ) {
+  /** The password box is on the same screen as the server and email. */
+  private focusMasterPassword(): void {
+    if (this.clientType !== ClientType.Browser || !this.viewReady) {
       return;
     }
-    this.openedMasterPassword = true;
-    this.restoreServerField();
-    void this.continuePressed();
+    const focus = () => this.masterPasswordInputRef?.nativeElement?.focus();
+    if (this.ngZone.isStable) {
+      focus();
+    } else {
+      this.ngZone.onStable.pipe(take(1), takeUntil(this.destroy$)).subscribe(focus);
+    }
   }
 
   /**
@@ -423,6 +411,19 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.loginUiState !== LoginUiState.MASTER_PASSWORD_ENTRY) {
         return;
       }
+    }
+
+    if (this.clientType === ClientType.Browser) {
+      if (!(await this.applyServerUrl())) {
+        return;
+      }
+      this.passwordPreloginService.clearCache();
+      await firstValueFrom(
+        this.environmentService.environment$.pipe(
+          filter((env) => env.getIdentityUrl().startsWith(this.serverUrl)),
+        ),
+      );
+      await this.persistEmailIfValid();
     }
 
     const { email, masterPassword } = this.formGroup.value;
