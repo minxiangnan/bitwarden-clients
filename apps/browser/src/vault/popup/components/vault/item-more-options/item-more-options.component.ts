@@ -64,6 +64,8 @@ import {
   AutofillConfirmationDialogComponent,
   AutofillConfirmationDialogResult,
 } from "../autofill-confirmation-dialog/autofill-confirmation-dialog.component";
+import { applyUriMatches } from "../uri-match/uri-match";
+import { UriMatchDialogComponent } from "../uri-match/uri-match-dialog.component";
 
 /** IDs of the menu's own actions. Contributed action IDs must differ. */
 const BUILT_IN_ACTION_IDS: ReadonlySet<string> = new Set([
@@ -77,6 +79,7 @@ const BUILT_IN_ACTION_IDS: ReadonlySet<string> = new Set([
   "shareViaLink",
   "archive",
   "delete",
+  "setUriMatchRule",
 ]);
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -268,6 +271,14 @@ export class ItemMoreOptionsComponent {
     return CipherViewLikeUtils.getType(this.cipher) === CipherType.Login;
   }
 
+  /** Login items with at least one URI can store a match that overrides the global default. */
+  protected get canSetUriMatch() {
+    if (!this.isLogin || !this.canEdit || this.decryptionFailure || this.isLocked) {
+      return false;
+    }
+    return (CipherViewLikeUtils.getLogin(this.cipher)?.uris?.length ?? 0) > 0;
+  }
+
   get favoriteText() {
     return this.cipher.favorite ? "unfavorite" : "favorite";
   }
@@ -376,6 +387,41 @@ export class ItemMoreOptionsComponent {
       message: this.i18nService.t(
         cipher.favorite ? "itemAddedToFavorites" : "itemRemovedFromFavorites",
       ),
+    });
+  }
+
+  /** Saves a per-URI match onto the stored cipher and syncs it. Null follows the global default. */
+  protected async openUriMatchRules(): Promise<void> {
+    if (!(await this.passwordRepromptService.passwordRepromptCheck(this.cipher))) {
+      return;
+    }
+
+    const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    const stored = await this.cipherService.get(uuidAsString(this.cipher.id!), activeUserId);
+    const cipher = await this.cipherService.decrypt(stored, activeUserId);
+    const uris = cipher.login?.uris ?? [];
+    if (cipher.type !== CipherType.Login || uris.length === 0) {
+      return;
+    }
+
+    const dialog = UriMatchDialogComponent.open(this.dialogService, {
+      data: {
+        uris: uris.map((uri) => ({ uri: uri.uri ?? "", match: uri.match ?? null })),
+      },
+    });
+    const result = await firstValueFrom(dialog.closed);
+    if (result == null) {
+      return;
+    }
+
+    applyUriMatches(uris, result.matches);
+    await this.cipherService.updateWithServer(cipher, activeUserId);
+    if (this.revealedView() != null) {
+      await this.revealedCipherService.refresh(activeUserId, cipher.id as CipherId);
+    }
+    this.toastService.showToast({
+      variant: "success",
+      message: this.i18nService.t("editedItem"),
     });
   }
 

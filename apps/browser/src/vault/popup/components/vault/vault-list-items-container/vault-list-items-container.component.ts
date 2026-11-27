@@ -60,6 +60,7 @@ import {
 import { PopupCipherViewLike } from "../../../views/popup-cipher.view";
 import { ItemCopyActionsComponent } from "../item-copy-action/item-copy-actions.component";
 import { ItemMoreOptionsComponent } from "../item-more-options/item-more-options.component";
+import { UriMatchBadgeComponent } from "../uri-match/uri-match-badge.component";
 
 @Component({
   imports: [
@@ -73,6 +74,7 @@ import { ItemMoreOptionsComponent } from "../item-more-options/item-more-options
     SectionHeaderComponent,
     ItemCopyActionsComponent,
     ItemMoreOptionsComponent,
+    UriMatchBadgeComponent,
     OrgIconDirective,
     ScrollingModule,
     DisclosureComponent,

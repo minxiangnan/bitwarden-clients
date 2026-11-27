@@ -223,8 +223,8 @@ export class AutofillComponent implements OnInit {
       { name: i18nService.t("fiveMinutes"), value: ClearClipboardDelay.FiveMinutes },
     ];
     this.uriMatchOptions = [
-      { name: i18nService.t("baseDomainOptionRecommended"), value: UriMatchStrategy.Domain },
-      { name: i18nService.t("host"), value: UriMatchStrategy.Host },
+      { name: i18nService.t("baseDomain"), value: UriMatchStrategy.Domain },
+      { name: i18nService.t("hostOptionRecommended"), value: UriMatchStrategy.Host },
       { name: i18nService.t("exact"), value: UriMatchStrategy.Exact },
       { name: i18nService.t("never"), value: UriMatchStrategy.Never },
       { name: this.i18nService.t("uriAdvancedOption"), value: null, disabled: true },

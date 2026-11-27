@@ -1,0 +1,35 @@
+<bit-dialog dialogSize="small" [title]="'setUriMatchRule' | i18n">
+  <div bitDialogContent class="tw-flex tw-flex-col tw-gap-3">
+    <p class="tw-m-0 tw-text-xs tw-text-muted">{{ "uriMatchDialogHint" | i18n }}</p>
+    @for (uri of uris; track $index) {
+      <label class="tw-flex tw-flex-col tw-gap-1">
+        <span class="tw-truncate tw-text-xs tw-text-main">{{ uri.uri || ("website" | i18n) }}</span>
+        <select
+          class="tw-rounded-lg tw-border tw-border-solid tw-border-secondary-300 tw-bg-background tw-px-2 tw-py-1.5 tw-text-sm tw-text-main"
+          data-testid="uri-match-select"
+          [formControl]="form.controls[$index]"
+        >
+          @for (option of choices; track option.labelKey) {
+            <option [value]="option.value == null ? '' : option.value">
+              {{ option.labelKey | i18n }}
+            </option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+  <ng-container bitDialogFooter>
+    <button type="button" bitButton buttonType="secondary" bitDialogClose>
+      {{ "cancel" | i18n }}
+    </button>
+    <button
+      type="button"
+      bitButton
+      buttonType="primary"
+      (click)="save()"
+      data-testid="uri-match-save"
+    >
+      {{ "save" | i18n }}
+    </button>
+  </ng-container>
+</bit-dialog>

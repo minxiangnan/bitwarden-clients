@@ -96,6 +96,7 @@ import { collectionOptionsInScope, folderOptionsInScope } from "../../../utils/f
 import { PopupCipherViewLike } from "../../../views/popup-cipher.view";
 import { ItemCopyActionsComponent } from "../item-copy-action/item-copy-actions.component";
 import { ItemMoreOptionsComponent } from "../item-more-options/item-more-options.component";
+import { UriMatchBadgeComponent } from "../uri-match/uri-match-badge.component";
 import { VaultFiltersTourComponent } from "../vault-filters-tour/vault-filters-tour.component";
 import { VAULT_ROW_ICON, VaultRowIcon } from "../vault-row-slots/vault-row-icon.token";
 import { VaultRowSubtitleComponent } from "../vault-row-slots/vault-row-subtitle.component";
@@ -164,6 +165,7 @@ function contributedFilter(filter: VaultItemFilter | null): VaultItemFilter | nu
     EmptyVaultComponent,
     ItemCopyActionsComponent,
     ItemMoreOptionsComponent,
+    UriMatchBadgeComponent,
     VaultRowSubtitleComponent,
     OrgIconDirective,
     Vfo1I18nPipe,

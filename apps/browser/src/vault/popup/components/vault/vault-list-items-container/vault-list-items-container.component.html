@@ -128,7 +128,12 @@
                 ></bit-icon>
               }
             </div>
-            <span slot="secondary">{{ CipherViewLikeUtils.subtitle(cipher, i18nService) }}</span>
+            <span slot="secondary" class="tw-inline-flex tw-max-w-full tw-items-center tw-gap-1">
+              <span class="tw-truncate">{{
+                CipherViewLikeUtils.subtitle(cipher, i18nService)
+              }}</span>
+              <app-uri-match-badge [cipher]="cipher" />
+            </span>
           </button>
 
           <ng-container slot="end">

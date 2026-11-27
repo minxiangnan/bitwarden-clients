@@ -3127,6 +3127,19 @@
     "message": "Host",
     "description": "A URL's host value. For example, the host of https://sub.domain.com:443 is 'sub.domain.com:443'."
   },
+  "hostOptionRecommended": {
+    "message": "Host (recommended)",
+    "description": "URI match detection. The recommended default is the host, including the subdomain and port."
+  },
+  "setUriMatchRule": {
+    "message": "Match detection"
+  },
+  "uriMatchMixed": {
+    "message": "Multiple"
+  },
+  "uriMatchDialogHint": {
+    "message": "Default follows the global setting. Each website is saved on its own."
+  },
   "exact": {
     "message": "Exact"
   },
