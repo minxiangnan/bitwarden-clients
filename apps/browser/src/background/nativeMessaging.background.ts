@@ -14,6 +14,7 @@ import {
 } from "@bitwarden/legacy-crypto";
 
 import { BrowserApi } from "../platform/browser/browser-api";
+import { postToRuntimePort, watchRuntimePort } from "../platform/browser/runtime-channel";
 
 const MessageValidTimeout = 10 * 1000;
 const MessageNoResponseTimeout = 60 * 1000;
@@ -110,6 +111,7 @@ export class NativeMessagingBackground {
 
     return new Promise<void>((resolve, reject) => {
       this.port = BrowserApi.connectNative("com.8bit.bitwarden");
+      watchRuntimePort(this.port);
 
       this.connecting = true;
 
@@ -347,7 +349,9 @@ export class NativeMessagingBackground {
           mac: message.message.mac,
         };
       }
-      this.port!.postMessage(msg);
+      if (this.port == null || !postToRuntimePort(this.port, msg)) {
+        throw new Error("disconnected");
+      }
       // FIXME: Remove when updating file. Eslint update
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {

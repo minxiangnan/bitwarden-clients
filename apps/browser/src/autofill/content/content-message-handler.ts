@@ -2,7 +2,11 @@ import "../../platform/i18n/force-zh-cn";
 import { ExtensionPageUrls } from "@bitwarden/common/vault/enums";
 import { VaultMessages } from "@bitwarden/common/vault/enums/vault-messages.enum";
 
-import { connectPagePort, sendRuntimeMessage } from "../../platform/browser/runtime-channel";
+import {
+  connectPagePort,
+  consumeRuntimeLastError,
+  sendRuntimeMessage,
+} from "../../platform/browser/runtime-channel";
 import { EventSecurity } from "../utils/event-security";
 
 import {
@@ -49,14 +53,19 @@ connectPagePort(
 
 /** Posts hasBwInstalled only after background confirms a known vault host. */
 function handleExtensionInstallCheck(referrer: string) {
-  chrome.runtime.sendMessage({ command: VaultMessages.checkBwInstalled, referrer }, (response) => {
-    if (chrome.runtime.lastError) {
-      return;
-    }
-    if (response?.result === true) {
-      window.postMessage({ command: VaultMessages.HasBwInstalled });
-    }
-  });
+  const sent = chrome.runtime.sendMessage(
+    { command: VaultMessages.checkBwInstalled, referrer },
+    (response) => {
+      if (consumeRuntimeLastError()) {
+        return;
+      }
+      if (response?.result === true) {
+        window.postMessage({ command: VaultMessages.HasBwInstalled });
+      }
+    },
+  );
+  // Chrome rejects the promise it returns even after the callback reads lastError.
+  void Promise.resolve(sent).catch((): void => undefined);
 }
 
 /**

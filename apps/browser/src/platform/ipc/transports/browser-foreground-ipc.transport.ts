@@ -3,7 +3,11 @@ import { IpcMessage, isIpcMessage, reconstructIpcMessage } from "@bitwarden/comm
 import { Endpoint, IncomingMessage, OutgoingMessage } from "@bitwarden/sdk-internal";
 
 import { BrowserApi } from "../../browser/browser-api";
-import { consumeRuntimeLastError } from "../../browser/runtime-channel";
+import {
+  consumeRuntimeLastError,
+  postToRuntimePort,
+  watchRuntimePort,
+} from "../../browser/runtime-channel";
 
 import { DESTINATION_UNREACHABLE_ERROR } from "./errors";
 import { IPC_FOREGROUND_PORT_NAME, IPC_FOREGROUND_WAKE_COMMAND } from "./ipc-foreground-port-name";
@@ -36,6 +40,7 @@ export class BrowserForegroundIpcTransport {
 
       const id = this.nextId++;
       const source = { BrowserForeground: { id } };
+      watchRuntimePort(port);
       this.ports.set(id, port);
 
       const onMessage = (message: unknown) => {
@@ -55,8 +60,7 @@ export class BrowserForegroundIpcTransport {
         port.onMessage.removeListener(onMessage);
         this.ports.delete(id);
 
-        // Suppress error message
-        void chrome.runtime.lastError;
+        consumeRuntimeLastError();
       });
     });
 
@@ -96,17 +100,16 @@ export class BrowserForegroundIpcTransport {
       throw new Error(DESTINATION_UNREACHABLE_ERROR);
     }
 
-    try {
-      port.postMessage({
-        type: "bitwarden-ipc-message",
-        message: {
-          destination: message.destination,
-          payload: [...message.payload],
-          topic: message.topic,
-        },
-      } satisfies IpcMessage);
-    } catch {
-      consumeRuntimeLastError();
+    const delivered = postToRuntimePort(port, {
+      type: "bitwarden-ipc-message",
+      message: {
+        destination: message.destination,
+        payload: [...message.payload],
+        topic: message.topic,
+      },
+    } satisfies IpcMessage);
+    if (!delivered) {
+      this.ports.delete(message.destination.BrowserForeground.id);
       throw new Error(DESTINATION_UNREACHABLE_ERROR);
     }
   }
@@ -134,7 +137,7 @@ export class BrowserForegroundIpcTransport {
   private sendWake() {
     try {
       const sent = chrome.runtime.sendMessage({ command: IPC_FOREGROUND_WAKE_COMMAND }, () => {
-        void chrome.runtime.lastError;
+        consumeRuntimeLastError();
       });
       void Promise.resolve(sent).catch((): void => undefined);
     } catch (e) {

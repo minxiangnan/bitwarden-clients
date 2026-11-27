@@ -100,4 +100,29 @@ describe("fromChromeEvent", () => {
     expect(subscription1Called).toBeTruthy();
     expect(subscription2Called).toBeTruthy();
   });
+
+  it("emits the event when lastError is set instead of erroring the stream", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(chrome.runtime, "lastError");
+    Object.defineProperty(chrome.runtime, "lastError", {
+      configurable: true,
+      get: () => ({ message: "The message port closed before a response was received." }),
+    });
+    const errors: unknown[] = [];
+    const values: unknown[] = [];
+    const subscription = fromChromeEvent(event).subscribe({
+      next: (value: [string, number]) => values.push(value),
+      error: (error: unknown) => errors.push(error),
+    });
+
+    event.fireEvent("Hi!", 2);
+    subscription.unsubscribe();
+
+    expect(errors).toEqual([]);
+    expect(values).toEqual([["Hi!", 2]]);
+    if (descriptor) {
+      Object.defineProperty(chrome.runtime, "lastError", descriptor);
+    } else {
+      delete (chrome.runtime as { lastError?: chrome.runtime.LastError }).lastError;
+    }
+  });
 });

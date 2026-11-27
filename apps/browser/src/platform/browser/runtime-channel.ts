@@ -110,6 +110,7 @@ export function connectPagePort(
       port.onMessage.addListener(handlers.onMessage);
     }
     port.onDisconnect.addListener(onDisconnect);
+    watchRuntimePort(port);
   };
 
   const onPageHide = (event: Event) => {
@@ -180,18 +181,95 @@ export function sendRuntimeMessage(
   }
 }
 
-/** `port.postMessage` has no callback. A dead port throws; read lastError either way. */
-export function postToRuntimePort(
-  port: chrome.runtime.Port | null | undefined,
-  message: unknown,
-): void {
-  if (port == null) {
+type RuntimePortLife = {
+  dead: boolean;
+};
+
+/**
+ * Chrome and Firefox native ports are not the same TypeScript type.
+ * Both can throw when posted to after disconnect, so the helper accepts either.
+ */
+type RuntimeMessagePort = {
+  postMessage: (message: unknown) => void;
+  onDisconnect?: {
+    addListener: (callback: () => void) => void;
+    removeListener: (callback: () => void) => void;
+  };
+};
+
+const runtimePortLives = new WeakMap<RuntimeMessagePort, RuntimePortLife>();
+
+/**
+ * Marks the port dead when Chrome disconnects it, reads `lastError`, and drops
+ * our listener. Safe to call more than once. A port that is already dead stays dead.
+ */
+export function watchRuntimePort(port: RuntimeMessagePort | null | undefined): void {
+  if (port == null || runtimePortLives.has(port)) {
     return;
   }
-  try {
-    port.postMessage(message);
-  } catch (error) {
+  const life: RuntimePortLife = { dead: false };
+  runtimePortLives.set(port, life);
+  const onDisconnect = () => {
+    life.dead = true;
     consumeRuntimeLastError();
-    throw error;
+    try {
+      port.onDisconnect?.removeListener(onDisconnect);
+    } catch {
+      consumeRuntimeLastError();
+    }
+  };
+  try {
+    port.onDisconnect?.addListener(onDisconnect);
+  } catch {
+    consumeRuntimeLastError();
+    life.dead = true;
   }
+}
+
+export function runtimePortIsDisconnected(port: RuntimeMessagePort | null | undefined): boolean {
+  if (port == null) {
+    return true;
+  }
+  return runtimePortLives.get(port)?.dead === true;
+}
+
+/**
+ * Posts on a `chrome.runtime.Port` without ever throwing.
+ * A disconnected port throws "Attempting to use a disconnected port object".
+ * That exception is what chrome://extensions lists when it escapes. We skip
+ * ports we already saw disconnect, and if Chrome throws anyway the exception
+ * stops here.
+ */
+export function postToRuntimePort(
+  port: RuntimeMessagePort | null | undefined,
+  message: unknown,
+): boolean {
+  if (port == null) {
+    return false;
+  }
+  watchRuntimePort(port);
+  if (runtimePortLives.get(port)?.dead) {
+    return false;
+  }
+  try {
+    // The one allowed runtime-port post. Every other call site uses this function.
+    // eslint-disable-next-line no-restricted-syntax
+    port.postMessage(message);
+    return true;
+  } catch {
+    consumeRuntimeLastError();
+    const life = runtimePortLives.get(port);
+    if (life) {
+      life.dead = true;
+    }
+    return false;
+  }
+}
+
+/** Same as {@link postToRuntimePort}. */
+export function safePostMessage(
+  port: RuntimeMessagePort | null | undefined,
+  message: unknown,
+): boolean {
+  return postToRuntimePort(port, message);
 }

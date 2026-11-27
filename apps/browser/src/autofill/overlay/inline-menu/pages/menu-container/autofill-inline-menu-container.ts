@@ -5,6 +5,7 @@ import {
   consumeRuntimeLastError,
   isPageCacheDisconnect,
   postToRuntimePort,
+  watchRuntimePort,
 } from "../../../../../platform/browser/runtime-channel";
 import { generateRandomChars, setElementStyles } from "../../../../utils";
 import {
@@ -171,6 +172,7 @@ export class AutofillInlineMenuContainer {
 
   private openBackgroundPort() {
     this.port = chrome.runtime.connect({ name: this.portName });
+    watchRuntimePort(this.port);
     this.port?.onDisconnect.addListener(this.handlePortDisconnect);
   }
 

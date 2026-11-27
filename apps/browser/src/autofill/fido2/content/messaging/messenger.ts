@@ -120,13 +120,18 @@ export class Messenger {
       }
 
       const message = event.data;
-      const port = event.ports?.[0];
-      if (message?.SENDER !== SENDER || message.senderId == this.messengerId || port == null) {
+      // MessageChannel port, not a chrome.runtime.Port.
+      const messagePort = event.ports?.[0];
+      if (
+        message?.SENDER !== SENDER ||
+        message.senderId == this.messengerId ||
+        messagePort == null
+      ) {
         return;
       }
 
       const abortController = new AbortController();
-      port.onmessage = (event: MessageEvent<MessageWithMetadata>) => {
+      messagePort.onmessage = (event: MessageEvent<MessageWithMetadata>) => {
         if (event.data.type === MessageTypes.AbortRequest) {
           abortController.abort();
         }
@@ -137,16 +142,16 @@ export class Messenger {
 
       try {
         const handlerResponse = await this.handler(message, abortController);
-        port.postMessage({ ...handlerResponse, SENDER });
+        messagePort.postMessage({ ...handlerResponse, SENDER });
       } catch (error) {
-        port.postMessage({
+        messagePort.postMessage({
           SENDER,
           type: MessageTypes.ErrorResponse,
           error: JSON.stringify(error, Object.getOwnPropertyNames(error)),
         });
       } finally {
         this.onDestroy.removeEventListener("destroy", onDestroyListener);
-        port.close();
+        messagePort.close();
       }
     };
   }

@@ -1,6 +1,7 @@
 import { Observable } from "rxjs";
 
 import { BrowserApi } from "./browser-api";
+import { consumeRuntimeLastError } from "./runtime-channel";
 
 /**
  * Converts a Chrome event to an Observable stream.
@@ -25,11 +26,10 @@ export function fromChromeEvent<T extends unknown[]>(
 ): Observable<T> {
   return new Observable<T>((subscriber) => {
     const handler = (...args: readonly unknown[]) => {
-      if (chrome.runtime.lastError) {
-        subscriber.error(chrome.runtime.lastError);
-        return;
-      }
-
+      // onDisconnect sets lastError to explain the close. Turning that into
+      // subscriber.error is an uncaught error on chrome://extensions, and it
+      // drops the disconnect event the caller is waiting for.
+      consumeRuntimeLastError();
       subscriber.next(args as T);
     };
 

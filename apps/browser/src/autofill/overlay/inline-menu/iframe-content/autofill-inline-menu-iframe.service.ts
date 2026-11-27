@@ -5,6 +5,7 @@ import { BrowserApi } from "../../../../platform/browser/browser-api";
 import {
   consumeRuntimeLastError,
   isPageCacheDisconnect,
+  watchRuntimePort,
 } from "../../../../platform/browser/runtime-channel";
 import { sendExtensionMessage, setElementStyles } from "../../../utils";
 import { resolveTheme } from "../../../utils/resolve-theme";
@@ -143,6 +144,7 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
    */
   private setupPortMessageListener = () => {
     this.port = chrome.runtime.connect({ name: this.portName });
+    watchRuntimePort(this.port);
     this.port.onDisconnect.addListener(this.handlePortDisconnect);
     this.port.onMessage.addListener(this.handlePortMessage);
 

@@ -17,7 +17,7 @@ import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authenticatio
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
-import { consumeRuntimeLastError } from "../../platform/browser/runtime-channel";
+import { consumeRuntimeLastError, watchRuntimePort } from "../../platform/browser/runtime-channel";
 import { AutofillerCommand, AutofillLifecycleCommand } from "../enums/autofill-message.enums";
 import { AutofillPort } from "../enums/autofill-port.enum";
 import { assertSynchronousScope } from "../rx";
@@ -373,7 +373,13 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
    */
   retireAllFrames() {
     this.markConnectedFramesMonitoring(false);
-    this.connectedPorts.value.forEach((port) => port.disconnect());
+    this.connectedPorts.value.forEach((port) => {
+      try {
+        port.disconnect();
+      } catch {
+        consumeRuntimeLastError();
+      }
+    });
     this.portEvent$.next({ type: "clear" });
   }
 
@@ -386,6 +392,7 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
       return;
     }
 
+    watchRuntimePort(port);
     this.portEvent$.next({ type: "connect", port });
     port.onDisconnect.addListener(this.handleInjectScriptPortOnDisconnect);
   };
