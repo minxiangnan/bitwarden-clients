@@ -10,9 +10,8 @@ export class AutofillInlineMenuIframeElement {
     iframeTitle: string,
     ariaAlert?: string,
   ) {
-    const style = this.createInternalStyleNode();
     const shadow: ShadowRoot = element.attachShadow({ mode: "closed" });
-    shadow.prepend(style);
+    this.attachResetStyles(shadow);
 
     this.autofillInlineMenuIframeService = new AutofillInlineMenuIframeService(
       shadow,
@@ -25,14 +24,13 @@ export class AutofillInlineMenuIframeElement {
   }
 
   /**
-   * Builds and prepends an internal stylesheet to the container node with rules
-   * to prevent targeting by the host's global styling rules. This should only be
-   * used for pseudo elements such as `::backdrop` or `::before`. All other
-   * styles should be applied inline upon the parent container itself for improved
-   * specificity priority.
+   * Reset rules for pseudo elements such as `::backdrop` or `::before`.
+   * A constructed stylesheet is not an inline `<style>`, so a page
+   * `style-src 'self'` does not block it. Older environments still get a
+   * style element.
    */
-  private createInternalStyleNode() {
-    const css = document.createTextNode(`
+  private attachResetStyles(shadow: ShadowRoot) {
+    const css = `
       :host::backdrop,
       :host::before,
       :host::after {
@@ -62,12 +60,20 @@ export class AutofillInlineMenuIframeElement {
         content: "" !important;
         pointer-events: all !important;
       }
-    `);
+    `;
+    if (typeof CSSStyleSheet === "function") {
+      try {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(css);
+        shadow.adoptedStyleSheets = [sheet];
+        return;
+      } catch {
+        // jsdom and older browsers fall through to a style element.
+      }
+    }
     const style = globalThis.document.createElement("style");
-    style.setAttribute("type", "text/css");
-    style.appendChild(css);
-
-    return style;
+    style.textContent = css;
+    shadow.prepend(style);
   }
 
   /**

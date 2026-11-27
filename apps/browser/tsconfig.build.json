@@ -6,6 +6,7 @@
     "src/popup/polyfills.ts",
     "src/popup/main.ts",
     "src/autofill/content/trigger-autofill-script-injection.ts",
+    "src/autofill/content/page-submit-hook.ts",
     "src/autofill/content/bootstrap-autofill.ts",
     "src/autofill/content/bootstrap-autofill-overlay.ts",
     "src/autofill/content/bootstrap-autofill-overlay-menu.ts",

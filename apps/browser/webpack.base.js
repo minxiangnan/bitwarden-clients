@@ -264,6 +264,10 @@ module.exports.buildConfig = function buildConfig(params) {
         __dirname,
         "src/autofill/content/trigger-autofill-script-injection.ts",
       ),
+      "content/page-submit-hook": path.resolve(
+        __dirname,
+        "src/autofill/content/page-submit-hook.ts",
+      ),
       "content/bootstrap-autofill": path.resolve(
         __dirname,
         "src/autofill/content/bootstrap-autofill.ts",
