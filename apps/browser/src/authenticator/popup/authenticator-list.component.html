@@ -120,11 +120,20 @@
                 }
               </span>
               @if (!entry.undecryptable) {
-                <app-authenticator-code
-                  class="tw-shrink-0"
-                  [entry]="entry"
-                  (codeChange)="rememberCode(entry.id, $event)"
-                />
+                <span class="tw-flex tw-shrink-0 tw-flex-col tw-items-end">
+                  <app-authenticator-code
+                    [entry]="entry"
+                    (codeChange)="rememberCode(entry.id, $event)"
+                  />
+                  @if (copiedId() === entry.id) {
+                    <span
+                      class="tw-text-[10px] tw-font-medium tw-leading-3 tw-text-primary-600"
+                      data-testid="authenticator-copied"
+                    >
+                      {{ "copiedCheck" | i18n }}
+                    </span>
+                  }
+                </span>
               }
             </button>
             <button

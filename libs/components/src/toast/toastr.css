@@ -58,3 +58,15 @@
 .toast-container.toast-top-full-width {
   top: var(--bit-toast-top);
 }
+
+/* Short success notices sit as one small capsule and do not cover the list. */
+.toast-container .ngx-toastr.bit-toast-compact {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  width: auto;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

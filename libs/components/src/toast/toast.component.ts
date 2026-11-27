@@ -53,6 +53,11 @@ export class ToastComponent {
   /** Emits when the user presses the close button */
   readonly onClose = output<void>();
 
+  /**
+   * A one-line capsule for short success notices. No close button and no progress bar.
+   */
+  readonly compact = input(false);
+
   protected readonly iconClass = computed(() => variants[this.variant()].icon);
 
   protected readonly bgColor = computed(() => variants[this.variant()].bgColor);

@@ -9385,6 +9385,9 @@
   "authenticatorLoadError": {
     "message": "Could not load authenticator codes."
   },
+  "copiedCheck": {
+    "message": "Copied ✓"
+  },
   "authenticatorCopied": {
     "message": "Code copied"
   },

@@ -92,6 +92,17 @@ describe("AuthenticatorListComponent", () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
+  it("marks a copied code on the row instead of stacking a toast", async () => {
+    const { fixture } = setup();
+    const toast = TestBed.inject(ToastService);
+    fixture.componentInstance["rememberCode"]("1", "123456");
+
+    await fixture.componentInstance["copy"](entry);
+
+    expect(toast.showToast).not.toHaveBeenCalled();
+    expect(fixture.componentInstance["copiedId"]()).toBe("1");
+  });
+
   it("shows the MCP alias and a zh-CN sync time", async () => {
     const { fixture, authenticator } = setup();
     authenticator.state$.next({
