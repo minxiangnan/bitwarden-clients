@@ -79,5 +79,11 @@ describe("authenticator otpauth", () => {
       "2",
     ]);
     expect(filterAuthenticatorEntries([notes], "backup", false)).toHaveLength(1);
+    expect(filterAuthenticatorEntries([notes], "BACKUP", false)).toHaveLength(1);
+
+    const chinese = { ...entry, id: "4", name: "邮箱", notes: "备用机" };
+    expect(filterAuthenticatorEntries([chinese], "邮箱", false)).toHaveLength(1);
+    expect(filterAuthenticatorEntries([chinese], "备用", false)).toHaveLength(1);
+    expect(filterAuthenticatorEntries([chinese], "不存在", false)).toHaveLength(0);
   });
 });

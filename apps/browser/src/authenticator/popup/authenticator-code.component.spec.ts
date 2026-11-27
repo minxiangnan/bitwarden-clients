@@ -42,6 +42,28 @@ describe("AuthenticatorCodeComponent", () => {
 
     expect(fixture.nativeElement.textContent).toContain("123 456");
     expect(fixture.nativeElement.textContent).toContain("30");
+    expect(fixture.nativeElement.textContent).not.toContain("下一段");
+    jest.restoreAllMocks();
+  });
+
+  it("shows the next code only in the last five seconds", async () => {
+    const totpService = {
+      getCode$: () => of({ code: "123456", period: 30 }),
+    };
+    TestBed.configureTestingModule({
+      imports: [AuthenticatorCodeComponent],
+      providers: [{ provide: TotpService, useValue: totpService }],
+    });
+    jest.spyOn(Date, "now").mockReturnValue(25_000);
+
+    const fixture = TestBed.createComponent(AuthenticatorCodeComponent);
+    fixture.componentRef.setInput("entry", entry);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("下一段");
     jest.restoreAllMocks();
   });
 });

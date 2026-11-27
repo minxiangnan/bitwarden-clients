@@ -66,6 +66,11 @@
       </bit-form-field>
     }
 
+    <bit-form-field>
+      <bit-label>{{ "notes" | i18n }}</bit-label>
+      <textarea bitInput rows="2" formControlName="notes"></textarea>
+    </bit-form-field>
+
     <button
       type="button"
       class="tw-self-start tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-text-primary-600"
@@ -154,10 +159,6 @@
           [max]="maxPeriod"
           formControlName="period"
         />
-      </bit-form-field>
-      <bit-form-field>
-        <bit-label>{{ "notes" | i18n }}</bit-label>
-        <textarea bitInput rows="2" formControlName="notes"></textarea>
       </bit-form-field>
     }
 

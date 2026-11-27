@@ -190,6 +190,22 @@ describe("AuthenticatorFormComponent", () => {
     );
   });
 
+  it("saves edited notes with the entry", async () => {
+    const component = setup();
+    component["form"].patchValue({
+      secret: "WQIQ25BRKZYCJVYP",
+      name: "ada",
+      notes: "备用机",
+    });
+
+    await component["submit"]();
+
+    expect(TestBed.inject(AuthenticatorService).save).toHaveBeenCalledWith(
+      expect.objectContaining({ notes: "备用机", name: "ada" }),
+      undefined,
+    );
+  });
+
   it("accepts digits 5 through 10 and periods up to one day", () => {
     const component = setup();
 
