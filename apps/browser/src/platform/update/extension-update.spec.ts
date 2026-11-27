@@ -65,6 +65,7 @@ describe("extension update selection", () => {
     expect(isNewerVersion("1.2.1", "1.2.0")).toBe(true);
     expect(isNewerVersion("1.2.2", "1.2.1")).toBe(true);
     expect(isNewerVersion("1.2.3", "1.2.2")).toBe(true);
+    expect(isNewerVersion("1.2.4", "1.2.3")).toBe(true);
     expect(isNewerVersion("1.1.8", "1.1.9")).toBe(false);
   });
 
@@ -111,9 +112,9 @@ describe("extension update selection", () => {
     expect(TERRACOTTA.toLowerCase()).not.toBe("#000000");
   });
 
-  it("tells the user to overwrite the folder and refresh, without an automatic download", () => {
-    expect(UPDATE_STEPS).toContain("解压后覆盖原来的扩展文件夹");
-    expect(UPDATE_STEPS).toContain("点刷新");
+  it("tells the user to overwrite the same folder and refresh, without an automatic download", () => {
+    expect(UPDATE_STEPS).toContain("解压覆盖到同一文件夹并点刷新");
+    expect(UPDATE_STEPS).toContain("不要解压到新文件夹");
     expect(UPDATE_STEPS).toContain("不会自动下载或安装");
   });
 });

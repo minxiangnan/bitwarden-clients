@@ -59,7 +59,7 @@ describe("extension update background", () => {
 
     expect(result).toEqual({
       ok: true,
-      statusText: "发现新版本 1.2.0",
+      statusText: "发现新版本 1.2.0。解压覆盖到同一文件夹并点刷新。",
       noticeVersion: "1.2.0",
     });
     expect(written[0]?.release?.version).toBe("1.2.0");

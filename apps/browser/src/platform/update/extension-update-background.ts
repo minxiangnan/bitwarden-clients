@@ -208,7 +208,9 @@ export async function checkForExtensionUpdate(deps: UpdateDeps = {}): Promise<Up
     setBadge(notice ? "新" : "");
     return {
       ok: true,
-      statusText: notice ? `发现新版本 ${notice.version}` : `已是最新版本 ${currentVersion}`,
+      statusText: notice
+        ? `发现新版本 ${notice.version}。解压覆盖到同一文件夹并点刷新。`
+        : `已是最新版本 ${currentVersion}`,
       noticeVersion: notice?.version ?? null,
     };
   }
@@ -232,7 +234,9 @@ export async function checkForExtensionUpdate(deps: UpdateDeps = {}): Promise<Up
     setBadge(notice ? "新" : "");
     return {
       ok: true,
-      statusText: notice ? `发现新版本 ${notice.version}` : `已是最新版本 ${currentVersion}`,
+      statusText: notice
+        ? `发现新版本 ${notice.version}。解压覆盖到同一文件夹并点刷新。`
+        : `已是最新版本 ${currentVersion}`,
       noticeVersion: notice?.version ?? null,
     };
   } catch {
