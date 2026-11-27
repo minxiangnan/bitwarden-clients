@@ -185,13 +185,25 @@ type RuntimePortLife = {
   dead: boolean;
 };
 
-const runtimePortLives = new WeakMap<chrome.runtime.Port, RuntimePortLife>();
+/**
+ * Chrome and Firefox native ports are not the same TypeScript type.
+ * Both can throw when posted to after disconnect, so the helper accepts either.
+ */
+type RuntimeMessagePort = {
+  postMessage: (message: unknown) => void;
+  onDisconnect?: {
+    addListener: (callback: () => void) => void;
+    removeListener: (callback: () => void) => void;
+  };
+};
+
+const runtimePortLives = new WeakMap<RuntimeMessagePort, RuntimePortLife>();
 
 /**
  * Marks the port dead when Chrome disconnects it, reads `lastError`, and drops
  * our listener. Safe to call more than once. A port that is already dead stays dead.
  */
-export function watchRuntimePort(port: chrome.runtime.Port | null | undefined): void {
+export function watchRuntimePort(port: RuntimeMessagePort | null | undefined): void {
   if (port == null || runtimePortLives.has(port)) {
     return;
   }
@@ -214,7 +226,7 @@ export function watchRuntimePort(port: chrome.runtime.Port | null | undefined): 
   }
 }
 
-export function runtimePortIsDisconnected(port: chrome.runtime.Port | null | undefined): boolean {
+export function runtimePortIsDisconnected(port: RuntimeMessagePort | null | undefined): boolean {
   if (port == null) {
     return true;
   }
@@ -229,7 +241,7 @@ export function runtimePortIsDisconnected(port: chrome.runtime.Port | null | und
  * stops here.
  */
 export function postToRuntimePort(
-  port: chrome.runtime.Port | null | undefined,
+  port: RuntimeMessagePort | null | undefined,
   message: unknown,
 ): boolean {
   if (port == null) {
@@ -256,7 +268,7 @@ export function postToRuntimePort(
 
 /** Same as {@link postToRuntimePort}. */
 export function safePostMessage(
-  port: chrome.runtime.Port | null | undefined,
+  port: RuntimeMessagePort | null | undefined,
   message: unknown,
 ): boolean {
   return postToRuntimePort(port, message);
