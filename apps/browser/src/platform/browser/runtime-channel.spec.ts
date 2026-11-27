@@ -4,6 +4,8 @@ import {
   consumeRuntimeLastError,
   isClosedBrowserTarget,
   isPageCacheDisconnect,
+  postToRuntimePort,
+  safePostMessage,
   sendRuntimeMessage,
 } from "./runtime-channel";
 
@@ -158,6 +160,65 @@ describe("runtime channel", () => {
       port.onDisconnect.addListener.mock.calls[0][0](port as unknown as chrome.runtime.Port);
 
       expect(onDisconnect).toHaveBeenCalledWith(port);
+    });
+  });
+
+  describe("postToRuntimePort", () => {
+    function mockPort(postMessage: jest.Mock = jest.fn()) {
+      const listeners: Array<() => void> = [];
+      return {
+        postMessage,
+        onDisconnect: {
+          addListener: jest.fn((listener: () => void) => {
+            listeners.push(listener);
+          }),
+          removeListener: jest.fn((listener: () => void) => {
+            const index = listeners.indexOf(listener);
+            if (index >= 0) {
+              listeners.splice(index, 1);
+            }
+          }),
+        },
+        disconnect() {
+          listeners.slice().forEach((listener) => listener());
+        },
+      };
+    }
+
+    it("posts while the port is open", () => {
+      const port = mockPort();
+
+      expect(postToRuntimePort(port as unknown as chrome.runtime.Port, { ok: true })).toBe(true);
+
+      expect(port.postMessage).toHaveBeenCalledWith({ ok: true });
+    });
+
+    it("does not throw after disconnect, removes its listener, and drops the next post", () => {
+      const port = mockPort();
+      postToRuntimePort(port as unknown as chrome.runtime.Port, { first: true });
+
+      port.disconnect();
+
+      expect(port.onDisconnect.removeListener).toHaveBeenCalledTimes(1);
+      expect(port.onDisconnect.addListener.mock.calls[0][0]).toBe(
+        port.onDisconnect.removeListener.mock.calls[0][0],
+      );
+      expect(safePostMessage(port as unknown as chrome.runtime.Port, { second: true })).toBe(false);
+      expect(port.postMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("swallows Attempting to use a disconnected port object and does not post again", () => {
+      const postMessage = jest.fn(() => {
+        throw new Error("Attempting to use a disconnected port object");
+      });
+      const port = mockPort(postMessage);
+
+      expect(() =>
+        postToRuntimePort(port as unknown as chrome.runtime.Port, { late: true }),
+      ).not.toThrow();
+      expect(postToRuntimePort(port as unknown as chrome.runtime.Port, { late: true })).toBe(false);
+      expect(safePostMessage(port as unknown as chrome.runtime.Port, { again: true })).toBe(false);
+      expect(postMessage).toHaveBeenCalledTimes(1);
     });
   });
 });

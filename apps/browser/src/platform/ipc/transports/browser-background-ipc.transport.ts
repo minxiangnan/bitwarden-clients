@@ -2,7 +2,11 @@ import { IpcMessage, isIpcMessage, reconstructIpcMessage } from "@bitwarden/comm
 import { IncomingMessage, OutgoingMessage, Source } from "@bitwarden/sdk-internal";
 
 import { BrowserApi } from "../../browser/browser-api";
-import { consumeRuntimeLastError } from "../../browser/runtime-channel";
+import {
+  consumeRuntimeLastError,
+  postToRuntimePort,
+  watchRuntimePort,
+} from "../../browser/runtime-channel";
 
 import { DESTINATION_UNREACHABLE_ERROR } from "./errors";
 import { IPC_FOREGROUND_PORT_NAME, IPC_FOREGROUND_WAKE_COMMAND } from "./ipc-foreground-port-name";
@@ -40,18 +44,19 @@ export class BrowserBackgroundIpcTransport {
       throw new Error("Destination not supported.");
     }
 
-    try {
-      this.connect().postMessage({
-        type: "bitwarden-ipc-message",
-        message: {
-          destination: message.destination,
-          payload: [...message.payload],
-          topic: message.topic,
-        },
-      } satisfies IpcMessage);
-    } catch {
-      consumeRuntimeLastError();
-      this.port = undefined;
+    const port = this.connect();
+    const delivered = postToRuntimePort(port, {
+      type: "bitwarden-ipc-message",
+      message: {
+        destination: message.destination,
+        payload: [...message.payload],
+        topic: message.topic,
+      },
+    } satisfies IpcMessage);
+    if (!delivered) {
+      if (this.port === port) {
+        this.port = undefined;
+      }
       throw new Error(DESTINATION_UNREACHABLE_ERROR);
     }
   }
@@ -84,12 +89,12 @@ export class BrowserBackgroundIpcTransport {
         this.port = undefined;
       }
 
-      // Suppress error message
-      void chrome.runtime.lastError;
+      consumeRuntimeLastError();
     };
 
     BrowserApi.addListener(port.onMessage, onMessage);
     BrowserApi.addListener(port.onDisconnect, onDisconnect);
+    watchRuntimePort(port);
 
     this.port = port;
     return port;

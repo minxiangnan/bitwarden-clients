@@ -4,7 +4,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { StateProvider } from "@bitwarden/common/platform/state";
 
 import { BrowserApi } from "../../browser/browser-api";
-import { consumeRuntimeLastError } from "../../browser/runtime-channel";
+import { consumeRuntimeLastError, watchRuntimePort } from "../../browser/runtime-channel";
 import {
   BrowserTaskSchedulerPortActions,
   BrowserTaskSchedulerPortMessage,
@@ -35,6 +35,7 @@ export class BackgroundTaskSchedulerService extends BrowserTaskSchedulerServiceI
       return;
     }
 
+    watchRuntimePort(port);
     this.ports.add(port);
     port.onMessage.addListener(this.handlePortMessage);
     port.onDisconnect.addListener(this.handlePortOnDisconnect);

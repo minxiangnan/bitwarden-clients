@@ -13,6 +13,7 @@ import {
 } from "@bitwarden/sdk-internal";
 
 import { BrowserApi } from "../../browser/browser-api";
+import { postToRuntimePort, watchRuntimePort } from "../../browser/runtime-channel";
 
 import { DESTINATION_UNREACHABLE_ERROR } from "./errors";
 
@@ -69,7 +70,7 @@ export class DesktopIpcTransport {
       throw new Error(DESTINATION_UNREACHABLE_ERROR);
     }
 
-    connected.port.postMessage({
+    const delivered = postToRuntimePort(connected.port, {
       type: "bitwarden-ipc-message",
       message: {
         destination: message.destination,
@@ -77,6 +78,10 @@ export class DesktopIpcTransport {
         topic: message.topic,
       },
     } satisfies IpcMessage);
+    if (!delivered) {
+      this.setState({ kind: "disconnected" });
+      throw new Error(DESTINATION_UNREACHABLE_ERROR);
+    }
   }
 
   /**
@@ -136,6 +141,7 @@ export class DesktopIpcTransport {
 
       // Register the disconnect handler before awaiting the discover handshake so that a
       // disconnect during the handshake window (e.g. the desktop app closing) is still handled.
+      watchRuntimePort(port);
       port.onDisconnect.addListener(() => {
         if (this.currentState().kind === "connected") {
           this.logService.warning("[IPC] Disconnected from Bitwarden Desktop App Transport");

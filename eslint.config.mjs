@@ -299,6 +299,7 @@ export default tseslint.config(
         // together they follow these methods everywhere without a third, colliding `no-restricted-syntax` block.
         doAutoFillSyntaxRule(),
         unsafeAutofillTabWithCipherSyntaxRule(),
+        runtimePortPostMessageSyntaxRule(),
       ],
     },
   },
@@ -313,6 +314,7 @@ export default tseslint.config(
         "error",
         doAutoFillSyntaxRule(),
         unsafeAutofillTabWithCipherSyntaxRule(),
+        runtimePortPostMessageSyntaxRule(),
       ],
     },
   },
@@ -326,7 +328,11 @@ export default tseslint.config(
       "apps/browser/src/**/*.spec.ts",
     ],
     rules: {
-      "no-restricted-syntax": ["error", ...fillCipherPolicySyntaxRules()],
+      "no-restricted-syntax": [
+        "error",
+        ...fillCipherPolicySyntaxRules(),
+        runtimePortPostMessageSyntaxRule(),
+      ],
     },
   },
   {
@@ -344,6 +350,7 @@ export default tseslint.config(
         doAutoFillSyntaxRule(),
         unsafeAutofillTabWithCipherSyntaxRule(),
         ...fillCipherPolicySyntaxRules(),
+        runtimePortPostMessageSyntaxRule(),
       ],
     },
   },
@@ -359,6 +366,7 @@ export default tseslint.config(
         doAutoFillSyntaxRule(),
         unsafeAutofillTabWithCipherSyntaxRule(),
         ...fillCipherPolicySyntaxRules(),
+        runtimePortPostMessageSyntaxRule(),
       ],
     },
   },
@@ -979,6 +987,21 @@ function fillCipherPolicySyntaxRules() {
       message,
     },
   ];
+}
+
+/**
+ * Flags `postMessage` on a chrome.runtime.Port. A later block replaces the whole
+ * `no-restricted-syntax` list, so every browser block below includes this entry.
+ * Window, MessageChannel, and BroadcastChannel posts are not runtime ports.
+ * @returns {any}
+ */
+function runtimePortPostMessageSyntaxRule() {
+  return {
+    selector:
+      "CallExpression[callee.property.name='postMessage']:not([callee.object.type='ThisExpression']):not([callee.object.name=/^(window|parent|self|globalThis|globalContext|localPort|messagePort)$/]):not([callee.object.property.name=/^(contentWindow|parent|broadcastChannel|port1|port2)$/])",
+    message:
+      "Do not call postMessage on a chrome.runtime.Port. Use postToRuntimePort() so a disconnected port cannot throw.",
+  };
 }
 
 /**

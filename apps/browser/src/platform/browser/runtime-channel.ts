@@ -110,6 +110,7 @@ export function connectPagePort(
       port.onMessage.addListener(handlers.onMessage);
     }
     port.onDisconnect.addListener(onDisconnect);
+    watchRuntimePort(port);
   };
 
   const onPageHide = (event: Event) => {
@@ -180,18 +181,83 @@ export function sendRuntimeMessage(
   }
 }
 
-/** `port.postMessage` has no callback. A dead port throws; read lastError either way. */
+type RuntimePortLife = {
+  dead: boolean;
+};
+
+const runtimePortLives = new WeakMap<chrome.runtime.Port, RuntimePortLife>();
+
+/**
+ * Marks the port dead when Chrome disconnects it, reads `lastError`, and drops
+ * our listener. Safe to call more than once. A port that is already dead stays dead.
+ */
+export function watchRuntimePort(port: chrome.runtime.Port | null | undefined): void {
+  if (port == null || runtimePortLives.has(port)) {
+    return;
+  }
+  const life: RuntimePortLife = { dead: false };
+  runtimePortLives.set(port, life);
+  const onDisconnect = () => {
+    life.dead = true;
+    consumeRuntimeLastError();
+    try {
+      port.onDisconnect?.removeListener(onDisconnect);
+    } catch {
+      consumeRuntimeLastError();
+    }
+  };
+  try {
+    port.onDisconnect?.addListener(onDisconnect);
+  } catch {
+    consumeRuntimeLastError();
+    life.dead = true;
+  }
+}
+
+export function runtimePortIsDisconnected(port: chrome.runtime.Port | null | undefined): boolean {
+  if (port == null) {
+    return true;
+  }
+  return runtimePortLives.get(port)?.dead === true;
+}
+
+/**
+ * Posts on a `chrome.runtime.Port` without ever throwing.
+ * A disconnected port throws "Attempting to use a disconnected port object".
+ * That exception is what chrome://extensions lists when it escapes. We skip
+ * ports we already saw disconnect, and if Chrome throws anyway the exception
+ * stops here.
+ */
 export function postToRuntimePort(
   port: chrome.runtime.Port | null | undefined,
   message: unknown,
-): void {
+): boolean {
   if (port == null) {
-    return;
+    return false;
+  }
+  watchRuntimePort(port);
+  if (runtimePortLives.get(port)?.dead) {
+    return false;
   }
   try {
+    // The one allowed runtime-port post. Every other call site uses this function.
+    // eslint-disable-next-line no-restricted-syntax
     port.postMessage(message);
-  } catch (error) {
+    return true;
+  } catch {
     consumeRuntimeLastError();
-    throw error;
+    const life = runtimePortLives.get(port);
+    if (life) {
+      life.dead = true;
+    }
+    return false;
   }
+}
+
+/** Same as {@link postToRuntimePort}. */
+export function safePostMessage(
+  port: chrome.runtime.Port | null | undefined,
+  message: unknown,
+): boolean {
+  return postToRuntimePort(port, message);
 }

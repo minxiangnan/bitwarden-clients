@@ -7,12 +7,12 @@ import { EventSecurity } from "../utils/event-security";
 
 describe("ContentMessageHandler", () => {
   const sendMessageSpy = jest.spyOn(chrome.runtime, "sendMessage");
-  let portOnDisconnectAddListenerCallback: CallableFunction;
+  const portDisconnectListeners: CallableFunction[] = [];
   chrome.runtime.connect = jest.fn(() =>
     mock<chrome.runtime.Port>({
       onDisconnect: {
         addListener: jest.fn((callback) => {
-          portOnDisconnectAddListenerCallback = callback;
+          portDisconnectListeners.push(callback);
         }),
         removeListener: jest.fn(),
       },
@@ -29,6 +29,7 @@ describe("ContentMessageHandler", () => {
   };
 
   beforeEach(() => {
+    portDisconnectListeners.length = 0;
     jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(true);
     // FIXME: Remove when updating file. Eslint update
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -191,7 +192,7 @@ describe("ContentMessageHandler", () => {
     it("removes the window message listener and the extension message listener", () => {
       const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
 
-      portOnDisconnectAddListenerCallback(mock<chrome.runtime.Port>());
+      portDisconnectListeners.forEach((callback) => callback(mock<chrome.runtime.Port>()));
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith("pagehide", expect.any(Function));
       expect(removeEventListenerSpy).toHaveBeenCalledWith("pageshow", expect.any(Function));

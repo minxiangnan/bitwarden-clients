@@ -69,7 +69,11 @@ import { GeneratorHistoryService } from "@bitwarden/generator-history";
 // eslint-disable-next-line no-restricted-imports
 import { openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
-import { consumeRuntimeLastError } from "../../platform/browser/runtime-channel";
+import {
+  consumeRuntimeLastError,
+  postToRuntimePort,
+  watchRuntimePort,
+} from "../../platform/browser/runtime-channel";
 // FIXME (PM-22628): Popup imports are forbidden in background
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -1753,7 +1757,13 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     sender: chrome.runtime.MessageSender,
   ) {
     if (!this.senderTabHasFocusedField(sender)) {
-      this.expiredPorts.forEach((port) => port.disconnect());
+      this.expiredPorts.forEach((port) => {
+        try {
+          port.disconnect();
+        } catch {
+          consumeRuntimeLastError();
+        }
+      });
       this.expiredPorts = [];
 
       return;
@@ -3581,6 +3591,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
 
     this.storeOverlayPort(port);
+    watchRuntimePort(port);
     port.onMessage.addListener(this.handleOverlayElementPortMessage);
 
     const isInlineMenuListPort = port.name === AutofillOverlayPort.List;
@@ -3653,24 +3664,34 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   };
 
   /**
-   * Wraps the port.postMessage method to handle any errors that may occur.
+   * Posts to an overlay port. A port whose iframe already closed is dropped
+   * and is not logged: that close is expected.
    *
    * @param port - The port to send the message to
    * @param message - The message to send to the port
    */
   private postMessageToPort = (port: chrome.runtime.Port | null, message: Record<string, any>) => {
-    if (!port) {
-      return;
-    }
-
-    try {
-      port.postMessage(message);
-    } catch (error) {
-      consumeRuntimeLastError();
-      // Catch when the port.postMessage call triggers an error to ensure login execution continues.
-      this.logService.error(error);
+    if (!postToRuntimePort(port, message) && port != null) {
+      this.forgetOverlayPort(port);
     }
   };
+
+  /** Drops a port that already disconnected so a later message cannot use it. */
+  private forgetOverlayPort(port: chrome.runtime.Port) {
+    if (this.inlineMenuListPort === port) {
+      this.inlineMenuListPort = null;
+    }
+    if (this.inlineMenuButtonPort === port) {
+      this.inlineMenuButtonPort = null;
+    }
+    if (this.inlineMenuListMessageConnectorPort === port) {
+      this.inlineMenuListMessageConnectorPort = null;
+    }
+    if (this.inlineMenuButtonMessageConnectorPort === port) {
+      this.inlineMenuButtonMessageConnectorPort = null;
+    }
+    this.expiredPorts = this.expiredPorts.filter((expired) => expired !== port);
+  }
 
   /**
    * Stores the connected overlay port and sets up any existing ports to be disconnected.

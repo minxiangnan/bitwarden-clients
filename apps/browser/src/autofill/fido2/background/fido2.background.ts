@@ -15,7 +15,10 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { VaultSettingsService } from "@bitwarden/common/vault/abstractions/vault-settings/vault-settings.service";
 
 import { BrowserApi } from "../../../platform/browser/browser-api";
-import { consumeRuntimeLastError } from "../../../platform/browser/runtime-channel";
+import {
+  consumeRuntimeLastError,
+  watchRuntimePort,
+} from "../../../platform/browser/runtime-channel";
 import { ScriptInjectorService } from "../../../platform/services/abstractions/script-injector.service";
 import { AbortManager } from "../../../vault/background/abort-manager";
 import { Fido2ContentScript, Fido2ContentScriptId } from "../enums/fido2-content-script.enum";
@@ -508,6 +511,7 @@ export class Fido2Background implements Fido2BackgroundInterface {
         return;
       }
 
+      watchRuntimePort(port);
       this.fido2ContentScriptPortsSet.add(port);
       port.onDisconnect.addListener(this.handleInjectScriptPortOnDisconnect);
     } catch (error) {

@@ -7,7 +7,11 @@ import {
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 
 import { fromChromeEvent } from "../browser/from-chrome-event";
-import { consumeRuntimeLastError, postToRuntimePort } from "../browser/runtime-channel";
+import {
+  consumeRuntimeLastError,
+  postToRuntimePort,
+  watchRuntimePort,
+} from "../browser/runtime-channel";
 
 import { MemoryStoragePortMessage } from "./port-messages";
 import { portName } from "./port-name";
@@ -32,8 +36,10 @@ export class ForegroundMemoryStorageService extends AbstractStorageService {
       name = `${name}_${this.partitionName}`;
     }
     this._port = chrome.runtime.connect({ name });
+    watchRuntimePort(this._port);
     this._port?.onDisconnect.addListener(() => {
       consumeRuntimeLastError();
+      this._port = undefined;
     });
     this._backgroundResponses$ = fromChromeEvent(this._port.onMessage).pipe(
       map(([message]) => message),
