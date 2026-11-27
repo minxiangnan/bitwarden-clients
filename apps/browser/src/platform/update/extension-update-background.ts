@@ -1,5 +1,5 @@
-import { BehaviorSubject } from "rxjs";
-import { map } from "rxjs/operators";
+import { BehaviorSubject, Observable } from "rxjs";
+import { map, share } from "rxjs/operators";
 
 import type { BadgeStateFunction } from "../badge/badge.service";
 import { BadgeStatePriority } from "../badge/priority";
@@ -22,6 +22,7 @@ import {
   shouldCheckAutomatically,
   type BrowserKind,
   type StoredExtensionUpdate,
+  type UpdateNotice,
 } from "./extension-update";
 
 export type UpdateCheckResult = {
@@ -53,6 +54,60 @@ function finishPromise(pending: unknown): void {
     return;
   }
   void pending.catch((): void => undefined);
+}
+
+let sharedNotice$: Observable<UpdateNotice | null> | null = null;
+
+/** The release the background check is currently offering, or null. */
+export function watchUpdateNotice(): Observable<UpdateNotice | null> {
+  if (sharedNotice$ != null) {
+    return sharedNotice$;
+  }
+  sharedNotice$ = new Observable<UpdateNotice | null>((subscriber) => {
+    let stopped = false;
+    const emit = () => {
+      void readUpdateState()
+        .then((state) => {
+          if (stopped) {
+            return;
+          }
+          const agent = typeof navigator === "undefined" ? "" : navigator.userAgent;
+          subscriber.next(
+            noticeFor(state, AUTHENTICATOR_RELEASE_VERSION, Date.now(), detectBrowserKind(agent)),
+          );
+        })
+        .catch(() => {
+          if (!stopped) {
+            subscriber.next(null);
+          }
+        });
+    };
+    emit();
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === "local" && changes[UPDATE_STORAGE_KEY]) {
+        emit();
+      }
+    };
+    const event = typeof chrome === "undefined" ? undefined : chrome.storage?.onChanged;
+    if (event != null) {
+      try {
+        BrowserApi.addListener(event, listener);
+      } catch {
+        // The version line still renders from the last successful read.
+      }
+    }
+    return () => {
+      stopped = true;
+      if (event != null) {
+        try {
+          BrowserApi.removeListener(event, listener);
+        } catch {
+          // The listener is already gone.
+        }
+      }
+    };
+  }).pipe(share({ resetOnRefCountZero: true }));
+  return sharedNotice$;
 }
 
 export function readUpdateState(): Promise<StoredExtensionUpdate> {

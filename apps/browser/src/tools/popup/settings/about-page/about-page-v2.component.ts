@@ -1,5 +1,6 @@
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { RouterModule } from "@angular/router";
 import { firstValueFrom } from "rxjs";
 
@@ -14,6 +15,11 @@ import { BrowserApi } from "../../../../platform/browser/browser-api";
 import { PopOutComponent } from "../../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../../platform/popup/layout/popup-page.component";
+import { AUTHENTICATOR_RELEASE_VERSION } from "../../../../platform/update/extension-update";
+import {
+  checkForExtensionUpdate,
+  watchUpdateNotice,
+} from "../../../../platform/update/extension-update-background";
 import { AboutDialogComponent } from "../about-dialog/about-dialog.component";
 
 const RateUrls = {
@@ -47,11 +53,29 @@ const RateUrls = {
   ],
 })
 export class AboutPageV2Component {
+  protected readonly releaseVersion = AUTHENTICATOR_RELEASE_VERSION;
+  protected readonly notice = toSignal(watchUpdateNotice(), { initialValue: null });
+  protected readonly checking = signal(false);
+  protected readonly checked = signal(false);
+  protected readonly failed = signal(false);
+
   constructor(
     private dialogService: DialogService,
     private environmentService: EnvironmentService,
     private platformUtilsService: PlatformUtilsService,
   ) {}
+
+  async checkForUpdate(): Promise<void> {
+    if (this.checking()) {
+      return;
+    }
+    this.checking.set(true);
+    this.failed.set(false);
+    const result = await checkForExtensionUpdate({ force: true });
+    this.checking.set(false);
+    this.checked.set(true);
+    this.failed.set(!result.ok);
+  }
 
   about() {
     this.dialogService.open(AboutDialogComponent, {

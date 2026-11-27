@@ -9655,6 +9655,30 @@
   "authenticatorOrderUnsynced": {
     "message": "This code has no matching login, so its order cannot be saved."
   },
+  "authenticatorProductName": {
+    "message": "Bitwarden Authenticator"
+  },
+  "authenticatorCheckUpdate": {
+    "message": "Check for updates"
+  },
+  "authenticatorCheckingUpdate": {
+    "message": "Checking…"
+  },
+  "authenticatorUpToDate": {
+    "message": "Up to date"
+  },
+  "authenticatorUpdateFound": {
+    "message": "New version"
+  },
+  "authenticatorUpdateDownload": {
+    "message": "Download"
+  },
+  "authenticatorNewVersion": {
+    "message": "New"
+  },
+  "authenticatorUpdateFailed": {
+    "message": "Could not check for updates. Try again later."
+  },
   "authenticatorSortIssuer": {
     "message": "By issuer"
   },

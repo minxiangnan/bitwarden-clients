@@ -5,7 +5,51 @@
     </ng-container>
   </popup-header>
 
+  <div class="tw-mb-3 tw-px-1" data-testid="about-identity">
+    <p class="tw-mb-0 tw-text-sm tw-font-semibold tw-text-main">
+      {{ "authenticatorProductName" | i18n }}
+    </p>
+    <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-muted">{{ releaseVersion }}</p>
+  </div>
+
   <bit-item-group>
+    <bit-item>
+      <div bit-item-content data-testid="about-check-update">
+        <i slot="start" class="bwi bwi-refresh" aria-hidden="true"></i>
+        <button
+          type="button"
+          class="tw-border-0 tw-bg-transparent tw-p-0 tw-text-left tw-text-sm tw-font-normal tw-text-main disabled:tw-opacity-60"
+          [disabled]="checking()"
+          (click)="checkForUpdate()"
+        >
+          {{ "authenticatorCheckUpdate" | i18n }}
+        </button>
+        <span
+          slot="end"
+          class="tw-max-w-[13rem] tw-text-right tw-text-xs tw-font-normal tw-leading-4 tw-text-muted"
+        >
+          @if (checking()) {
+            {{ "authenticatorCheckingUpdate" | i18n }}
+          } @else if (notice(); as current) {
+            <span class="tw-text-primary-600">
+              {{ "authenticatorUpdateFound" | i18n }} {{ current.version }}
+            </span>
+            <a
+              class="tw-ml-2 tw-text-primary-600 tw-underline"
+              [href]="current.releaseUrl"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {{ "authenticatorUpdateDownload" | i18n }}
+            </a>
+          } @else if (failed()) {
+            {{ "authenticatorUpdateFailed" | i18n }}
+          } @else if (checked()) {
+            {{ "authenticatorUpToDate" | i18n }}
+          }
+        </span>
+      </div>
+    </bit-item>
     <bit-item>
       <button type="button" bit-item-content (click)="troubleshoot()">
         {{ "troubleshooting" | i18n }}
