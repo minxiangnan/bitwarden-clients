@@ -17,6 +17,7 @@ import {
 } from "@bitwarden/common/vault/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { FieldView } from "@bitwarden/common/vault/models/view/field.view";
+import { TOTP_ORDER_FIELD } from "@bitwarden/common/vault/utils/totp-order-field";
 import {
   DialogRef,
   BitPasswordInputToggleDirective,
@@ -342,6 +343,33 @@ describe("CustomFieldsComponent", () => {
 
       const updatedCipher = patchFn(new CipherView());
       expect(updatedCipher.fields).toEqual([fieldView]);
+    });
+  });
+
+  describe("authenticator order field", () => {
+    it("hides zh.totp.order and writes it back when another field changes", () => {
+      const order = new FieldView();
+      order.type = FieldType.Hidden;
+      order.name = TOTP_ORDER_FIELD;
+      order.value = "1500";
+      originalCipherView.fields = [mockFieldViews[0], order];
+
+      component.ngOnInit();
+
+      expect(component.fields.value.map((field: CustomField) => field.name)).toEqual([
+        "text label",
+      ]);
+
+      component.fields.at(0).patchValue({ value: "new text value" });
+      const patchFn = patchCipher.mock.lastCall[0];
+      const updatedCipher = patchFn(new CipherView());
+
+      expect(updatedCipher.fields.map((field: FieldView) => field.name)).toEqual([
+        "text label",
+        TOTP_ORDER_FIELD,
+      ]);
+      expect(updatedCipher.fields[1].value).toBe("1500");
+      expect(updatedCipher.fields[1].type).toBe(FieldType.Hidden);
     });
   });
 

@@ -70,6 +70,28 @@
         {{ "authenticatorTools" | i18n }}
       </button>
     </div>
+    <div class="tw-flex tw-gap-2" role="group" [attr.aria-label]="'authenticatorArrange' | i18n">
+      <button
+        type="button"
+        bitButton
+        size="small"
+        [buttonType]="ui.sort() === 'manual' ? 'primary' : 'secondary'"
+        [attr.aria-pressed]="ui.sort() === 'manual'"
+        (click)="ui.setSort('manual')"
+      >
+        {{ "authenticatorSortCustom" | i18n }}
+      </button>
+      <button
+        type="button"
+        bitButton
+        size="small"
+        [buttonType]="ui.sort() === 'name' ? 'primary' : 'secondary'"
+        [attr.aria-pressed]="ui.sort() === 'name'"
+        (click)="ui.setSort('name')"
+      >
+        {{ "authenticatorSortNameAz" | i18n }}
+      </button>
+    </div>
     @if (scanError()) {
       <p class="tw-mb-0 tw-text-sm tw-text-danger" role="alert">{{ scanError() }}</p>
     }
@@ -85,12 +107,30 @@
     @if (group.title) {
       <h2 class="tw-mb-2 tw-mt-3 tw-text-sm tw-font-semibold tw-text-main">{{ group.title }}</h2>
     }
-    <ul class="tw-m-0 tw-list-none tw-p-0">
+    <ul
+      class="tw-m-0 tw-list-none tw-p-0"
+      cdkDropList
+      [cdkDropListDisabled]="!canDrag()"
+      (cdkDropListDropped)="drop($event, group.entries)"
+    >
       @for (entry of group.entries; track entry.id) {
         <li
           class="tw-mb-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-px-2 tw-py-1.5"
+          cdkDrag
+          cdkDragLockAxis="y"
+          [cdkDragDisabled]="!canDrag() || entry.undecryptable"
         >
           <div class="tw-flex tw-items-center tw-gap-1">
+            @if (canDrag() && !entry.undecryptable) {
+              <button
+                type="button"
+                cdkDragHandle
+                class="tw-shrink-0 tw-cursor-grab tw-border-0 tw-bg-transparent tw-px-1 tw-text-sm tw-leading-none tw-text-muted"
+                [attr.aria-label]="'authenticatorDrag' | i18n"
+              >
+                ⠿
+              </button>
+            }
             <button
               type="button"
               class="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
@@ -153,11 +193,42 @@
               type="button"
               class="tw-shrink-0 tw-border-0 tw-bg-transparent tw-p-1 tw-text-sm tw-leading-none tw-text-muted"
               [disabled]="readOnly() || entry.undecryptable || busyId() !== null"
-              [attr.aria-label]="'edit' | i18n"
-              (click)="edit(entry)"
+              [attr.aria-label]="'moreOptionsLabelNoPlaceholder' | i18n"
+              [bitMenuTriggerFor]="rowMenu"
             >
               <i class="bwi bwi-ellipsis-v" aria-hidden="true"></i>
             </button>
+            <bit-menu #rowMenu>
+              @if (canReorder() && !entry.undecryptable) {
+                <button
+                  type="button"
+                  bitMenuItem
+                  [disabled]="isFirst(entry, group.entries)"
+                  (click)="moveEntry(entry, group.entries.indexOf(entry) - 1, group.entries)"
+                >
+                  {{ "authenticatorMoveUp" | i18n }}
+                </button>
+                <button
+                  type="button"
+                  bitMenuItem
+                  [disabled]="isLast(entry, group.entries)"
+                  (click)="moveEntry(entry, group.entries.indexOf(entry) + 1, group.entries)"
+                >
+                  {{ "authenticatorMoveDown" | i18n }}
+                </button>
+                <button
+                  type="button"
+                  bitMenuItem
+                  [disabled]="isFirst(entry, group.entries)"
+                  (click)="moveEntry(entry, 0, group.entries)"
+                >
+                  {{ "authenticatorMoveTop" | i18n }}
+                </button>
+              }
+              <button type="button" bitMenuItem (click)="edit(entry)">
+                {{ "edit" | i18n }}
+              </button>
+            </bit-menu>
           </div>
         </li>
       }

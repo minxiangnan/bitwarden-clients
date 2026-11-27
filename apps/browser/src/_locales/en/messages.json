@@ -9634,6 +9634,27 @@
   "authenticatorSortName": {
     "message": "By name"
   },
+  "authenticatorSortCustom": {
+    "message": "Custom"
+  },
+  "authenticatorSortNameAz": {
+    "message": "Name A-Z"
+  },
+  "authenticatorMoveUp": {
+    "message": "Move up"
+  },
+  "authenticatorMoveDown": {
+    "message": "Move down"
+  },
+  "authenticatorMoveTop": {
+    "message": "Move to top"
+  },
+  "authenticatorDrag": {
+    "message": "Drag to reorder"
+  },
+  "authenticatorOrderUnsynced": {
+    "message": "This code has no matching login, so its order cannot be saved."
+  },
   "authenticatorSortIssuer": {
     "message": "By issuer"
   },

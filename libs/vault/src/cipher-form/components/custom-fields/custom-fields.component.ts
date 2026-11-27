@@ -28,6 +28,7 @@ import { CardView } from "@bitwarden/common/vault/models/view/card.view";
 import { FieldView } from "@bitwarden/common/vault/models/view/field.view";
 import { IdentityView } from "@bitwarden/common/vault/models/view/identity.view";
 import { LoginView } from "@bitwarden/common/vault/models/view/login.view";
+import { withoutTotpOrderFields } from "@bitwarden/common/vault/utils/totp-order-field";
 import {
   destructiveDialogOptions,
   destructiveTitle,
@@ -119,6 +120,12 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
   /** True when there are custom fields available */
   hasCustomFields = false;
 
+  /**
+   * Hidden `zh.totp.order` fields. They stay off this form so a save cannot
+   * delete the authenticator order, and they are written back in updateCipher.
+   */
+  private systemFields: FieldView[] = [];
+
   /** Emits when a new custom field should be focused */
   private focusOnNewInput$ = new Subject<void>();
 
@@ -181,9 +188,12 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
     }));
 
     const prefillCipher = this.cipherFormContainer.getInitialCipherView();
+    const partitioned = withoutTotpOrderFields(prefillCipher?.fields);
+    this.systemFields = partitioned.system.map((field) => Object.assign(new FieldView(), field));
 
-    // When available, populate the form with the existing fields
-    prefillCipher?.fields?.forEach((field) => {
+    // When available, populate the form with the existing fields.
+    // The order field is not one of them.
+    partitioned.editable.forEach((field) => {
       let value: string | boolean = field.value;
 
       if (field.type === FieldType.Boolean) {
@@ -422,7 +432,7 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
     this.numberOfFieldsChange.emit(newFields.length);
 
     this.cipherFormContainer.patchCipher((cipher) => {
-      cipher.fields = newFields;
+      cipher.fields = [...newFields, ...this.systemFields];
       return cipher;
     });
   }

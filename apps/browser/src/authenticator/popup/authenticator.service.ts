@@ -12,10 +12,10 @@ import {
 } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
-import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { getOptionalUserId } from "@bitwarden/common/auth/services/account.service";
+import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { StateProvider } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
@@ -27,6 +27,11 @@ import {
   AUTHENTICATOR_SYNC_SNAPSHOT,
   AuthenticatorSyncSnapshot,
 } from "@bitwarden/common/vault/services/key-state/authenticator.state";
+import {
+  formatTotpOrder,
+  readTotpOrder,
+  replaceTotpOrderField,
+} from "@bitwarden/common/vault/utils/totp-order-field";
 import { KeyService } from "@bitwarden/key-management";
 // The authenticator contract stores name, issuer, secret, and notes as user-key EncStrings.
 // eslint-disable-next-line no-restricted-imports
@@ -49,6 +54,7 @@ import {
   DEFAULT_AUTHENTICATOR_PERIOD,
   normalizeAlgorithm,
 } from "../authenticator.models";
+import { secretKey, TotpOrderIndex, TotpOrderWrite } from "../totp-order";
 
 import {
   AuthenticatorApiService,
@@ -88,6 +94,13 @@ type AuthenticatorState = {
 };
 
 const EMPTY_STATE: AuthenticatorState = { status: "loading", entries: [] };
+
+/** The row has no login cipher, so `zh.totp.order` has nowhere to sync. */
+export class TotpOrderCipherMissingError extends Error {
+  constructor() {
+    super("This authenticator entry has no login cipher to store zh.totp.order.");
+  }
+}
 
 /** The server kept a newer revision. The local form must not overwrite it. */
 export class AuthenticatorConflictError extends Error {
@@ -366,6 +379,73 @@ export class AuthenticatorService {
 
   async setFavorite(entry: AuthenticatorEntryView, favorite: boolean): Promise<void> {
     await this.save(draftFromView({ ...entry, favorite }), entry.id);
+  }
+
+  /** Hidden `zh.totp.order` values, keyed by the normalized TOTP secret. */
+  async totpOrderIndex(): Promise<TotpOrderIndex> {
+    const userId = await this.activeUserId();
+    const orderBySecret = new Map<string, number>();
+    const secretsWithCipher = new Set<string>();
+    if (userId == null) {
+      return { orderBySecret, secretsWithCipher };
+    }
+    const ciphers = await this.cipherService.getAllDecrypted(userId);
+    for (const cipher of ciphers) {
+      if (cipher.deletedDate != null) {
+        continue;
+      }
+      const draft = draftFromCipher(cipher);
+      if (draft == null) {
+        continue;
+      }
+      secretsWithCipher.add(draft.secret);
+      const order = readTotpOrder(cipher.fields);
+      if (order == null) {
+        continue;
+      }
+      const current = orderBySecret.get(draft.secret);
+      if (current == null || order < current) {
+        orderBySecret.set(draft.secret, order);
+      }
+    }
+    return { orderBySecret, secretsWithCipher };
+  }
+
+  /**
+   * Writes `zh.totp.order` onto each matching login cipher. A secret that
+   * already has the same value is left untouched. A secret with no cipher
+   * fails the whole call.
+   */
+  async writeTotpOrders(writes: readonly TotpOrderWrite[]): Promise<void> {
+    if (writes.length === 0) {
+      return;
+    }
+    const userId = await this.requireUserId();
+    this.assertOnline();
+    const wanted = new Map(writes.map((write) => [secretKey(write.secret), write.order]));
+    const ciphers = await this.cipherService.getAllDecrypted(userId);
+    const missing = new Set(wanted.keys());
+    for (const cipher of ciphers) {
+      if (cipher.deletedDate != null || cipher.id == null) {
+        continue;
+      }
+      const draft = draftFromCipher(cipher);
+      if (draft == null || !wanted.has(draft.secret)) {
+        continue;
+      }
+      missing.delete(draft.secret);
+      const order = wanted.get(draft.secret);
+      if (order == null || sameTotpOrder(readTotpOrder(cipher.fields), order)) {
+        continue;
+      }
+      const stored = await this.cipherService.get(cipher.id, userId);
+      const fresh = await this.cipherService.decrypt(stored, userId);
+      fresh.fields = replaceTotpOrderField(fresh.fields, order);
+      await this.cipherService.updateWithServer(fresh, userId);
+    }
+    if (missing.size > 0) {
+      throw new TotpOrderCipherMissingError();
+    }
   }
 
   /** Swaps sortOrder with the neighboring entry. Undecryptable entries are left unchanged. */
@@ -666,6 +746,10 @@ function snapshotKey(entries: AuthenticatorEntryResponse[]): string {
 
 function ok(text: string): { ok: true; text: string } {
   return { ok: true, text };
+}
+
+function sameTotpOrder(current: number | null, next: number): boolean {
+  return current != null && formatTotpOrder(current) === formatTotpOrder(next);
 }
 
 export function draftFromView(entry: AuthenticatorEntryView): AuthenticatorDraft {
