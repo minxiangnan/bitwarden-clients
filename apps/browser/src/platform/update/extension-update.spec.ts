@@ -88,6 +88,7 @@ describe("extension update selection", () => {
     const now = Date.parse("2026-11-26T08:00:00");
     const state: StoredExtensionUpdate = {
       checkedAt: now,
+      attemptedAt: now,
       release: latest,
       snoozedUntil: null,
       ignoredVersion: null,

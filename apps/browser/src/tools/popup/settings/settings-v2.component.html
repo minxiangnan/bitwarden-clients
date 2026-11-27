@@ -166,7 +166,13 @@
       </bit-item>
     }
     <bit-item>
-      <a bit-item-content routerLink="/about" [truncate]="false" data-testid="settings-about">
+      <button
+        type="button"
+        bit-item-content
+        [truncate]="false"
+        data-testid="settings-about"
+        (click)="openAbout()"
+      >
         <i slot="start" class="bwi bwi-info-circle" aria-hidden="true"></i>
         <span class="tw-inline-flex tw-items-center tw-gap-2">
           {{ "about" | i18n }}
@@ -186,7 +192,7 @@
           }
         </span>
         <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
-      </a>
+      </button>
     </bit-item>
   </bit-item-group>
 </popup-page>

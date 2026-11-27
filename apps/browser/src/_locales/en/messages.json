@@ -9679,6 +9679,15 @@
   "authenticatorUpdateFailed": {
     "message": "Could not check for updates. Try again later."
   },
+  "authenticatorRecheck": {
+    "message": "Check again"
+  },
+  "authenticatorUpdateNow": {
+    "message": "Update"
+  },
+  "authenticatorUpdateHint": {
+    "message": "Unzip over the original folder, then refresh the extension on the extensions page."
+  },
   "authenticatorSortIssuer": {
     "message": "By issuer"
   },

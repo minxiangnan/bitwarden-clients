@@ -9679,6 +9679,15 @@
   "authenticatorUpdateFailed": {
     "message": "检查失败，请稍后再试"
   },
+  "authenticatorRecheck": {
+    "message": "重新检查"
+  },
+  "authenticatorUpdateNow": {
+    "message": "更新"
+  },
+  "authenticatorUpdateHint": {
+    "message": "解压覆盖到原文件夹后在扩展管理页点刷新"
+  },
   "authenticatorSortIssuer": {
     "message": "按发行方"
   },

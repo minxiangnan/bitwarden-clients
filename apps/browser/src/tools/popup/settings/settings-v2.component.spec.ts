@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from "@angular/core";
 import { TestBed, waitForAsync } from "@angular/core/testing";
+import { Router } from "@angular/router";
 import { RouterTestingModule } from "@angular/router/testing";
 import { mock, MockProxy } from "jest-mock-extended";
 import { BehaviorSubject, firstValueFrom, of, Subject } from "rxjs";
@@ -21,9 +22,21 @@ import { GlobalStateProvider } from "@bitwarden/state";
 import { FakeGlobalStateProvider } from "@bitwarden/state-test-utils";
 
 import { CurrentAccountComponent } from "../../../auth/popup/account-switching/current-account.component";
-import { AUTHENTICATOR_RELEASE_VERSION } from "../../../platform/update/extension-update";
+import {
+  AUTHENTICATOR_RELEASE_VERSION,
+  SETTINGS_UPDATE_CACHE_MS,
+} from "../../../platform/update/extension-update";
+import {
+  checkForExtensionUpdate,
+  watchUpdateNotice,
+} from "../../../platform/update/extension-update-background";
 
 import { SettingsV2Component } from "./settings-v2.component";
+
+jest.mock("../../../platform/update/extension-update-background", () => ({
+  checkForExtensionUpdate: jest.fn(),
+  watchUpdateNotice: jest.fn(),
+}));
 
 @Component({
   selector: "app-current-account",
@@ -82,6 +95,12 @@ describe("SettingsV2Component", () => {
     };
 
     jest.spyOn(BrowserApi, "getBrowserClientVendor").mockReturnValue("Chrome");
+    (checkForExtensionUpdate as jest.Mock).mockResolvedValue({
+      ok: true,
+      statusText: "",
+      noticeVersion: null,
+    });
+    (watchUpdateNotice as jest.Mock).mockReturnValue(of(null));
 
     const cfg = TestBed.configureTestingModule({
       imports: [SettingsV2Component, RouterTestingModule],
@@ -156,6 +175,39 @@ describe("SettingsV2Component", () => {
     expect(fixture.nativeElement.querySelector("[data-testid=settings-about-dot]")).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain("检查更新");
     expect(fixture.nativeElement.innerHTML).not.toContain("rgb(0, 0, 0)");
+    expect(checkForExtensionUpdate).toHaveBeenCalledWith({ maxAgeMs: SETTINGS_UPDATE_CACHE_MS });
+  });
+
+  it("opens about when this build is current, and a dialog when a newer one is stored", async () => {
+    mockBillingState.hasPremiumFromAnySource$.mockReturnValue(of(false));
+    pushActiveAccount();
+
+    const current = TestBed.createComponent(SettingsV2Component);
+    current.detectChanges();
+    const router = TestBed.inject(Router);
+    jest.spyOn(router, "navigate").mockResolvedValue(true);
+    (
+      current.nativeElement.querySelector("[data-testid=settings-about]") as HTMLButtonElement
+    ).click();
+    expect(router.navigate).toHaveBeenCalledWith(["/about"]);
+    expect(dialogService.open).not.toHaveBeenCalled();
+    current.destroy();
+
+    (watchUpdateNotice as jest.Mock).mockReturnValue(
+      of({
+        version: "9.9.9",
+        notes: "短说明",
+        downloadUrl: "https://example.test/chrome.zip",
+        releaseUrl: "https://example.test/release",
+      }),
+    );
+    const newer = TestBed.createComponent(SettingsV2Component);
+    newer.detectChanges();
+    const row = newer.nativeElement.querySelector("[data-testid=settings-about]") as HTMLElement;
+    expect(row.textContent).toContain("9.9.9");
+    expect(newer.nativeElement.querySelector("[data-testid=settings-about-dot]")).not.toBeNull();
+    row.click();
+    expect(dialogService.open).toHaveBeenCalled();
   });
 
   it("hides the premium callout when user HAS premium", async () => {
