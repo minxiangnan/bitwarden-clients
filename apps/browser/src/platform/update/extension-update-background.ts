@@ -1,4 +1,4 @@
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
 import { map, share } from "rxjs/operators";
 
 import type { BadgeStateFunction } from "../badge/badge.service";
@@ -106,7 +106,14 @@ export function watchUpdateNotice(): Observable<UpdateNotice | null> {
         }
       }
     };
-  }).pipe(share({ resetOnRefCountZero: true }));
+  }).pipe(
+    share({
+      connector: () => new ReplaySubject(1),
+      resetOnError: true,
+      resetOnComplete: false,
+      resetOnRefCountZero: true,
+    }),
+  );
   return sharedNotice$;
 }
 
