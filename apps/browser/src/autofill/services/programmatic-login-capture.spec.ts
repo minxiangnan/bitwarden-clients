@@ -1,4 +1,4 @@
-import { PAGE_SUBMIT_HOOK, installProgrammaticLoginCapture } from "./programmatic-login-capture";
+import { installProgrammaticLoginCapture } from "./programmatic-login-capture";
 
 describe("programmatic login capture", () => {
   const originalSubmit = HTMLFormElement.prototype.submit;
@@ -30,11 +30,25 @@ describe("programmatic login capture", () => {
     form.remove();
   });
 
+  it("does not insert an inline script", () => {
+    const created: string[] = [];
+    const original = document.createElement.bind(document);
+    const spy = jest.spyOn(document, "createElement").mockImplementation(((tag: string) => {
+      created.push(String(tag));
+      return original(tag);
+    }) as typeof document.createElement);
+
+    const uninstall = installProgrammaticLoginCapture(document, jest.fn());
+
+    expect(created).not.toContain("script");
+    expect(document.scripts.length).toBe(0);
+    uninstall();
+    spy.mockRestore();
+  });
+
   it("flushes when the page calls form.submit and remembers a cleared password", () => {
     const flush = jest.fn();
     const uninstall = installProgrammaticLoginCapture(document, flush);
-    // jsdom does not execute scripts inserted by the content script.
-    new Function(PAGE_SUBMIT_HOOK)();
     const form = document.createElement("form");
     const password = document.createElement("input");
     password.type = "password";

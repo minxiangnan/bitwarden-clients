@@ -62,6 +62,7 @@ describe("extension update selection", () => {
     expect(compareVersions("1.1.10", "1.1.9")).toBeGreaterThan(0);
     expect(isNewerVersion("1.1.9", AUTHENTICATOR_RELEASE_VERSION)).toBe(false);
     expect(isNewerVersion("1.2.0", "1.1.9")).toBe(true);
+    expect(isNewerVersion("1.2.1", "1.2.0")).toBe(true);
     expect(isNewerVersion("1.1.8", "1.1.9")).toBe(false);
   });
 
