@@ -9634,6 +9634,27 @@
   "authenticatorSortName": {
     "message": "按名称"
   },
+  "authenticatorSortCustom": {
+    "message": "自定义"
+  },
+  "authenticatorSortNameAz": {
+    "message": "名称 A-Z"
+  },
+  "authenticatorMoveUp": {
+    "message": "上移"
+  },
+  "authenticatorMoveDown": {
+    "message": "下移"
+  },
+  "authenticatorMoveTop": {
+    "message": "置顶"
+  },
+  "authenticatorDrag": {
+    "message": "拖动调整顺序"
+  },
+  "authenticatorOrderUnsynced": {
+    "message": "这条验证码没有对应的登录项，顺序无法同步"
+  },
   "authenticatorSortIssuer": {
     "message": "按发行方"
   },

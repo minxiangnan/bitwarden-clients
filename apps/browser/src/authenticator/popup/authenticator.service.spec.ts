@@ -9,12 +9,18 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { StateProvider } from "@bitwarden/common/platform/state";
 import { UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { FieldType } from "@bitwarden/common/vault/enums/field-type.enum";
+import { TOTP_ORDER_FIELD } from "@bitwarden/common/vault/utils/totp-order-field";
 import { KeyService } from "@bitwarden/key-management";
 // eslint-disable-next-line no-restricted-imports
 import { EncString, EncryptService } from "@bitwarden/legacy-crypto";
 
 import { AuthenticatorApiService } from "./authenticator-api.service";
-import { AuthenticatorService, draftFromCipher } from "./authenticator.service";
+import {
+  AuthenticatorService,
+  draftFromCipher,
+  TotpOrderCipherMissingError,
+} from "./authenticator.service";
 
 describe("AuthenticatorService", () => {
   const userId = "user-1" as UserId;
@@ -352,5 +358,74 @@ describe("AuthenticatorService", () => {
         period: 30,
       }),
     );
+  });
+
+  it("writes zh.totp.order on the matching cipher and leaves the other cipher alone", async () => {
+    const service = createService();
+    cipherService.getAllDecrypted.mockResolvedValue([
+      { id: "c1", name: "Mail", login: { totp: "WQIQ25BRKZYCJVYP" }, fields: [] },
+      { id: "c2", name: "Other", login: { totp: "OTHERSECRET" }, fields: [] },
+    ] as never);
+    cipherService.get.mockResolvedValue({ id: "c1" } as never);
+    cipherService.decrypt.mockResolvedValue({
+      id: "c1",
+      fields: [{ type: FieldType.Text, name: "note", value: "hi" }],
+      login: { totp: "WQIQ25BRKZYCJVYP" },
+    } as never);
+    cipherService.updateWithServer.mockImplementation(async (view) => view);
+
+    await service.writeTotpOrders([{ secret: "wqiq 25br kzyc jvyp", order: 1500 }]);
+
+    expect(cipherService.updateWithServer).toHaveBeenCalledTimes(1);
+    expect(cipherService.updateWithServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "c1",
+        fields: [
+          expect.objectContaining({ type: FieldType.Text, name: "note", value: "hi" }),
+          expect.objectContaining({
+            type: FieldType.Hidden,
+            name: TOTP_ORDER_FIELD,
+            value: "1500",
+          }),
+        ],
+      }),
+      userId,
+    );
+  });
+
+  it("does not write when the cipher already has the same order", async () => {
+    const service = createService();
+    cipherService.getAllDecrypted.mockResolvedValue([
+      {
+        id: "c1",
+        name: "Mail",
+        login: { totp: "WQIQ25BRKZYCJVYP" },
+        fields: [{ type: FieldType.Hidden, name: TOTP_ORDER_FIELD, value: "1500" }],
+      },
+    ] as never);
+
+    await service.writeTotpOrders([{ secret: "WQIQ25BRKZYCJVYP", order: 1500 }]);
+
+    expect(cipherService.updateWithServer).not.toHaveBeenCalled();
+  });
+
+  it("reads the hidden order and fails when the secret has no cipher", async () => {
+    const service = createService();
+    cipherService.getAllDecrypted.mockResolvedValue([
+      {
+        id: "c1",
+        name: "Mail",
+        login: { totp: "WQIQ25BRKZYCJVYP" },
+        fields: [{ type: FieldType.Hidden, name: TOTP_ORDER_FIELD, value: "1500" }],
+      },
+    ] as never);
+
+    await expect(service.totpOrderIndex()).resolves.toEqual({
+      orderBySecret: new Map([["WQIQ25BRKZYCJVYP", 1500]]),
+      secretsWithCipher: new Set(["WQIQ25BRKZYCJVYP"]),
+    });
+    await expect(
+      service.writeTotpOrders([{ secret: "BEASECRETSECRET", order: 1000 }]),
+    ).rejects.toBeInstanceOf(TotpOrderCipherMissingError);
   });
 });

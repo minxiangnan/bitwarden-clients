@@ -1,3 +1,4 @@
+import { CdkDragDrop, DragDropModule } from "@angular/cdk/drag-drop";
 import { CommonModule } from "@angular/common";
 import {
   ChangeDetectionStrategy,
@@ -16,7 +17,7 @@ import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { AutofillSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/autofill-settings.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
-import { ButtonModule, FormFieldModule, ToastService } from "@bitwarden/components";
+import { ButtonModule, FormFieldModule, MenuModule, ToastService } from "@bitwarden/components";
 
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { formatZhDateTime } from "../../platform/popup/format-zh-datetime";
@@ -28,10 +29,16 @@ import { scanCurrentTabForOtpauth } from "../authenticator-scan";
 import { AuthenticatorGroup } from "../authenticator-ui-state";
 import { AuthenticatorEntryView } from "../authenticator.models";
 import { clipboardClearMs } from "../clipboard-delay";
+import {
+  applyTotpOrderWrites,
+  compareByTotpOrder,
+  placementAfterMove,
+  TotpOrderIndex,
+} from "../totp-order";
 
 import { AuthenticatorCodeComponent } from "./authenticator-code.component";
 import { AuthenticatorUiService } from "./authenticator-ui.service";
-import { AuthenticatorService } from "./authenticator.service";
+import { AuthenticatorService, TotpOrderCipherMissingError } from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
 
 @Component({
@@ -42,6 +49,8 @@ import { McpAccessService } from "./mcp-access.service";
     JslibModule,
     ButtonModule,
     FormFieldModule,
+    MenuModule,
+    DragDropModule,
     PopupPageComponent,
     PopupHeaderComponent,
     PopOutComponent,
@@ -87,6 +96,10 @@ export class AuthenticatorListComponent {
   protected readonly readOnly = computed(() => this.status() === "offline");
   protected readonly syncedAt = computed(() => this.state().syncedAt ?? null);
   protected readonly recentOnly = this.ui.recentOnly;
+  protected readonly orderIndex = signal<TotpOrderIndex>({
+    orderBySecret: new Map(),
+    secretsWithCipher: new Set(),
+  });
   protected readonly visible = computed(() => {
     const filtered = filterAuthenticatorEntries(
       this.state().entries.filter((entry) => !entry.deletedAt),
@@ -94,14 +107,17 @@ export class AuthenticatorListComponent {
       this.favoritesOnly(),
       this.ui.sort(),
     );
-    if (!this.ui.recentOnly()) {
+    if (this.ui.recentOnly()) {
+      const byId = new Map(filtered.map((entry) => [entry.id, entry]));
+      return this.ui
+        .recentIds()
+        .map((id) => byId.get(id))
+        .filter((entry): entry is AuthenticatorEntryView => entry != null);
+    }
+    if (this.ui.sort() !== "manual") {
       return filtered;
     }
-    const byId = new Map(filtered.map((entry) => [entry.id, entry]));
-    return this.ui
-      .recentIds()
-      .map((id) => byId.get(id))
-      .filter((entry): entry is AuthenticatorEntryView => entry != null);
+    return [...filtered].sort((a, b) => compareByTotpOrder(a, b, this.orderIndex().orderBySecret));
   });
   protected readonly groups = computed(() => groupEntries(this.visible(), this.ui.group()));
 
@@ -118,6 +134,7 @@ export class AuthenticatorListComponent {
     // alias-only change reaches an already open popup.
     this.authenticator.state$.pipe(takeUntilDestroyed()).subscribe(() => {
       void this.loadAliases();
+      void this.refreshOrders();
     });
     effect((onCleanup) => {
       const id = this.copiedId();
@@ -233,6 +250,59 @@ export class AuthenticatorListComponent {
     }
   }
 
+  /**
+   * Custom order on the full list. Search, favorites, and recent each show a
+   * subset, so a midpoint from those neighbors would skip hidden rows.
+   */
+  protected canReorder(): boolean {
+    return (
+      this.ui.sort() === "manual" &&
+      this.query().trim() === "" &&
+      !this.favoritesOnly() &&
+      !this.recentOnly() &&
+      !this.readOnly()
+    );
+  }
+
+  /** Drag follows the flat list. Grouped rows use the move menu instead. */
+  protected canDrag(): boolean {
+    return this.canReorder() && this.ui.group() === "none";
+  }
+
+  protected isFirst(entry: AuthenticatorEntryView, entries: AuthenticatorEntryView[]): boolean {
+    return entries[0]?.id === entry.id;
+  }
+
+  protected isLast(entry: AuthenticatorEntryView, entries: AuthenticatorEntryView[]): boolean {
+    return entries[entries.length - 1]?.id === entry.id;
+  }
+
+  protected async drop(
+    event: CdkDragDrop<AuthenticatorEntryView[]>,
+    entries: AuthenticatorEntryView[],
+  ): Promise<void> {
+    if (!this.canDrag() || event.previousIndex === event.currentIndex) {
+      return;
+    }
+    const moved = entries[event.previousIndex];
+    if (moved == null) {
+      return;
+    }
+    await this.place(moved, event.currentIndex, entries);
+  }
+
+  protected async moveEntry(
+    entry: AuthenticatorEntryView,
+    destination: number,
+    entries: AuthenticatorEntryView[],
+  ): Promise<void> {
+    const from = entries.findIndex((item) => item.id === entry.id);
+    if (from < 0 || from === destination) {
+      return;
+    }
+    await this.place(entry, destination, entries);
+  }
+
   protected edit(entry: AuthenticatorEntryView): void {
     if (entry.undecryptable || this.busyId() != null) {
       return;
@@ -264,6 +334,56 @@ export class AuthenticatorListComponent {
       return "";
     }
     return this.i18n.t("authenticatorSyncedAt", formatZhDateTime(time));
+  }
+
+  private async refreshOrders(): Promise<void> {
+    try {
+      this.orderIndex.set(await this.authenticator.totpOrderIndex());
+    } catch {
+      // Keep the last index. The list still has a usable order.
+    }
+  }
+
+  private async place(
+    entry: AuthenticatorEntryView,
+    destination: number,
+    entries: AuthenticatorEntryView[],
+  ): Promise<void> {
+    if (!this.canReorder() || entry.undecryptable || this.busyId() != null) {
+      return;
+    }
+    const writes = placementAfterMove(entries, entry.id, destination, this.orderIndex());
+    if (writes == null) {
+      this.toast.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18n.t("authenticatorOrderUnsynced"),
+      });
+      return;
+    }
+    if (writes.length === 0) {
+      return;
+    }
+    const previous = this.orderIndex();
+    this.busyId.set(entry.id);
+    this.orderIndex.set(applyTotpOrderWrites(previous, writes));
+    try {
+      await this.authenticator.writeTotpOrders(writes);
+      await this.refreshOrders();
+    } catch (error) {
+      this.orderIndex.set(previous);
+      if (error instanceof TotpOrderCipherMissingError) {
+        this.toast.showToast({
+          variant: "error",
+          title: null,
+          message: this.i18n.t("authenticatorOrderUnsynced"),
+        });
+      } else {
+        this.failSave();
+      }
+    } finally {
+      this.busyId.set(null);
+    }
   }
 
   private failSave(): void {
