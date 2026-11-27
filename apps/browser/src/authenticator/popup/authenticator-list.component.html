@@ -121,14 +121,27 @@
           [cdkDragDisabled]="!canDrag() || entry.undecryptable"
         >
           <div class="tw-flex tw-items-center tw-gap-1">
-            @if (canDrag() && !entry.undecryptable) {
+            @if (canReorder() && !entry.undecryptable) {
+              @if (canDrag()) {
+                <button
+                  type="button"
+                  cdkDragHandle
+                  data-testid="authenticator-drag"
+                  class="tw-shrink-0 tw-cursor-grab tw-border-0 tw-bg-transparent tw-px-0.5 tw-text-sm tw-leading-none tw-text-muted"
+                  [attr.aria-label]="'authenticatorDrag' | i18n"
+                >
+                  ⠿
+                </button>
+              }
               <button
                 type="button"
-                cdkDragHandle
-                class="tw-shrink-0 tw-cursor-grab tw-border-0 tw-bg-transparent tw-px-1 tw-text-sm tw-leading-none tw-text-muted"
-                [attr.aria-label]="'authenticatorDrag' | i18n"
+                data-testid="authenticator-pin-top"
+                class="tw-inline-flex tw-shrink-0 tw-items-center tw-border-0 tw-bg-transparent tw-p-0.5 tw-text-sm tw-leading-none tw-text-primary-600 disabled:tw-text-muted"
+                [disabled]="isFirst(entry, group.entries) || busyId() !== null"
+                [attr.aria-label]="'authenticatorMoveTop' | i18n"
+                (click)="moveEntry(entry, 0, group.entries)"
               >
-                ⠿
+                <bit-icon name="bwi-arrow-up"></bit-icon>
               </button>
             }
             <button

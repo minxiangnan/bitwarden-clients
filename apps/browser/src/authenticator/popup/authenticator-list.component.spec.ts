@@ -79,6 +79,19 @@ describe("AuthenticatorListComponent", () => {
     expect(authenticator.setFavorite).toHaveBeenCalledTimes(1);
   });
 
+  it("hides the front reorder controls for name order and search", () => {
+    const { fixture } = setup();
+
+    expect(fixture.componentInstance["canReorder"]()).toBe(true);
+
+    fixture.componentInstance["ui"].setSort("name");
+    expect(fixture.componentInstance["canReorder"]()).toBe(false);
+
+    fixture.componentInstance["ui"].setSort("manual");
+    fixture.componentInstance["query"].set("ada");
+    expect(fixture.componentInstance["canReorder"]()).toBe(false);
+  });
+
   it("does not drag while a search or the favorites filter is active", () => {
     const { fixture } = setup();
 
