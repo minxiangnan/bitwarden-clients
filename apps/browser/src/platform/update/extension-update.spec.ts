@@ -70,6 +70,7 @@ describe("extension update selection", () => {
     expect(isNewerVersion("1.2.6", "1.2.5")).toBe(true);
     expect(isNewerVersion("1.2.7", "1.2.6")).toBe(true);
     expect(isNewerVersion("1.2.8", "1.2.7")).toBe(true);
+    expect(isNewerVersion("1.2.9", "1.2.8")).toBe(true);
     expect(isNewerVersion("1.1.8", "1.1.9")).toBe(false);
   });
 

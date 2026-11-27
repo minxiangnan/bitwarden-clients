@@ -17,7 +17,13 @@ import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { AutofillSettingsServiceAbstraction } from "@bitwarden/common/autofill/services/autofill-settings.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
-import { ButtonModule, FormFieldModule, MenuModule, ToastService } from "@bitwarden/components";
+import {
+  ButtonModule,
+  FormFieldModule,
+  IconModule,
+  MenuModule,
+  ToastService,
+} from "@bitwarden/components";
 
 import { PopOutComponent } from "../../platform/popup/components/pop-out.component";
 import { formatZhDateTime } from "../../platform/popup/format-zh-datetime";
@@ -49,6 +55,7 @@ import { McpAccessService } from "./mcp-access.service";
     JslibModule,
     ButtonModule,
     FormFieldModule,
+    IconModule,
     MenuModule,
     DragDropModule,
     PopupPageComponent,
