@@ -19,6 +19,15 @@
                 role="link"
               >
                 <div class="tw-relative">
+                  @if (button.showUpdateDot) {
+                    <span
+                      class="tw-absolute tw-top-0 tw-size-1.5 tw-rounded-full tw-bg-primary-600"
+                      [class.tw-right-0]="!button.showBerry"
+                      [class.tw-left-0]="!!button.showBerry"
+                      data-testid="settings-update-dot"
+                      aria-hidden="true"
+                    ></span>
+                  }
                   @if (button.showBerry) {
                     <div class="tw-flex tw-absolute tw-top-0 tw-right-0">
                       <bit-berry type="status" variant="danger"></bit-berry>

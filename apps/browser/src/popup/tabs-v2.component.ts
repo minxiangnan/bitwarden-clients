@@ -28,6 +28,7 @@ import {
 import { AuthenticatorActive, AuthenticatorInactive } from "../authenticator/authenticator-icons";
 import { AuthenticatorService } from "../authenticator/popup/authenticator.service";
 import { HealthAccessService } from "../dirt/health/popup/services/health-access.service";
+import { watchUpdateNotice } from "../platform/update/extension-update-background";
 import { SHOW_SEND } from "../tools/popup/send-v2/send-visibility";
 import { VaultPopupListTableFiltersService } from "../vault/popup/services/vault-popup-list-table-filters.service";
 
@@ -69,6 +70,11 @@ export class TabsV2Component {
     this.autofillSettingsService.showClipboardSettingUpdateNotification$,
   ]).pipe(map(([hasBadges, showClipboard]) => hasBadges || showClipboard));
 
+  private updateAvailable$ = watchUpdateNotice().pipe(
+    map((notice) => notice != null),
+    startWith(false),
+  );
+
   private healthNavButton$ = this.userId$.pipe(
     switchMap((userId) => this.healthAccessService.healthNavButton$(userId)),
   );
@@ -81,6 +87,7 @@ export class TabsV2Component {
 
   protected navButtons$: Observable<BottomNavigationButton[]> = combineLatest([
     this.showSettingsBerry$.pipe(startWith(false)),
+    this.updateAvailable$,
     this.sendEnabled$.pipe(startWith(true)),
     this.healthNavButton$.pipe(startWith(undefined)),
     this.authenticatorSupported$.pipe(startWith(false)),
@@ -90,6 +97,7 @@ export class TabsV2Component {
     map(
       ([
         showBerry,
+        showUpdateDot,
         sendEnabled,
         healthNavButton,
         authenticatorSupported,
@@ -138,6 +146,7 @@ export class TabsV2Component {
             icon: SettingsInactive,
             iconActive: SettingsActive,
             showBerry,
+            showUpdateDot,
           },
         ];
         return buttons;

@@ -21,6 +21,7 @@ import { GlobalStateProvider } from "@bitwarden/state";
 import { FakeGlobalStateProvider } from "@bitwarden/state-test-utils";
 
 import { CurrentAccountComponent } from "../../../auth/popup/account-switching/current-account.component";
+import { AUTHENTICATOR_RELEASE_VERSION } from "../../../platform/update/extension-update";
 
 import { SettingsV2Component } from "./settings-v2.component";
 
@@ -137,22 +138,24 @@ describe("SettingsV2Component", () => {
     expect(el.querySelector("bit-callout")).toBeNull();
   });
 
-  it("shows a cream check-for-updates button", async () => {
+  it("puts the version on the about row and does not show an update card", async () => {
     mockBillingState.hasPremiumFromAnySource$.mockReturnValue(of(false));
     pushActiveAccount();
 
     const fixture = TestBed.createComponent(SettingsV2Component);
     fixture.detectChanges();
+    await fixture.whenStable();
 
-    const button = [...fixture.nativeElement.querySelectorAll("button")].find((element) =>
-      element.textContent?.includes("检查更新"),
-    ) as HTMLButtonElement | undefined;
+    const about = fixture.nativeElement.querySelector(
+      "[data-testid=settings-about]",
+    ) as HTMLElement;
+    const text = about.textContent ?? "";
 
-    const style = button?.getAttribute("style") ?? "";
-    expect(button).toBeTruthy();
-    expect(style).toContain("rgb(196, 83, 42)");
-    expect(style).toContain("rgb(250, 249, 245)");
-    expect(style).not.toContain("rgb(0, 0, 0)");
+    expect(text).toContain("about");
+    expect(text).toContain(AUTHENTICATOR_RELEASE_VERSION);
+    expect(fixture.nativeElement.querySelector("[data-testid=settings-about-dot]")).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain("检查更新");
+    expect(fixture.nativeElement.innerHTML).not.toContain("rgb(0, 0, 0)");
   });
 
   it("hides the premium callout when user HAS premium", async () => {

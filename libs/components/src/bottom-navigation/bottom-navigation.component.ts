@@ -15,6 +15,8 @@ export type BottomNavigationButton = {
   icon: BitSvg;
   iconActive: BitSvg;
   showBerry?: boolean;
+  /** Terracotta dot for an authenticator update. Independent of nudge berries. */
+  showUpdateDot?: boolean;
 };
 
 @Component({

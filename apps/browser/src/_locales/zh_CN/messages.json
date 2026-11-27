@@ -9655,6 +9655,30 @@
   "authenticatorOrderUnsynced": {
     "message": "这条验证码没有对应的登录项，顺序无法同步"
   },
+  "authenticatorProductName": {
+    "message": "Bitwarden 验证器版"
+  },
+  "authenticatorCheckUpdate": {
+    "message": "检查更新"
+  },
+  "authenticatorCheckingUpdate": {
+    "message": "检查中…"
+  },
+  "authenticatorUpToDate": {
+    "message": "已是最新版本"
+  },
+  "authenticatorUpdateFound": {
+    "message": "发现新版本"
+  },
+  "authenticatorUpdateDownload": {
+    "message": "下载"
+  },
+  "authenticatorNewVersion": {
+    "message": "新版本"
+  },
+  "authenticatorUpdateFailed": {
+    "message": "检查失败，请稍后再试"
+  },
   "authenticatorSortIssuer": {
     "message": "按发行方"
   },

@@ -21,26 +21,6 @@
     </ng-container>
   </popup-header>
 
-  <div
-    [style.background]="cream"
-    [style.color]="ink"
-    [style.border]="'1px solid ' + line"
-    style="margin: 0 0 12px; border-radius: 12px; padding: 12px"
-  >
-    <button
-      type="button"
-      (click)="checkForUpdate()"
-      [disabled]="checkingUpdate()"
-      [style.background]="terracotta"
-      [style.color]="cream"
-      style="border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer"
-    >
-      检查更新
-    </button>
-    @if (updateStatus()) {
-      <p style="margin: 8px 0 0; font-size: 12px; line-height: 17px">{{ updateStatus() }}</p>
-    }
-  </div>
   <bit-item-group>
     <bit-item>
       <a bit-item-content routerLink="/account-security" [truncate]="false">
@@ -160,13 +140,6 @@
       </bit-item>
     }
 
-    <bit-item>
-      <a bit-item-content routerLink="/about" [truncate]="false">
-        <i slot="start" class="bwi bwi-info-circle" aria-hidden="true"></i>
-        {{ "about" | i18n }}
-        <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
-      </a>
-    </bit-item>
     @if (false) {
       <bit-item>
         <a bit-item-content routerLink="/download-bitwarden" [truncate]="false">
@@ -192,5 +165,28 @@
         </a>
       </bit-item>
     }
+    <bit-item>
+      <a bit-item-content routerLink="/about" [truncate]="false" data-testid="settings-about">
+        <i slot="start" class="bwi bwi-info-circle" aria-hidden="true"></i>
+        <span class="tw-inline-flex tw-items-center tw-gap-2">
+          {{ "about" | i18n }}
+          @if (updateNotice()) {
+            <span
+              class="tw-inline-block tw-size-1.5 tw-shrink-0 tw-rounded-full tw-bg-primary-600"
+              data-testid="settings-about-dot"
+              aria-hidden="true"
+            ></span>
+          }
+        </span>
+        <span slot="end" class="tw-text-xs tw-font-normal tw-text-muted">
+          @if (updateNotice(); as current) {
+            {{ "authenticatorNewVersion" | i18n }} {{ current.version }}
+          } @else {
+            {{ releaseVersion }}
+          }
+        </span>
+        <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
+      </a>
+    </bit-item>
   </bit-item-group>
 </popup-page>
