@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component } from "@angular/core";
+import { ChangeDetectionStrategy, Component, OnInit } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
-import { RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 import {
   combineLatest,
   filter,
@@ -35,8 +35,16 @@ import { CurrentAccountComponent } from "../../../auth/popup/account-switching/c
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
-import { AUTHENTICATOR_RELEASE_VERSION } from "../../../platform/update/extension-update";
-import { watchUpdateNotice } from "../../../platform/update/extension-update-background";
+import {
+  AUTHENTICATOR_RELEASE_VERSION,
+  SETTINGS_UPDATE_CACHE_MS,
+} from "../../../platform/update/extension-update";
+import {
+  checkForExtensionUpdate,
+  watchUpdateNotice,
+} from "../../../platform/update/extension-update-background";
+
+import { ExtensionUpdateDialogComponent } from "./extension-update-dialog/extension-update-dialog.component";
 
 @Component({
   templateUrl: "settings-v2.component.html",
@@ -57,7 +65,7 @@ import { watchUpdateNotice } from "../../../platform/update/extension-update-bac
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SettingsV2Component {
+export class SettingsV2Component implements OnInit {
   readonly NudgeType = NudgeType;
   protected readonly releaseVersion = AUTHENTICATOR_RELEASE_VERSION;
   protected readonly updateNotice = toSignal(watchUpdateNotice(), { initialValue: null });
@@ -116,7 +124,23 @@ export class SettingsV2Component {
     private readonly accountProfileStateService: BillingAccountProfileStateService,
     private readonly dialogService: DialogService,
     private readonly autofillSettingsService: AutofillSettingsServiceAbstraction,
+    private readonly router: Router,
   ) {}
+
+  ngOnInit(): void {
+    void checkForExtensionUpdate({ maxAgeMs: SETTINGS_UPDATE_CACHE_MS }).catch(
+      (): void => undefined,
+    );
+  }
+
+  protected openAbout(): void {
+    const notice = this.updateNotice();
+    if (notice != null) {
+      ExtensionUpdateDialogComponent.open(this.dialogService, notice);
+      return;
+    }
+    void this.router.navigate(["/about"]);
+  }
 
   protected openUpgradeDialog() {
     PremiumUpgradeDialogComponent.open(this.dialogService);

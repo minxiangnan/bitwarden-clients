@@ -22,6 +22,9 @@ export const UPDATE_CHECK_ALARM = "zh-authenticator-update-check";
 /** Automatic checks stay at least this far apart. */
 export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+/** Opening Settings reuses a check this recent instead of calling GitHub again. */
+export const SETTINGS_UPDATE_CACHE_MS = 5 * 60 * 1000;
+
 export const CREAM = "#FAF9F5";
 export const INK = "#3D3929";
 export const MUTED = "#5C584E";
@@ -43,6 +46,8 @@ export type ExtensionRelease = {
 
 export type StoredExtensionUpdate = {
   checkedAt: number;
+  /** Last attempt, including a failed request. Settings uses this for its short cache. */
+  attemptedAt: number;
   release: ExtensionRelease | null;
   snoozedUntil: number | null;
   ignoredVersion: string | null;
@@ -58,6 +63,7 @@ export type UpdateNotice = {
 export function emptyUpdateState(now = 0): StoredExtensionUpdate {
   return {
     checkedAt: now,
+    attemptedAt: now,
     release: null,
     snoozedUntil: null,
     ignoredVersion: null,
@@ -207,8 +213,10 @@ export function normalizeStoredUpdate(value: unknown): StoredExtensionUpdate {
     return emptyUpdateState();
   }
   const record = value as Partial<StoredExtensionUpdate>;
+  const checkedAt = typeof record.checkedAt === "number" ? record.checkedAt : 0;
   return {
-    checkedAt: typeof record.checkedAt === "number" ? record.checkedAt : 0,
+    checkedAt,
+    attemptedAt: typeof record.attemptedAt === "number" ? record.attemptedAt : checkedAt,
     release: record.release ?? null,
     snoozedUntil: typeof record.snoozedUntil === "number" ? record.snoozedUntil : null,
     ignoredVersion: typeof record.ignoredVersion === "string" ? record.ignoredVersion : null,

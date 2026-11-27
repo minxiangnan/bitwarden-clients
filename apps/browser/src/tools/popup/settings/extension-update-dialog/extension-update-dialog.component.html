@@ -1,0 +1,33 @@
+<bit-dialog dialogSize="small" [title]="title">
+  <div bitDialogContent class="tw-flex tw-flex-col tw-gap-3" data-testid="extension-update-dialog">
+    @if (notice.notes) {
+      <p class="tw-m-0 tw-text-sm tw-leading-5 tw-text-main">{{ notice.notes }}</p>
+    }
+    @if (hint()) {
+      <p class="tw-m-0 tw-text-xs tw-leading-4 tw-text-muted" data-testid="extension-update-hint">
+        {{ "authenticatorUpdateHint" | i18n }}
+      </p>
+    }
+  </div>
+  <ng-container bitDialogFooter>
+    <button
+      type="button"
+      bitButton
+      buttonType="secondary"
+      (click)="dismiss()"
+      data-testid="extension-update-later"
+    >
+      {{ "later" | i18n }}
+    </button>
+    <button
+      type="button"
+      bitButton
+      buttonType="primary"
+      (click)="download()"
+      [disabled]="downloading()"
+      data-testid="extension-update-download"
+    >
+      {{ "authenticatorUpdateNow" | i18n }}
+    </button>
+  </ng-container>
+</bit-dialog>

@@ -19,7 +19,6 @@ import {
   normalizeStoredUpdate,
   noticeFor,
   selectLatestRelease,
-  shouldCheckAutomatically,
   type BrowserKind,
   type StoredExtensionUpdate,
   type UpdateNotice,
@@ -40,6 +39,8 @@ type UpdateDeps = {
   readState?: () => Promise<StoredExtensionUpdate>;
   writeState?: (state: StoredExtensionUpdate) => Promise<void>;
   setBadge?: (text: string) => void;
+  /** Reuse a stored attempt newer than this. The daily alarm leaves it unset. */
+  maxAgeMs?: number;
 };
 
 const MINUTE_MS = 60 * 1000;
@@ -263,18 +264,12 @@ export async function checkForExtensionUpdate(deps: UpdateDeps = {}): Promise<Up
   const writeState = deps.writeState ?? writeUpdateState;
   const setBadge = deps.setBadge ?? publishBadge;
   const previous = await readState();
+  const cached = cachedUpdateResult(previous, currentVersion, now, browser, deps);
 
   // Chrome may fire a daily alarm a little early. A one-minute window still checks once a day.
-  if (!deps.force && !shouldCheckAutomatically(previous.checkedAt, now, MINUTE_MS)) {
-    const notice = noticeFor(previous, currentVersion, now, browser);
-    setBadge(notice ? "新" : "");
-    return {
-      ok: true,
-      statusText: notice
-        ? `发现新版本 ${notice.version}。解压覆盖到同一文件夹并点刷新。`
-        : `已是最新版本 ${currentVersion}`,
-      noticeVersion: notice?.version ?? null,
-    };
+  if (cached != null) {
+    setBadge(cached.noticeVersion ? "新" : "");
+    return cached;
   }
 
   try {
@@ -289,6 +284,7 @@ export async function checkForExtensionUpdate(deps: UpdateDeps = {}): Promise<Up
     const next: StoredExtensionUpdate = {
       ...previous,
       checkedAt: now,
+      attemptedAt: now,
       release,
     };
     await writeState(next);
@@ -302,12 +298,106 @@ export async function checkForExtensionUpdate(deps: UpdateDeps = {}): Promise<Up
       noticeVersion: notice?.version ?? null,
     };
   } catch {
+    try {
+      await writeState({ ...previous, attemptedAt: now });
+    } catch {
+      // A failed check stays silent. The next visit retries after the short cache.
+    }
     return {
       ok: false,
       statusText: "检查失败，请稍后再试",
       noticeVersion: null,
     };
   }
+}
+
+function cachedUpdateResult(
+  previous: StoredExtensionUpdate,
+  currentVersion: string,
+  now: number,
+  browser: BrowserKind,
+  deps: UpdateDeps,
+): UpdateCheckResult | null {
+  if (deps.force) {
+    return null;
+  }
+  const maxAge = deps.maxAgeMs ?? UPDATE_CHECK_INTERVAL_MS - MINUTE_MS;
+  const stamp =
+    deps.maxAgeMs != null ? previous.attemptedAt || previous.checkedAt : previous.checkedAt;
+  if (stamp <= 0 || now - stamp >= maxAge) {
+    return null;
+  }
+  const notice = noticeFor(previous, currentVersion, now, browser);
+  return {
+    ok: true,
+    statusText: notice
+      ? `发现新版本 ${notice.version}。解压覆盖到同一文件夹并点刷新。`
+      : `已是最新版本 ${currentVersion}`,
+    noticeVersion: notice?.version ?? null,
+  };
+}
+
+/** Saves this browser's zip. Opens the asset URL when downloads are unavailable. */
+export async function downloadExtensionUpdate(url: string): Promise<boolean> {
+  if (await startBrowserDownload(url)) {
+    return true;
+  }
+  try {
+    await BrowserApi.createNewTab(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function startBrowserDownload(url: string): Promise<boolean> {
+  const downloads = typeof chrome === "undefined" ? undefined : chrome.downloads;
+  if (downloads == null || typeof downloads.download !== "function") {
+    return Promise.resolve(false);
+  }
+  const filename = zipName(url);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(ok);
+    };
+    let pending: unknown;
+    try {
+      pending = downloads.download(
+        filename == null ? { url, saveAs: false } : { url, filename, saveAs: false },
+        (downloadId) => {
+          if (isThenable(pending)) {
+            return;
+          }
+          finish(consumeRuntimeLastError() == null && downloadId != null);
+        },
+      );
+      if (isThenable(pending)) {
+        void pending.then(
+          (downloadId) => finish(downloadId != null),
+          () => finish(false),
+        );
+      }
+    } catch {
+      finish(false);
+    }
+  });
+}
+
+function zipName(url: string): string | undefined {
+  try {
+    const name = new URL(url).pathname.split("/").pop() ?? "";
+    if (name.endsWith(".zip") && !name.includes("..")) {
+      return name;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }
 
 export async function snoozeExtensionUpdate(now = Date.now()): Promise<void> {

@@ -70,7 +70,8 @@
     "webNavigation",
     "webRequest",
     "webRequestAuthProvider",
-    "notifications"
+    "notifications",
+    "downloads"
   ],
   "__firefox__permissions": [
     "activeTab",
@@ -86,7 +87,8 @@
     "webNavigation",
     "webRequest",
     "webRequestAuthProvider",
-    "notifications"
+    "notifications",
+    "downloads"
   ],
   "__safari__permissions": [
     "activeTab",
