@@ -5,7 +5,11 @@ import {
   UPDATE_STORAGE_KEY,
   type StoredExtensionUpdate,
 } from "./extension-update";
-import { checkForExtensionUpdate, readUpdateState } from "./extension-update-background";
+import {
+  checkForExtensionUpdate,
+  readUpdateState,
+  watchUpdateNotice,
+} from "./extension-update-background";
 
 describe("extension update background", () => {
   const releasePayload = [
@@ -125,5 +129,42 @@ describe("extension update background", () => {
     expect(reads).toBeGreaterThan(0);
     expect(consumeRuntimeLastError()).toBe("storage failed");
     delete (chrome.runtime as { lastError?: chrome.runtime.LastError }).lastError;
+  });
+
+  it("replays a stored notice to a subscriber that arrives later", async () => {
+    (chrome.storage.local.get as jest.Mock).mockImplementation(
+      (_key: string, callback: (items: Record<string, unknown>) => void) => {
+        callback({
+          [UPDATE_STORAGE_KEY]: {
+            checkedAt: 1,
+            snoozedUntil: null,
+            ignoredVersion: null,
+            release: {
+              version: "9.9.9",
+              tag: "v-zh-authenticator-9.9.9",
+              notes: "",
+              releaseUrl:
+                "https://github.com/minxiangnan/bitwarden-clients/releases/tag/v-zh-authenticator-9.9.9",
+              downloads: { chrome: "https://example.test/chrome.zip" },
+            },
+          },
+        });
+      },
+    );
+
+    const first: Array<string | null> = [];
+    const early = watchUpdateNotice().subscribe((notice) => {
+      first.push(notice?.version ?? null);
+    });
+    await Promise.resolve();
+    expect(first.at(-1)).toBe("9.9.9");
+
+    const later: Array<string | null> = [];
+    const late = watchUpdateNotice().subscribe((notice) => {
+      later.push(notice?.version ?? null);
+    });
+    expect(later).toEqual(["9.9.9"]);
+    early.unsubscribe();
+    late.unsubscribe();
   });
 });
