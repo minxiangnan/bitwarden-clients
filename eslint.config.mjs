@@ -878,6 +878,7 @@ export default tseslint.config(
 
       "apps/browser/config/config.js",
       "apps/browser/webpack/manifest.js",
+      "apps/browser/webpack/extension-public-key.js",
 
       "apps/desktop/desktop_native",
 

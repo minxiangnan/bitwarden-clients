@@ -1,3 +1,5 @@
+const { CHROME_EXTENSION_PUBLIC_KEY } = require("./extension-public-key");
+
 /**
  * Transform the manifest template into a browser specific manifest.
  *
@@ -26,6 +28,7 @@ function transform(browser) {
 
     manifest = transformPrefixes(manifest, browser);
     manifest = transformChannel(manifest);
+    manifest = applyStableExtensionId(manifest, browser);
 
     return JSON.stringify(manifest, null, 2);
   };
@@ -37,6 +40,14 @@ function transform(browser) {
 // already exists, which naturally handles the MV2 (`browser_action`) vs MV3
 // (`action`) split. Version stamping is handled separately post-build by
 // scripts/update-manifest-beta.sh.
+/** Chrome and Edge pin the unpacked id to the public key, independent of the folder path. */
+function applyStableExtensionId(manifest, browser) {
+  if (browser === "chrome" || browser === "edge") {
+    manifest.key = CHROME_EXTENSION_PUBLIC_KEY;
+  }
+  return manifest;
+}
+
 function transformChannel(manifest) {
   if (process.env.CHANNEL !== "beta") {
     return manifest;

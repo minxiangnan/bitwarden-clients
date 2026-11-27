@@ -3,7 +3,7 @@
  * 2026.11.N line so Chrome treats each build as newer; this string is what we
  * compare with GitHub tags `v-zh-authenticator-X.Y.Z`.
  */
-export const AUTHENTICATOR_RELEASE_VERSION = "1.2.3";
+export const AUTHENTICATOR_RELEASE_VERSION = "1.2.4";
 
 /**
  * GitHub releases API. Chrome MV3 host_permissions already includes every
@@ -13,7 +13,7 @@ export const AUTHENTICATOR_RELEASE_VERSION = "1.2.3";
 export const RELEASES_URL = "https://api.github.com/repos/minxiangnan/bitwarden-clients/releases";
 
 export const UPDATE_STEPS =
-  "更新步骤：点「下载新版」保存 zip，解压后覆盖原来的扩展文件夹，然后打开扩展管理页点刷新。扩展不会自动下载或安装。";
+  "更新步骤：点「下载新版」保存 zip，解压覆盖到同一文件夹并点刷新。不要解压到新文件夹再点「加载已解压的扩展程序」。扩展不会自动下载或安装。";
 
 export const UPDATE_STORAGE_KEY = "zhAuthenticatorUpdate";
 
