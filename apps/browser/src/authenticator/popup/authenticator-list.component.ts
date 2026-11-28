@@ -117,10 +117,10 @@ export class AuthenticatorListComponent {
   protected readonly scanning = signal(false);
   protected readonly scanError = signal<string | null>(null);
   protected readonly busyId = signal<string | null>(null);
-  /** The row that just copied its code. The check replaces the success toast. */
-  protected readonly copiedId = signal<string | null>(null);
-  /** Bumps on every copy so copying the same row restarts the check. */
-  private readonly copiedTick = signal(0);
+  /** Non-zero while the top copy bubble is on screen. The value restarts the slide. */
+  protected readonly copyNotice = signal(0);
+  /** How long the copy bubble stays before it dismisses itself. */
+  protected readonly copyToastMs = AUTHENTICATOR_COPY_TOAST_MS;
   /** Hold this long before a drag starts, so a short click still copies the code. */
   protected readonly dragHoldMs = AUTHENTICATOR_DRAG_HOLD_MS;
 
@@ -175,11 +175,11 @@ export class AuthenticatorListComponent {
       void this.refreshOrders();
     });
     effect((onCleanup) => {
-      const id = this.copiedId();
-      if (id == null || this.copiedTick() === 0) {
+      const tick = this.copyNotice();
+      if (tick === 0) {
         return;
       }
-      const timer = setTimeout(() => this.copiedId.set(null), 1200);
+      const timer = setTimeout(() => this.copyNotice.set(0), AUTHENTICATOR_COPY_TOAST_MS);
       onCleanup(() => clearTimeout(timer));
     });
   }
@@ -218,8 +218,7 @@ export class AuthenticatorListComponent {
       ? clipboardClearMs(await firstValueFrom(this.autofillSettings.clearClipboardDelay$))
       : undefined;
     this.platformUtils.copyToClipboard(value, clearMs ? { clearMs } : undefined);
-    this.copiedId.set(entry.id);
-    this.copiedTick.update((tick) => tick + 1);
+    this.copyNotice.update((tick) => tick + 1);
     this.ui.noteRecent(entry.id);
     if (entry.kind === "hotp" && !this.readOnly()) {
       try {
@@ -502,6 +501,9 @@ export class AuthenticatorListComponent {
 
 /** Press-and-hold before a row can be dragged. Shorter presses stay clicks. */
 export const AUTHENTICATOR_DRAG_HOLD_MS = 400;
+
+/** The top copy bubble stays on screen for this long. */
+export const AUTHENTICATOR_COPY_TOAST_MS = 1500;
 
 function groupEntries(
   entries: AuthenticatorEntryView[],

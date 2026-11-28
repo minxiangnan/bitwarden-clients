@@ -67,4 +67,4 @@ Settings, vault rows, and security pages are one inset group: a single warm-whit
 
 Empty states are one 13px faint line, centered, with 48px of space above. No illustration and no extra border.
 
-Authenticator rows sit in one 16px surface. The full name and the full notes wrap; nothing is clipped. The code sits on the right with a 16px countdown ring. The header is the title and a search pill. Order is always the custom `zh.totp.order`. A 400ms press-and-hold starts a drag; other rows slide aside in 200ms. A short click still copies the code.
+Authenticator rows sit in one 16px surface. The full name and the full notes wrap; nothing is clipped. The code sits on the right with a 16px countdown ring. The header is the title and a search pill. Order is always the custom `zh.totp.order`. A 400ms press-and-hold starts a drag; other rows slide aside in 200ms. A short click still copies the code and slides a cream pill in from the top (`已复制验证码`). It fades after 1.5s. Reduced motion skips the slide.

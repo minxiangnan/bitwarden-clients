@@ -431,10 +431,43 @@ bit-bottom-navigation button {
   color: var(--zh-urgent);
 }
 
-[data-zh-copied] {
-  color: var(--zh-faint) !important;
-  font-size: 11px !important;
+[data-zh-copy-toast] {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  z-index: 40;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid var(--zh-line);
+  border-radius: 999px;
+  background: var(--zh-surface);
+  color: var(--zh-code);
+  box-shadow: 0 8px 20px rgb(194 85 45 / 0.16);
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: zh-copy-toast-in 180ms var(--zh-ease);
+}
+
+@keyframes zh-copy-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-zh-copy-toast] {
+    animation: none;
+    transform: translateX(-50%);
+  }
 }
 
 [data-zh-empty] {

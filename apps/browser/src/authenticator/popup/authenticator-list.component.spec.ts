@@ -9,6 +9,7 @@ import { ToastService } from "@bitwarden/components";
 import { AuthenticatorEntryView } from "../authenticator.models";
 
 import {
+  AUTHENTICATOR_COPY_TOAST_MS,
   AUTHENTICATOR_DRAG_HOLD_MS,
   AuthenticatorListComponent,
   rowSlideOffsets,
@@ -125,7 +126,7 @@ describe("AuthenticatorListComponent", () => {
 
     await fixture.componentInstance["copy"](entry);
 
-    expect(fixture.componentInstance["copiedId"]()).toBe("1");
+    expect(fixture.componentInstance["copyNotice"]()).toBeGreaterThan(0);
     expect(fixture.componentInstance["rowTitle"](named)).toBe(
       "GitHub · 公司统一身份认证平台管理员账号",
     );
@@ -199,7 +200,7 @@ describe("AuthenticatorListComponent", () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it("marks a copied code on the row instead of stacking a toast", async () => {
+  it("shows a top copy bubble for 1.5s instead of a row mark or a stacked toast", async () => {
     const { fixture, authenticator } = setup();
     const toast = TestBed.inject(ToastService);
     fixture.componentInstance["rememberCode"]("1", "123456");
@@ -207,8 +208,18 @@ describe("AuthenticatorListComponent", () => {
     await fixture.componentInstance["copy"](entry);
 
     expect(toast.showToast).not.toHaveBeenCalled();
-    expect(fixture.componentInstance["copiedId"]()).toBe("1");
+    expect(AUTHENTICATOR_COPY_TOAST_MS).toBe(1500);
+    expect(fixture.componentInstance["copyToastMs"]).toBe(1500);
+    const first = fixture.componentInstance["copyNotice"]();
+    expect(first).toBeGreaterThan(0);
     expect(authenticator.writeTotpOrders).not.toHaveBeenCalled();
+
+    await fixture.componentInstance["copy"](entry);
+    fixture.detectChanges();
+    expect(fixture.componentInstance["copyNotice"]()).toBe(first + 1);
+
+    await new Promise((resolve) => setTimeout(resolve, AUTHENTICATOR_COPY_TOAST_MS + 40));
+    expect(fixture.componentInstance["copyNotice"]()).toBe(0);
   });
 
   it("writes one midpoint when a row moves up, and refuses to reorder a search", async () => {
