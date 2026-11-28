@@ -426,17 +426,64 @@ bit-bottom-navigation button {
   letter-spacing: 0.06em;
 }
 
-[data-zh-ring] {
-  color: var(--zh-primary);
+[data-zh-code-block] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 84px;
 }
 
-[data-zh-ring] circle {
-  stroke: currentColor;
-  fill: none;
+[data-zh-countdown] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  width: 100%;
 }
 
-[data-zh-urgent] {
+[data-zh-countdown-track] {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--zh-line);
+  overflow: hidden;
+}
+
+[data-zh-countdown-fill] {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--zh-primary);
+  transition: width 1s linear;
+}
+
+[data-zh-countdown-fill][data-zh-reset] {
+  transition: none;
+}
+
+[data-zh-countdown-seconds] {
+  flex: none;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--zh-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-zh-countdown][data-zh-urgent] [data-zh-countdown-fill] {
+  background: var(--zh-urgent);
+}
+
+[data-zh-countdown][data-zh-urgent] [data-zh-countdown-seconds] {
   color: var(--zh-urgent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-zh-countdown-fill] {
+    transition: none;
+  }
 }
 
 [data-zh-copy-toast] {

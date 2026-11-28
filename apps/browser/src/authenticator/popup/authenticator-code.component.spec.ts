@@ -5,7 +5,7 @@ import { TotpService } from "@bitwarden/common/vault/abstractions/totp.service";
 
 import { AuthenticatorEntryView } from "../authenticator.models";
 
-import { AuthenticatorCodeComponent } from "./authenticator-code.component";
+import { AuthenticatorCodeComponent, codeFace } from "./authenticator-code.component";
 
 describe("AuthenticatorCodeComponent", () => {
   const entry = {
@@ -42,6 +42,11 @@ describe("AuthenticatorCodeComponent", () => {
 
     expect(fixture.nativeElement.textContent).toContain("123 456");
     expect(fixture.nativeElement.textContent).toContain("30");
+    expect(fixture.nativeElement.querySelector("[data-zh-countdown]")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector("[data-zh-ring]")).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector("[data-zh-countdown]").hasAttribute("data-zh-urgent"),
+    ).toBe(false);
     expect(fixture.nativeElement.textContent).not.toContain("下一段");
     jest.restoreAllMocks();
   });
@@ -64,6 +69,24 @@ describe("AuthenticatorCodeComponent", () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain("下一段");
+    expect(
+      fixture.nativeElement.querySelector("[data-zh-countdown]").hasAttribute("data-zh-urgent"),
+    ).toBe(true);
+    jest.restoreAllMocks();
+  });
+
+  it("fills the bar with the time left and flags a new period", () => {
+    jest.spyOn(Date, "now").mockReturnValue(30_000_600);
+    expect(codeFace("123456", 30, "").remaining).toBe(1);
+    expect(codeFace("123456", 30, "").low).toBe(false);
+
+    jest.spyOn(Date, "now").mockReturnValue(25_000);
+    const late = codeFace("123456", 30, "");
+    expect(late.seconds).toBe(5);
+    expect(late.low).toBe(true);
+    expect(late.remaining).toBeCloseTo(5 / 30);
+
+    expect(codeFace("123456", 0, "").seconds).toBe(0);
     jest.restoreAllMocks();
   });
 });
