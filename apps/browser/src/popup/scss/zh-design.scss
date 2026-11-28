@@ -372,6 +372,14 @@ bit-bottom-navigation button {
   box-shadow: var(--zh-shadow);
 }
 
+[data-zh-auth-row] {
+  align-items: flex-start;
+}
+
+[data-zh-auth-menu] {
+  margin-top: 2px;
+}
+
 [data-authenticator-row] {
   min-height: 56px;
   margin: 0 !important;

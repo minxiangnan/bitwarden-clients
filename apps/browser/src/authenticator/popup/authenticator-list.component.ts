@@ -113,7 +113,6 @@ export class AuthenticatorListComponent {
   private readonly codes = new Map<string, string>();
 
   protected readonly query = signal("");
-  protected readonly favoritesOnly = signal(false);
   protected readonly scanning = signal(false);
   protected readonly scanError = signal<string | null>(null);
   protected readonly busyId = signal<string | null>(null);
@@ -145,7 +144,7 @@ export class AuthenticatorListComponent {
     const filtered = filterAuthenticatorEntries(
       this.state().entries.filter((entry) => !entry.deletedAt),
       this.query(),
-      this.favoritesOnly(),
+      false,
       "manual",
     );
     if (this.ui.recentOnly()) {
@@ -308,13 +307,11 @@ export class AuthenticatorListComponent {
   }
 
   /**
-   * Custom order on the full list. Search, favorites, and recent each show a
-   * subset, so a midpoint from those neighbors would skip hidden rows.
+   * Custom order on the full list. Search and recent each show a subset, so a
+   * midpoint from those neighbors would skip hidden rows.
    */
   protected canReorder(): boolean {
-    return (
-      this.query().trim() === "" && !this.favoritesOnly() && !this.recentOnly() && !this.readOnly()
-    );
+    return this.query().trim() === "" && !this.recentOnly() && !this.readOnly();
   }
 
   /** Long-press drag follows the flat custom-order list. Grouped rows use the menu. */
@@ -382,20 +379,6 @@ export class AuthenticatorListComponent {
       return;
     }
     void this.router.navigate(["/authenticator", entry.id]);
-  }
-
-  protected async toggleFavorite(entry: AuthenticatorEntryView): Promise<void> {
-    if (entry.undecryptable || this.busyId() != null) {
-      return;
-    }
-    this.busyId.set(entry.id);
-    try {
-      await this.authenticator.setFavorite(entry, !entry.favorite);
-    } catch {
-      this.failSave();
-    } finally {
-      this.busyId.set(null);
-    }
   }
 
   protected syncedLabel(): string {
