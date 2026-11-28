@@ -214,12 +214,19 @@ export class AuthenticatorListComponent {
     if (!value) {
       return;
     }
-    const clearMs = this.autofillSettings
-      ? clipboardClearMs(await firstValueFrom(this.autofillSettings.clearClipboardDelay$))
-      : undefined;
-    this.platformUtils.copyToClipboard(value, clearMs ? { clearMs } : undefined);
     this.copyNotice.update((tick) => tick + 1);
     this.ui.noteRecent(entry.id);
+    let clearMs: number | undefined;
+    if (this.autofillSettings) {
+      try {
+        clearMs = clipboardClearMs(
+          await firstValueFrom(this.autofillSettings.clearClipboardDelay$),
+        );
+      } catch {
+        clearMs = undefined;
+      }
+    }
+    this.platformUtils.copyToClipboard(value, clearMs ? { clearMs } : undefined);
     if (entry.kind === "hotp" && !this.readOnly()) {
       try {
         await this.authenticator.advanceHotp(entry);
