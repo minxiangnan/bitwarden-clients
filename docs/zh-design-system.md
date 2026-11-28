@@ -4,23 +4,23 @@ Popup and the inline autofill menu share these tokens. The Android client should
 
 ## Palette
 
-| Token             | Hex       | Use                                         |
-| ----------------- | --------- | ------------------------------------------- |
-| `canvas`          | `#FBF6EF` | Page background                             |
-| `surface`         | `#FFFDF9` | Cards, grouped lists, fields, dialogs       |
-| `surface-muted`   | `#F3EBE1` | Segmented control track, pressed wells      |
-| `primary`         | `#C2552D` | Terracotta fill. Buttons, active tab, focus |
+| Token             | Hex       | Use                                            |
+| ----------------- | --------- | ---------------------------------------------- |
+| `canvas`          | `#FBF6EF` | Page background                                |
+| `surface`         | `#FFFDF9` | Cards, grouped lists, fields, dialogs          |
+| `surface-muted`   | `#F3EBE1` | Segmented control track, pressed wells         |
+| `primary`         | `#C2552D` | Terracotta fill. Buttons, active tab, focus    |
 | `primary-pressed` | `#A44C2B` | Hover and pressed primary. Fill mixed with ink |
-| `primary-soft`    | `#F3DFD4` | Monogram, selected quiet chip               |
-| `code`            | `#BA4E29` | Primary text, icons, and authenticator digits |
-| `urgent`          | `#C2412D` | Countdown ring in the last 5 seconds        |
-| `ink`             | `#3B2A22` | Body text                                   |
-| `ink-deep`        | `#2B1E19` | Titles. Darkest color in the system         |
-| `muted`           | `#7A675B` | Secondary text                              |
-| `faint`           | `#AC9D91` | Placeholders, section labels, quiet actions |
-| `line`            | `#EADFD3` | Hairline dividers                           |
-| `input`           | `#9E8676` | Field and search borders                    |
-| `on-primary`      | `#FFFDF9` | Text on terracotta                          |
+| `primary-soft`    | `#F3DFD4` | Selected quiet chip                            |
+| `code`            | `#BA4E29` | Primary text, icons, and authenticator digits  |
+| `urgent`          | `#C2412D` | Countdown ring in the last 5 seconds           |
+| `ink`             | `#3B2A22` | Body text                                      |
+| `ink-deep`        | `#2B1E19` | Titles. Darkest color in the system            |
+| `muted`           | `#7A675B` | Secondary text                                 |
+| `faint`           | `#AC9D91` | Placeholders, section labels, quiet actions    |
+| `line`            | `#EADFD3` | Hairline dividers                              |
+| `input`           | `#9E8676` | Field and search borders                       |
+| `on-primary`      | `#FFFDF9` | Text on terracotta                             |
 
 These light values match the Android client. Pressed is 78% fill mixed with ink. Soft is 86% canvas mixed with fill. Faint is 55% muted mixed with the line.
 
@@ -67,4 +67,4 @@ Settings, vault rows, and security pages are one inset group: a single warm-whit
 
 Empty states are one 13px faint line, centered, with 48px of space above. No illustration and no extra border.
 
-Authenticator rows sit in one 16px surface. A 32px monogram circle, 14/12 title and notes (one line, ellipsis), the code, then a 16px countdown ring. The header is the title, a search pill, a `自定义` / `A-Z` segment, and a quiet `排序` text button. Sort mode keeps the drag handle, pin, and 200ms slide.
+Authenticator rows sit in one 16px surface. The full name and the full notes wrap; nothing is clipped. The code sits on the right with a 16px countdown ring. The header is the title and a search pill. Order is always the custom `zh.totp.order`. A 400ms press-and-hold starts a drag; other rows slide aside in 200ms. A short click still copies the code.

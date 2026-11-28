@@ -9563,7 +9563,7 @@
     "message": "排序和分组"
   },
   "authenticatorArrangeHelp": {
-    "message": "只影响这台浏览器上的查看方式，不会改服务器上的顺序，除非你在编辑页里上移或下移。"
+    "message": "列表始终按自定义顺序排列。长按一行约 0.4 秒后拖动，或聚焦一行后按 Alt+上/下。顺序写入 zh.totp.order 并同步。分组只影响这台浏览器上的查看方式。"
   },
   "authenticatorSort": {
     "message": "排序"

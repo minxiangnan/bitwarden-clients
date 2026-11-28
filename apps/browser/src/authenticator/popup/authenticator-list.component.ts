@@ -121,8 +121,8 @@ export class AuthenticatorListComponent {
   protected readonly copiedId = signal<string | null>(null);
   /** Bumps on every copy so copying the same row restarts the check. */
   private readonly copiedTick = signal(0);
-  /** Front handle and pin stay hidden until the user asks to reorder. */
-  protected readonly sorting = signal(false);
+  /** Hold this long before a drag starts, so a short click still copies the code. */
+  protected readonly dragHoldMs = AUTHENTICATOR_DRAG_HOLD_MS;
 
   private readonly state = toSignal(this.authenticator.state$, {
     initialValue: {
@@ -146,7 +146,7 @@ export class AuthenticatorListComponent {
       this.state().entries.filter((entry) => !entry.deletedAt),
       this.query(),
       this.favoritesOnly(),
-      this.ui.sort(),
+      "manual",
     );
     if (this.ui.recentOnly()) {
       const byId = new Map(filtered.map((entry) => [entry.id, entry]));
@@ -154,9 +154,6 @@ export class AuthenticatorListComponent {
         .recentIds()
         .map((id) => byId.get(id))
         .filter((entry): entry is AuthenticatorEntryView => entry != null);
-    }
-    if (this.ui.sort() !== "manual") {
-      return filtered;
     }
     return [...filtered].sort((a, b) => compareByTotpOrder(a, b, this.orderIndex().orderBySecret));
   });
@@ -185,11 +182,6 @@ export class AuthenticatorListComponent {
       const timer = setTimeout(() => this.copiedId.set(null), 1200);
       onCleanup(() => clearTimeout(timer));
     });
-    effect(() => {
-      if (!this.canReorder()) {
-        this.sorting.set(false);
-      }
-    });
   }
 
   private async loadAliases(): Promise<void> {
@@ -205,32 +197,19 @@ export class AuthenticatorListComponent {
   }
 
   protected rowTitle(entry: AuthenticatorEntryView): string {
-    const issuer = entry.issuer?.trim();
-    return issuer || entry.name?.trim() || "";
+    const issuer = entry.issuer?.trim() ?? "";
+    const name = entry.name?.trim() ?? "";
+    if (issuer && name && issuer !== name) {
+      return `${issuer} · ${name}`;
+    }
+    return issuer || name;
   }
 
-  protected rowSubtitle(entry: AuthenticatorEntryView): string {
-    const notes = entry.notes?.trim();
-    if (notes) {
-      return notes;
-    }
-    const issuer = entry.issuer?.trim();
-    const name = entry.name?.trim();
-    if (issuer && name && name !== issuer) {
-      return name;
-    }
-    return this.aliases()[entry.id] ?? "";
-  }
-
-  protected monogram(entry: AuthenticatorEntryView): string {
-    const char = Array.from(this.rowTitle(entry))[0];
-    return char ? char.toLocaleUpperCase() : "?";
+  protected rowNotes(entry: AuthenticatorEntryView): string {
+    return entry.notes?.trim() ?? "";
   }
 
   protected async copy(entry: AuthenticatorEntryView): Promise<void> {
-    if (this.sortMode()) {
-      return;
-    }
     const value = this.codes.get(entry.id);
     if (!value) {
       return;
@@ -328,30 +307,33 @@ export class AuthenticatorListComponent {
    */
   protected canReorder(): boolean {
     return (
-      this.ui.sort() === "manual" &&
-      this.query().trim() === "" &&
-      !this.favoritesOnly() &&
-      !this.recentOnly() &&
-      !this.readOnly()
+      this.query().trim() === "" && !this.favoritesOnly() && !this.recentOnly() && !this.readOnly()
     );
   }
 
-  /** Drag and the pin are only on screen while sort mode is open. */
-  protected sortMode(): boolean {
-    return this.sorting() && this.canReorder();
+  /** Long-press drag follows the flat custom-order list. Grouped rows use the menu. */
+  protected canDrag(): boolean {
+    return this.canReorder() && this.ui.group() === "none";
   }
 
-  protected toggleSortMode(): void {
-    if (!this.canReorder()) {
-      this.sorting.set(false);
+  /** Alt+Up and Alt+Down move the focused row. A plain click still copies. */
+  protected onRowKey(
+    event: KeyboardEvent,
+    entry: AuthenticatorEntryView,
+    entries: AuthenticatorEntryView[],
+    list: HTMLElement,
+  ): void {
+    if (!event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) {
       return;
     }
-    this.sorting.update((on) => !on);
-  }
-
-  /** Drag follows the flat list. Grouped rows use the move menu instead. */
-  protected canDrag(): boolean {
-    return this.sortMode() && this.ui.group() === "none";
+    const index = entries.findIndex((item) => item.id === entry.id);
+    if (event.key === "ArrowUp" && index > 0) {
+      event.preventDefault();
+      void this.moveEntry(entry, index - 1, entries, list);
+    } else if (event.key === "ArrowDown" && index >= 0 && index < entries.length - 1) {
+      event.preventDefault();
+      void this.moveEntry(entry, index + 1, entries, list);
+    }
   }
 
   protected isFirst(entry: AuthenticatorEntryView, entries: AuthenticatorEntryView[]): boolean {
@@ -517,6 +499,9 @@ export class AuthenticatorListComponent {
     });
   }
 }
+
+/** Press-and-hold before a row can be dragged. Shorter presses stay clicks. */
+export const AUTHENTICATOR_DRAG_HOLD_MS = 400;
 
 function groupEntries(
   entries: AuthenticatorEntryView[],

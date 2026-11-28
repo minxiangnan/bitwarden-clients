@@ -8,7 +8,11 @@ import { ToastService } from "@bitwarden/components";
 
 import { AuthenticatorEntryView } from "../authenticator.models";
 
-import { AuthenticatorListComponent, rowSlideOffsets } from "./authenticator-list.component";
+import {
+  AUTHENTICATOR_DRAG_HOLD_MS,
+  AuthenticatorListComponent,
+  rowSlideOffsets,
+} from "./authenticator-list.component";
 import { AuthenticatorService } from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
 
@@ -79,21 +83,17 @@ describe("AuthenticatorListComponent", () => {
     expect(authenticator.setFavorite).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps rows clean until sort mode, and leaves that mode while searching", () => {
+  it("drags the custom-order list after a hold, and turns drag off while searching", () => {
     const { fixture } = setup();
     const component = fixture.componentInstance;
 
-    expect(component["sortMode"]()).toBe(false);
-    expect(component["canDrag"]()).toBe(false);
-
-    component["toggleSortMode"]();
-    expect(component["sortMode"]()).toBe(true);
+    expect(component["dragHoldMs"]).toBe(AUTHENTICATOR_DRAG_HOLD_MS);
+    expect(AUTHENTICATOR_DRAG_HOLD_MS).toBe(400);
     expect(component["canDrag"]()).toBe(true);
 
     component["query"].set("ada");
     fixture.detectChanges();
     expect(component["canReorder"]()).toBe(false);
-    expect(component["sortMode"]()).toBe(false);
     expect(component["canDrag"]()).toBe(false);
   });
 
@@ -101,7 +101,6 @@ describe("AuthenticatorListComponent", () => {
     const { fixture } = setup();
     const component = fixture.componentInstance;
 
-    component["toggleSortMode"]();
     expect(component["canDrag"]()).toBe(true);
 
     component["query"].set("ada");
@@ -109,20 +108,58 @@ describe("AuthenticatorListComponent", () => {
     expect(component["canDrag"]()).toBe(false);
 
     component["query"].set("");
-    component["toggleSortMode"]();
     component["favoritesOnly"].set(true);
     fixture.detectChanges();
     expect(component["canDrag"]()).toBe(false);
   });
 
-  it("does not copy a code while sort mode is open", async () => {
+  it("still copies on a short click, and shows the full name with the full notes", async () => {
     const { fixture } = setup();
+    const named = {
+      ...entry,
+      issuer: "GitHub",
+      name: "公司统一身份认证平台管理员账号",
+      notes: "这是一段完整备注，列表应换行而不是截断。",
+    };
     fixture.componentInstance["rememberCode"]("1", "123456");
-    fixture.componentInstance["toggleSortMode"]();
 
     await fixture.componentInstance["copy"](entry);
 
-    expect(fixture.componentInstance["copiedId"]()).toBeNull();
+    expect(fixture.componentInstance["copiedId"]()).toBe("1");
+    expect(fixture.componentInstance["rowTitle"](named)).toBe(
+      "GitHub · 公司统一身份认证平台管理员账号",
+    );
+    expect(fixture.componentInstance["rowNotes"](named)).toBe(
+      "这是一段完整备注，列表应换行而不是截断。",
+    );
+  });
+
+  it("moves the focused row with Alt+ArrowUp", async () => {
+    const { fixture, authenticator } = setup();
+    const ada = { ...entry, id: "a", name: "Ada" };
+    const bea = { ...entry, id: "b", name: "Bea", secret: "BEASECRETSECRET" };
+    fixture.componentInstance["orderIndex"].set({
+      orderBySecret: new Map([
+        ["WQIQ25BRKZYCJVYP", 1000],
+        ["BEASECRETSECRET", 2000],
+      ]),
+      secretsWithCipher: new Set(["WQIQ25BRKZYCJVYP", "BEASECRETSECRET"]),
+    });
+    const event = {
+      altKey: true,
+      shiftKey: false,
+      ctrlKey: false,
+      metaKey: false,
+      key: "ArrowUp",
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent;
+
+    fixture.componentInstance["onRowKey"](event, bea, [ada, bea], document.createElement("ul"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(authenticator.writeTotpOrders).toHaveBeenCalled();
   });
 
   it("slides a pinned row up and the rows above it down", () => {
@@ -202,7 +239,7 @@ describe("AuthenticatorListComponent", () => {
     expect(authenticator.writeTotpOrders).not.toHaveBeenCalled();
   });
 
-  it("sorts custom order ahead of name order, and name order ignores the field", async () => {
+  it("keeps custom order even when a name sort was saved", async () => {
     const { fixture, authenticator } = setup();
     const ada = { ...entry, id: "a", name: "Ada", secret: "WQIQ25BRKZYCJVYP", sortOrder: 2 };
     const bea = { ...entry, id: "b", name: "Bea", secret: "BEASECRETSECRET", sortOrder: 1 };
@@ -218,7 +255,7 @@ describe("AuthenticatorListComponent", () => {
 
     fixture.componentInstance["ui"].setSort("name");
 
-    expect(fixture.componentInstance["visible"]().map((item) => item.name)).toEqual(["Ada", "Bea"]);
+    expect(fixture.componentInstance["visible"]().map((item) => item.name)).toEqual(["Bea", "Ada"]);
   });
 
   it("shows the MCP alias and a zh-CN sync time", async () => {

@@ -14,13 +14,13 @@ import { PopupPageComponent } from "../../platform/popup/layout/popup-page.compo
 const previewEntries: AuthenticatorEntryView[] = [
   {
     id: "gh",
-    name: "minxiangnan",
+    name: "公司统一身份认证平台管理员账号",
     issuer: "GitHub",
     secret: "JBSWY3DPEHPK3PXP",
     algorithm: "SHA1",
     digits: 6,
     period: 30,
-    notes: "工作账号",
+    notes: "这是一段完整备注，用来确认名称和备注都会换行显示，而不是被省略号截断。",
     favorite: true,
     sortOrder: 1,
     revisionDate: "",

@@ -386,6 +386,16 @@ bit-bottom-navigation button {
   border-bottom: 0 !important;
 }
 
+[data-zh-auth-title],
+[data-zh-auth-notes] {
+  display: block;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
+}
+
 [data-zh-mono] {
   display: inline-flex;
   align-items: center;
