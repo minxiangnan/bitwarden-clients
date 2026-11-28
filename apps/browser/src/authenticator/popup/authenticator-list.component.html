@@ -43,38 +43,6 @@
       [ngModel]="query()"
       (ngModelChange)="query.set($event)"
     />
-    <div data-zh-toolbar>
-      <div data-zh-segment role="group" [attr.aria-label]="'authenticatorArrange' | i18n">
-        <button
-          type="button"
-          [attr.data-active]="ui.sort() === 'manual' ? '' : null"
-          [attr.aria-pressed]="ui.sort() === 'manual'"
-          (click)="ui.setSort('manual')"
-        >
-          {{ "authenticatorSortCustom" | i18n }}
-        </button>
-        <button
-          type="button"
-          [attr.data-active]="ui.sort() === 'name' ? '' : null"
-          [attr.aria-pressed]="ui.sort() === 'name'"
-          (click)="ui.setSort('name')"
-        >
-          {{ "authenticatorSortNameAz" | i18n }}
-        </button>
-      </div>
-      @if (canReorder()) {
-        <button
-          type="button"
-          data-zh-quiet
-          data-testid="authenticator-sort-toggle"
-          [attr.data-active]="sortMode() ? '' : null"
-          [attr.aria-pressed]="sortMode()"
-          (click)="toggleSortMode()"
-        >
-          {{ (sortMode() ? "done" : "authenticatorSort") | i18n }}
-        </button>
-      }
-    </div>
     <div data-zh-links>
       <button
         type="button"
@@ -126,6 +94,7 @@
       data-zh-auth-list
       class="tw-m-0 tw-list-none tw-p-0"
       cdkDropList
+      [cdkDropListAutoScrollDisabled]="false"
       [cdkDropListDisabled]="!canDrag()"
       (cdkDropListDropped)="drop($event, group.entries)"
     >
@@ -135,54 +104,38 @@
           class="tw-bg-transparent"
           cdkDrag
           cdkDragLockAxis="y"
+          [cdkDragStartDelay]="dragHoldMs"
           [attr.data-entry-id]="entry.id"
           [cdkDragDisabled]="!canDrag() || entry.undecryptable"
+          (keydown)="onRowKey($event, entry, group.entries, orderList)"
         >
-          <div class="tw-flex tw-items-center tw-gap-2">
-            @if (sortMode() && !entry.undecryptable) {
-              @if (canDrag()) {
-                <button
-                  type="button"
-                  cdkDragHandle
-                  data-testid="authenticator-drag"
-                  class="tw-shrink-0 tw-cursor-grab tw-border-0 tw-bg-transparent tw-px-0 tw-text-sm tw-leading-none tw-text-muted"
-                  [attr.aria-label]="'authenticatorDrag' | i18n"
-                >
-                  ⠿
-                </button>
-              }
-              <button
-                type="button"
-                data-testid="authenticator-pin-top"
-                class="tw-inline-flex tw-shrink-0 tw-items-center tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-leading-none tw-text-primary-600 disabled:tw-text-muted"
-                [disabled]="isFirst(entry, group.entries) || busyId() !== null"
-                [attr.aria-label]="'authenticatorMoveTop' | i18n"
-                (click)="moveEntry(entry, 0, group.entries, orderList)"
-              >
-                <bit-icon name="bwi-arrow-up"></bit-icon>
-              </button>
-            }
+          <div class="tw-flex tw-items-start tw-gap-2">
             <button
               type="button"
-              class="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
+              class="tw-flex tw-min-w-0 tw-flex-1 tw-items-start tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
               [attr.aria-label]="'authenticatorCopyAction' | i18n"
-              [attr.aria-disabled]="sortMode() ? true : null"
+              [attr.aria-keyshortcuts]="'Alt+ArrowUp Alt+ArrowDown'"
               (click)="copy(entry)"
             >
-              <span data-zh-mono aria-hidden="true">{{ monogram(entry) }}</span>
               <span class="tw-min-w-0 tw-flex-1">
                 <span
-                  class="tw-block tw-truncate tw-text-sm tw-font-medium tw-leading-5 tw-text-main"
+                  data-zh-auth-title
+                  class="tw-text-sm tw-font-medium tw-leading-5 tw-text-main"
                 >
                   {{ rowTitle(entry) }}
                 </span>
-                @if (rowSubtitle(entry); as subtitle) {
-                  <span class="tw-block tw-truncate tw-text-xs tw-leading-4 tw-text-muted">{{
-                    subtitle
+                @if (rowNotes(entry); as notes) {
+                  <span data-zh-auth-notes class="tw-text-xs tw-leading-4 tw-text-muted">{{
+                    notes
+                  }}</span>
+                }
+                @if (aliases()[entry.id]; as alias) {
+                  <span data-zh-auth-notes class="tw-text-xs tw-leading-4 tw-text-muted">{{
+                    alias
                   }}</span>
                 }
                 @if (entry.undecryptable) {
-                  <span class="tw-block tw-truncate tw-text-xs tw-text-danger">{{
+                  <span data-zh-auth-notes class="tw-text-xs tw-text-danger">{{
                     "authenticatorUndecryptable" | i18n
                   }}</span>
                 }

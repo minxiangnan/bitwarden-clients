@@ -9563,7 +9563,7 @@
     "message": "Order and groups"
   },
   "authenticatorArrangeHelp": {
-    "message": "This only changes how the list looks on this browser. Moving an item up or down on the edit page is what the server stores."
+    "message": "The list stays in your custom order. Press and hold a row for about 0.4 seconds, then drag it, or focus a row and press Alt+Up or Alt+Down. The order is stored in zh.totp.order and synced. Grouping only changes how this browser shows the list."
   },
   "authenticatorSort": {
     "message": "Sort"

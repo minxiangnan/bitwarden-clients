@@ -3,7 +3,7 @@
  * 2026.11.N line so Chrome treats each build as newer; this string is what we
  * compare with GitHub tags `v-zh-authenticator-X.Y.Z`.
  */
-export const AUTHENTICATOR_RELEASE_VERSION = "1.3.0";
+export const AUTHENTICATOR_RELEASE_VERSION = "1.3.1";
 
 /**
  * GitHub releases API. Chrome MV3 host_permissions already includes every

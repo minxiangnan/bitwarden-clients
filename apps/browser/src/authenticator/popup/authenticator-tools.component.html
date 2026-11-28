@@ -18,19 +18,6 @@
     <p class="tw-mb-2 tw-text-sm tw-text-muted">{{ "authenticatorArrangeHelp" | i18n }}</p>
     <div class="tw-flex tw-flex-col tw-gap-2">
       <label class="tw-text-sm">
-        <span class="tw-mb-1 tw-block">{{ "authenticatorSort" | i18n }}</span>
-        <select
-          bitInput
-          class="tw-w-full"
-          [value]="ui.sort()"
-          (change)="ui.setSort($any($event.target).value)"
-        >
-          <option value="manual">{{ "authenticatorSortManual" | i18n }}</option>
-          <option value="name">{{ "authenticatorSortName" | i18n }}</option>
-          <option value="issuer">{{ "authenticatorSortIssuer" | i18n }}</option>
-        </select>
-      </label>
-      <label class="tw-text-sm">
         <span class="tw-mb-1 tw-block">{{ "authenticatorGroup" | i18n }}</span>
         <select
           bitInput
