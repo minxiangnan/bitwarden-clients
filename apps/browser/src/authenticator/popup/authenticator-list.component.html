@@ -70,7 +70,11 @@
         {{ "authenticatorTools" | i18n }}
       </button>
     </div>
-    <div class="tw-flex tw-gap-2" role="group" [attr.aria-label]="'authenticatorArrange' | i18n">
+    <div
+      class="tw-flex tw-flex-wrap tw-gap-2"
+      role="group"
+      [attr.aria-label]="'authenticatorArrange' | i18n"
+    >
       <button
         type="button"
         bitButton
@@ -91,6 +95,19 @@
       >
         {{ "authenticatorSortNameAz" | i18n }}
       </button>
+      @if (canReorder()) {
+        <button
+          type="button"
+          bitButton
+          size="small"
+          data-testid="authenticator-sort-toggle"
+          [buttonType]="sortMode() ? 'primary' : 'secondary'"
+          [attr.aria-pressed]="sortMode()"
+          (click)="toggleSortMode()"
+        >
+          {{ (sortMode() ? "done" : "authenticatorSort") | i18n }}
+        </button>
+      }
     </div>
     @if (scanError()) {
       <p class="tw-mb-0 tw-text-sm tw-text-danger" role="alert">{{ scanError() }}</p>
@@ -108,6 +125,7 @@
       <h2 class="tw-mb-2 tw-mt-3 tw-text-sm tw-font-semibold tw-text-main">{{ group.title }}</h2>
     }
     <ul
+      #orderList
       class="tw-m-0 tw-list-none tw-p-0"
       cdkDropList
       [cdkDropListDisabled]="!canDrag()"
@@ -115,19 +133,21 @@
     >
       @for (entry of group.entries; track entry.id) {
         <li
+          data-authenticator-row
           class="tw-mb-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-px-2 tw-py-1.5"
           cdkDrag
           cdkDragLockAxis="y"
+          [attr.data-entry-id]="entry.id"
           [cdkDragDisabled]="!canDrag() || entry.undecryptable"
         >
-          <div class="tw-flex tw-items-center tw-gap-1">
-            @if (canReorder() && !entry.undecryptable) {
+          <div class="tw-flex tw-items-center tw-gap-2">
+            @if (sortMode() && !entry.undecryptable) {
               @if (canDrag()) {
                 <button
                   type="button"
                   cdkDragHandle
                   data-testid="authenticator-drag"
-                  class="tw-shrink-0 tw-cursor-grab tw-border-0 tw-bg-transparent tw-px-0.5 tw-text-sm tw-leading-none tw-text-muted"
+                  class="tw-shrink-0 tw-cursor-grab tw-border-0 tw-bg-transparent tw-px-0 tw-text-sm tw-leading-none tw-text-muted"
                   [attr.aria-label]="'authenticatorDrag' | i18n"
                 >
                   ⠿
@@ -136,10 +156,10 @@
               <button
                 type="button"
                 data-testid="authenticator-pin-top"
-                class="tw-inline-flex tw-shrink-0 tw-items-center tw-border-0 tw-bg-transparent tw-p-0.5 tw-text-sm tw-leading-none tw-text-primary-600 disabled:tw-text-muted"
+                class="tw-inline-flex tw-shrink-0 tw-items-center tw-border-0 tw-bg-transparent tw-p-0 tw-text-sm tw-leading-none tw-text-primary-600 disabled:tw-text-muted"
                 [disabled]="isFirst(entry, group.entries) || busyId() !== null"
                 [attr.aria-label]="'authenticatorMoveTop' | i18n"
-                (click)="moveEntry(entry, 0, group.entries)"
+                (click)="moveEntry(entry, 0, group.entries, orderList)"
               >
                 <bit-icon name="bwi-arrow-up"></bit-icon>
               </button>
@@ -148,6 +168,7 @@
               type="button"
               class="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
               [attr.aria-label]="'authenticatorCopyAction' | i18n"
+              [attr.aria-disabled]="sortMode() ? true : null"
               (click)="copy(entry)"
             >
               <span class="tw-min-w-0 tw-flex-1">
@@ -217,7 +238,9 @@
                   type="button"
                   bitMenuItem
                   [disabled]="isFirst(entry, group.entries)"
-                  (click)="moveEntry(entry, group.entries.indexOf(entry) - 1, group.entries)"
+                  (click)="
+                    moveEntry(entry, group.entries.indexOf(entry) - 1, group.entries, orderList)
+                  "
                 >
                   {{ "authenticatorMoveUp" | i18n }}
                 </button>
@@ -225,7 +248,9 @@
                   type="button"
                   bitMenuItem
                   [disabled]="isLast(entry, group.entries)"
-                  (click)="moveEntry(entry, group.entries.indexOf(entry) + 1, group.entries)"
+                  (click)="
+                    moveEntry(entry, group.entries.indexOf(entry) + 1, group.entries, orderList)
+                  "
                 >
                   {{ "authenticatorMoveDown" | i18n }}
                 </button>
@@ -233,7 +258,7 @@
                   type="button"
                   bitMenuItem
                   [disabled]="isFirst(entry, group.entries)"
-                  (click)="moveEntry(entry, 0, group.entries)"
+                  (click)="moveEntry(entry, 0, group.entries, orderList)"
                 >
                   {{ "authenticatorMoveTop" | i18n }}
                 </button>
