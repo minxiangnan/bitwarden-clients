@@ -8,7 +8,7 @@ import { ToastService } from "@bitwarden/components";
 
 import { AuthenticatorEntryView } from "../authenticator.models";
 
-import { AuthenticatorListComponent } from "./authenticator-list.component";
+import { AuthenticatorListComponent, rowSlideOffsets } from "./authenticator-list.component";
 import { AuthenticatorService } from "./authenticator.service";
 import { McpAccessService } from "./mcp-access.service";
 
@@ -79,30 +79,69 @@ describe("AuthenticatorListComponent", () => {
     expect(authenticator.setFavorite).toHaveBeenCalledTimes(1);
   });
 
-  it("hides the front reorder controls for name order and search", () => {
+  it("keeps rows clean until sort mode, and leaves that mode while searching", () => {
     const { fixture } = setup();
+    const component = fixture.componentInstance;
 
-    expect(fixture.componentInstance["canReorder"]()).toBe(true);
+    expect(component["sortMode"]()).toBe(false);
+    expect(component["canDrag"]()).toBe(false);
 
-    fixture.componentInstance["ui"].setSort("name");
-    expect(fixture.componentInstance["canReorder"]()).toBe(false);
+    component["toggleSortMode"]();
+    expect(component["sortMode"]()).toBe(true);
+    expect(component["canDrag"]()).toBe(true);
 
-    fixture.componentInstance["ui"].setSort("manual");
-    fixture.componentInstance["query"].set("ada");
-    expect(fixture.componentInstance["canReorder"]()).toBe(false);
+    component["query"].set("ada");
+    fixture.detectChanges();
+    expect(component["canReorder"]()).toBe(false);
+    expect(component["sortMode"]()).toBe(false);
+    expect(component["canDrag"]()).toBe(false);
   });
 
   it("does not drag while a search or the favorites filter is active", () => {
     const { fixture } = setup();
+    const component = fixture.componentInstance;
 
-    expect(fixture.componentInstance["canDrag"]()).toBe(true);
+    component["toggleSortMode"]();
+    expect(component["canDrag"]()).toBe(true);
 
-    fixture.componentInstance["query"].set("ada");
-    expect(fixture.componentInstance["canDrag"]()).toBe(false);
+    component["query"].set("ada");
+    fixture.detectChanges();
+    expect(component["canDrag"]()).toBe(false);
 
-    fixture.componentInstance["query"].set("");
-    fixture.componentInstance["favoritesOnly"].set(true);
-    expect(fixture.componentInstance["canDrag"]()).toBe(false);
+    component["query"].set("");
+    component["toggleSortMode"]();
+    component["favoritesOnly"].set(true);
+    fixture.detectChanges();
+    expect(component["canDrag"]()).toBe(false);
+  });
+
+  it("does not copy a code while sort mode is open", async () => {
+    const { fixture } = setup();
+    fixture.componentInstance["rememberCode"]("1", "123456");
+    fixture.componentInstance["toggleSortMode"]();
+
+    await fixture.componentInstance["copy"](entry);
+
+    expect(fixture.componentInstance["copiedId"]()).toBeNull();
+  });
+
+  it("slides a pinned row up and the rows above it down", () => {
+    const offsets = rowSlideOffsets(
+      new Map([
+        ["a", 0],
+        ["b", 40],
+        ["c", 80],
+      ]),
+      new Map([
+        ["c", 0],
+        ["a", 40],
+        ["b", 80],
+      ]),
+    );
+
+    expect(offsets.get("c")).toBe(80);
+    expect(offsets.get("a")).toBe(-40);
+    expect(offsets.get("b")).toBe(-40);
   });
 
   it("opens the tools page for import and trash", () => {

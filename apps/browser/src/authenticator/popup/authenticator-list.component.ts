@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   signal,
+  ViewEncapsulation,
 } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
@@ -64,7 +65,38 @@ import { McpAccessService } from "./mcp-access.service";
     AuthenticatorCodeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
   templateUrl: "./authenticator-list.component.html",
+  styles: [
+    `
+      [data-authenticator-row].cdk-drag-preview {
+        scale: 1.02;
+        border-radius: 0.5rem;
+        border: 1px solid rgb(196 83 42);
+        background: #faf9f5;
+        box-shadow: 0 10px 22px rgb(196 83 42 / 0.22);
+        cursor: grabbing;
+      }
+      [data-authenticator-row].cdk-drag-placeholder {
+        opacity: 0.4;
+        background: rgb(196 83 42 / 0.08);
+      }
+      [data-authenticator-row].cdk-drag-animating,
+      .cdk-drop-list-dragging [data-authenticator-row]:not(.cdk-drag-placeholder) {
+        transition: transform 200ms ease;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        [data-authenticator-row].cdk-drag-preview {
+          scale: 1;
+          box-shadow: none;
+        }
+        [data-authenticator-row].cdk-drag-animating,
+        .cdk-drop-list-dragging [data-authenticator-row]:not(.cdk-drag-placeholder) {
+          transition: none;
+        }
+      }
+    `,
+  ],
 })
 export class AuthenticatorListComponent {
   private readonly authenticator = inject(AuthenticatorService);
@@ -89,6 +121,8 @@ export class AuthenticatorListComponent {
   protected readonly copiedId = signal<string | null>(null);
   /** Bumps on every copy so copying the same row restarts the check. */
   private readonly copiedTick = signal(0);
+  /** Front handle and pin stay hidden until the user asks to reorder. */
+  protected readonly sorting = signal(false);
 
   private readonly state = toSignal(this.authenticator.state$, {
     initialValue: {
@@ -151,6 +185,11 @@ export class AuthenticatorListComponent {
       const timer = setTimeout(() => this.copiedId.set(null), 1200);
       onCleanup(() => clearTimeout(timer));
     });
+    effect(() => {
+      if (!this.canReorder()) {
+        this.sorting.set(false);
+      }
+    });
   }
 
   private async loadAliases(): Promise<void> {
@@ -166,6 +205,9 @@ export class AuthenticatorListComponent {
   }
 
   protected async copy(entry: AuthenticatorEntryView): Promise<void> {
+    if (this.sortMode()) {
+      return;
+    }
     const value = this.codes.get(entry.id);
     if (!value) {
       return;
@@ -271,9 +313,22 @@ export class AuthenticatorListComponent {
     );
   }
 
+  /** Drag and the pin are only on screen while sort mode is open. */
+  protected sortMode(): boolean {
+    return this.sorting() && this.canReorder();
+  }
+
+  protected toggleSortMode(): void {
+    if (!this.canReorder()) {
+      this.sorting.set(false);
+      return;
+    }
+    this.sorting.update((on) => !on);
+  }
+
   /** Drag follows the flat list. Grouped rows use the move menu instead. */
   protected canDrag(): boolean {
-    return this.canReorder() && this.ui.group() === "none";
+    return this.sortMode() && this.ui.group() === "none";
   }
 
   protected isFirst(entry: AuthenticatorEntryView, entries: AuthenticatorEntryView[]): boolean {
@@ -302,12 +357,13 @@ export class AuthenticatorListComponent {
     entry: AuthenticatorEntryView,
     destination: number,
     entries: AuthenticatorEntryView[],
+    list?: HTMLElement,
   ): Promise<void> {
     const from = entries.findIndex((item) => item.id === entry.id);
     if (from < 0 || from === destination) {
       return;
     }
-    await this.place(entry, destination, entries);
+    await this.place(entry, destination, entries, list);
   }
 
   protected edit(entry: AuthenticatorEntryView): void {
@@ -355,6 +411,7 @@ export class AuthenticatorListComponent {
     entry: AuthenticatorEntryView,
     destination: number,
     entries: AuthenticatorEntryView[],
+    list?: HTMLElement,
   ): Promise<void> {
     if (!this.canReorder() || entry.undecryptable || this.busyId() != null) {
       return;
@@ -372,13 +429,21 @@ export class AuthenticatorListComponent {
       return;
     }
     const previous = this.orderIndex();
+    const before = list ? captureRowTops(list) : null;
     this.busyId.set(entry.id);
     this.orderIndex.set(applyTotpOrderWrites(previous, writes));
+    if (list && before) {
+      this.playSlides(list, before);
+    }
     try {
       await this.authenticator.writeTotpOrders(writes);
       await this.refreshOrders();
     } catch (error) {
+      const failed = list ? captureRowTops(list) : null;
       this.orderIndex.set(previous);
+      if (list && failed) {
+        this.playSlides(list, failed);
+      }
       if (error instanceof TotpOrderCipherMissingError) {
         this.toast.showToast({
           variant: "error",
@@ -391,6 +456,34 @@ export class AuthenticatorListComponent {
     } finally {
       this.busyId.set(null);
     }
+  }
+
+  /** Slides each row from where it was before the order change. Drag uses CDK instead. */
+  private playSlides(list: HTMLElement, before: ReadonlyMap<string, number>): void {
+    if (prefersReducedMotion()) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      const offsets = rowSlideOffsets(before, captureRowTops(list));
+      list.querySelectorAll<HTMLElement>("[data-entry-id]").forEach((row) => {
+        const id = row.dataset.entryId;
+        const dy = id ? offsets.get(id) : undefined;
+        if (dy == null) {
+          return;
+        }
+        row.style.transition = "none";
+        row.style.transform = `translateY(${dy}px)`;
+        requestAnimationFrame(() => {
+          row.style.transition = "transform 200ms ease";
+          row.style.transform = "";
+          const clear = () => {
+            row.style.transition = "";
+            row.removeEventListener("transitionend", clear);
+          };
+          row.addEventListener("transitionend", clear);
+        });
+      });
+    });
   }
 
   private failSave(): void {
@@ -426,4 +519,38 @@ function groupEntries(
   return [...groups.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "zh"))
     .map(([title, grouped]) => ({ title, entries: grouped }));
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function captureRowTops(list: HTMLElement): Map<string, number> {
+  const tops = new Map<string, number>();
+  list.querySelectorAll<HTMLElement>("[data-entry-id]").forEach((row) => {
+    const id = row.dataset.entryId;
+    if (id) {
+      tops.set(id, row.getBoundingClientRect().top);
+    }
+  });
+  return tops;
+}
+
+/** How far each row must travel so a reorder can slide instead of jumping. */
+export function rowSlideOffsets(
+  before: ReadonlyMap<string, number>,
+  after: ReadonlyMap<string, number>,
+): Map<string, number> {
+  const offsets = new Map<string, number>();
+  after.forEach((top, id) => {
+    const previous = before.get(id);
+    if (previous == null) {
+      return;
+    }
+    const dy = previous - top;
+    if (Math.abs(dy) >= 1) {
+      offsets.set(id, dy);
+    }
+  });
+  return offsets;
 }
