@@ -42,7 +42,10 @@ describe("AuthenticatorCodeComponent", () => {
 
     expect(fixture.nativeElement.textContent).toContain("123 456");
     expect(fixture.nativeElement.textContent).toContain("30");
-    expect(fixture.nativeElement.querySelector("[data-zh-countdown]")).not.toBeNull();
+    const countdown = fixture.nativeElement.querySelector("[data-zh-countdown]");
+    expect(countdown).not.toBeNull();
+    expect(countdown.querySelector("[data-zh-countdown-track]").parentElement).toBe(countdown);
+    expect(countdown.querySelector("[data-zh-countdown-seconds]").parentElement).toBe(countdown);
     expect(fixture.nativeElement.querySelector("[data-zh-ring]")).toBeNull();
     expect(
       fixture.nativeElement.querySelector("[data-zh-countdown]").hasAttribute("data-zh-urgent"),
