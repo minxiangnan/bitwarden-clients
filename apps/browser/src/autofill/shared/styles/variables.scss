@@ -5,9 +5,9 @@ $font-family-source-code-pro: "Source Code Pro", monospace;
 $font-size-base: 14px;
 
 $text-color-light: #3d3929;
-$muted-text-color-light: #5e5d59;
+$muted-text-color-light: #5c584e;
 $background-color-light: #faf9f5;
-$background-offset-color-light: #f0eee6;
+$background-offset-color-light: #f6e7df;
 $brand-primary-light: #c4532a;
 $password-special-color-light: #7c2f1a;
 $password-number-color-light: #c4532a;
@@ -16,9 +16,9 @@ $error-color-light: #a33d22;
 
 $text-color-dark: #f5f4ee;
 $muted-text-color-dark: #c4c1b8;
-$background-color-dark: #262624;
-$background-offset-color-dark: #30302e;
-$border-color-dark: #3e3e38;
+$background-color-dark: #2a261c;
+$background-offset-color-dark: #3d3929;
+$border-color-dark: #4a4538;
 $brand-primary-dark: #d97757;
 $password-special-color-dark: #e3a88e;
 $password-number-color-dark: #d97757;
@@ -29,7 +29,7 @@ $muted-blue: #8a877c;
 $muted-grey: #b0aea5;
 $border-color: #e8e6dc;
 
-$border-radius: 8px;
+$border-radius: 12px;
 $focus-outline-color: #c4532a;
 
 $themes: (
@@ -42,7 +42,7 @@ $themes: (
     buttonPrimaryColor: $brand-primary-light,
     textContrast: $background-color-light,
     inputBorderColor: #e8e6dc,
-    inputBackgroundColor: $background-color-light,
+    inputBackgroundColor: #fffdf8,
     borderColor: $border-color,
     focusOutlineColor: $focus-outline-color,
     successColor: $success-color-light,
@@ -59,9 +59,9 @@ $themes: (
     buttonPrimaryColor: $brand-primary-dark,
     primaryColor: $brand-primary-dark,
     textContrast: $background-color-dark,
-    inputBorderColor: #3e3e38,
+    inputBorderColor: #4a4538,
     inputBackgroundColor: $background-color-dark,
-    borderColor: #3e3e38,
+    borderColor: #4a4538,
     focusOutlineColor: lighten($focus-outline-color, 25%),
     successColor: $success-color-dark,
     errorColor: $error-color-dark,

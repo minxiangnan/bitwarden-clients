@@ -168,6 +168,11 @@ const routes: Routes = [
     ],
   },
   {
+    path: "design-preview",
+    loadComponent: () =>
+      import("./design-preview/design-preview.component").then((mod) => mod.DesignPreviewComponent),
+  },
+  {
     path: "home",
     redirectTo: "login",
     pathMatch: "full",

@@ -1,0 +1,465 @@
+/**
+ * Popup design system. Tokens are documented in docs/zh-design-system.md.
+ * Loaded after Tailwind so these values win at runtime.
+ */
+
+:root {
+  --zh-canvas: #faf9f5;
+  --zh-surface: #fffdf8;
+  --zh-surface-muted: #f0eee6;
+  --zh-primary: #c4532a;
+  --zh-primary-pressed: #a33d22;
+  --zh-primary-soft: #f6e7df;
+  --zh-code: #7c2f1a;
+  --zh-urgent: #c2412d;
+  --zh-ink: #3d3929;
+  --zh-ink-deep: #2a261c;
+  --zh-muted: #5c584e;
+  --zh-faint: #8a8478;
+  --zh-line: #e8e6dc;
+  --zh-on-primary: #fffdf8;
+  --zh-shadow: 0 1px 2px rgb(61 57 41 / 0.05), 0 8px 24px rgb(61 57 41 / 0.06);
+  --zh-ease: cubic-bezier(0.2, 0, 0, 1);
+  --zh-duration: 180ms;
+
+  --color-background: 250 249 245;
+  --color-bg-primary: #faf9f5;
+  --color-fg-heading: #2a261c;
+  --color-fg-body: #5c584e;
+  --color-text-main: 61 57 41;
+  --color-text-muted: 92 88 78;
+  --color-border-base: #e8e6dc;
+  --color-black: #2a261c;
+  --color-gray-800: #3d3929;
+  --color-gray-900: #3d3929;
+  --color-gray-950: #2a261c;
+  --color-shadow: 61 57 41;
+}
+
+.theme_dark,
+html.theme_dark {
+  --zh-canvas: #2a261c;
+  --zh-surface: #3d3929;
+  --zh-line: #4a4538;
+  --zh-ink: #f5f4ee;
+  --zh-muted: #c4c1b8;
+  --color-background: 42 38 28;
+  --color-bg-primary: #2a261c;
+  --color-fg-heading: #f5f4ee;
+  --color-text-main: 245 244 238;
+  --color-border-base: #4a4538;
+  --color-black: #1c1914;
+  --color-gray-800: #f5f4ee;
+  --color-gray-900: #f5f4ee;
+  --color-gray-950: #faf9f5;
+}
+
+html,
+body {
+  background: var(--zh-canvas) !important;
+  color: var(--zh-ink);
+}
+
+html.browser_safari app-root {
+  border-color: var(--zh-line) !important;
+}
+
+popup-header header {
+  background: var(--zh-canvas);
+}
+
+popup-header h1 {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.015em;
+  color: var(--zh-ink-deep) !important;
+}
+
+button,
+a,
+input,
+bit-form-field {
+  transition:
+    background-color var(--zh-duration) var(--zh-ease),
+    border-color var(--zh-duration) var(--zh-ease),
+    color var(--zh-duration) var(--zh-ease),
+    transform var(--zh-duration) var(--zh-ease);
+}
+
+button[bitbutton]:not([biticonbutton]) {
+  min-height: 36px;
+  padding: 8px 14px !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  border-radius: 12px !important;
+}
+
+button[bitbutton][buttontype="primary"]:not([biticonbutton]) {
+  background-color: var(--zh-primary) !important;
+  border-color: var(--zh-primary) !important;
+  color: var(--zh-on-primary) !important;
+  font-weight: 600;
+}
+
+button[bitbutton][buttontype="primary"]:not([biticonbutton]):hover {
+  background-color: var(--zh-primary-pressed) !important;
+  border-color: var(--zh-primary-pressed) !important;
+}
+
+button[bitbutton][buttontype="secondary"]:not([biticonbutton]) {
+  background: var(--zh-surface) !important;
+  border-color: var(--zh-line) !important;
+  color: var(--zh-ink) !important;
+}
+
+button[bitbutton]:not([biticonbutton]):active {
+  transform: scale(0.98);
+}
+
+button:disabled,
+button[disabled] {
+  opacity: 0.45;
+}
+
+input[bitinput],
+textarea[bitinput],
+select[bitinput] {
+  color: var(--zh-ink) !important;
+}
+
+/* The field chrome owns the border. An extra border on the inner input reads as a double box. */
+bit-form-field input[bitinput],
+bit-form-field textarea[bitinput],
+bit-form-field select[bitinput] {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  min-height: 0 !important;
+}
+
+[bitfieldcontainer] {
+  background: var(--zh-surface) !important;
+  border-color: var(--zh-line) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+input[bitinput]:not(bit-form-field input),
+textarea[bitinput]:not(bit-form-field textarea) {
+  border-color: var(--zh-line) !important;
+  background-color: var(--zh-surface) !important;
+  border-radius: 12px !important;
+  min-height: 40px;
+}
+
+input[bitinput]:focus,
+textarea[bitinput]:focus,
+select[bitinput]:focus {
+  outline: none;
+}
+
+[bitfieldcontainer]:focus-within {
+  border-color: var(--zh-primary) !important;
+  box-shadow: 0 0 0 3px rgb(196 83 42 / 0.16);
+}
+
+[data-zh-search] {
+  height: 36px !important;
+  max-height: 36px !important;
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  background: var(--zh-surface) !important;
+  padding-inline: 14px !important;
+}
+
+bit-item-group {
+  display: flex;
+  flex-direction: column;
+  background: var(--zh-surface);
+  border: 1px solid var(--zh-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(61 57 41 / 0.04);
+  margin-bottom: 16px;
+}
+
+bit-item-group bit-item {
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--zh-line) !important;
+  min-height: 48px;
+}
+
+bit-item-group bit-item:last-of-type {
+  border-bottom: 0 !important;
+}
+
+bit-item-group bit-item:hover {
+  background: #fbf6f3 !important;
+}
+
+bit-item-content,
+[bit-item-content] {
+  gap: 12px !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  color: var(--zh-ink) !important;
+}
+
+bit-item-content i[slot="start"],
+bit-item-content bit-icon[slot="start"],
+[bit-item-content] i[slot="start"],
+[bit-item-content] bit-icon[slot="start"] {
+  font-size: 16px;
+  color: var(--zh-faint);
+  width: 20px;
+  text-align: center;
+}
+
+bit-dialog section {
+  background: var(--zh-surface) !important;
+  border-color: var(--zh-line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgb(61 57 41 / 0.12) !important;
+  color: var(--zh-ink) !important;
+}
+
+bit-toast > div:not([data-testid="toast-compact"]) {
+  border-radius: 12px !important;
+  background: var(--zh-surface) !important;
+  border: 1px solid var(--zh-line);
+  box-shadow: var(--zh-shadow) !important;
+  color: var(--zh-ink) !important;
+}
+
+bit-bottom-navigation footer {
+  background: var(--zh-surface) !important;
+  border-top-color: var(--zh-line) !important;
+}
+
+bit-bottom-navigation button {
+  border-radius: 10px !important;
+}
+
+[data-zh-tabbar] {
+  background: var(--zh-surface);
+  border-top: 1px solid var(--zh-line);
+}
+
+[data-zh-tabbar] button {
+  color: var(--zh-faint);
+  font-weight: 500;
+}
+
+[data-zh-tabbar] button[aria-current="page"] {
+  color: var(--zh-primary);
+  font-weight: 600;
+  background: var(--zh-primary-soft);
+}
+
+[data-zh-toolbar] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+[data-zh-toolbar] [data-zh-segment] {
+  flex: 1;
+}
+
+[data-zh-segment] {
+  display: flex;
+  padding: 2px;
+  background: var(--zh-surface-muted);
+  border-radius: 10px;
+  gap: 2px;
+}
+
+[data-zh-segment] button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--zh-muted);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  min-height: 28px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+[data-zh-segment] button[data-active] {
+  background: var(--zh-surface);
+  color: var(--zh-ink-deep);
+  box-shadow: 0 1px 2px rgb(61 57 41 / 0.08);
+}
+
+[data-zh-links] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+[data-zh-quiet] {
+  border: 0;
+  background: transparent;
+  color: var(--zh-faint);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+[data-zh-quiet][data-active],
+[data-zh-quiet][aria-pressed="true"] {
+  color: var(--zh-primary);
+  background: var(--zh-primary-soft);
+}
+
+[data-zh-quiet]:hover {
+  background: var(--zh-primary-soft);
+  color: var(--zh-code);
+}
+
+[data-zh-section] {
+  margin: 16px 4px 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  color: var(--zh-faint) !important;
+}
+
+[data-zh-auth-list] {
+  background: var(--zh-surface);
+  border: 1px solid var(--zh-line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--zh-shadow);
+}
+
+[data-authenticator-row] {
+  min-height: 56px;
+  margin: 0 !important;
+  padding: 6px 8px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--zh-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+[data-zh-auth-list] [data-authenticator-row]:last-child {
+  border-bottom: 0 !important;
+}
+
+[data-zh-mono] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--zh-primary-soft);
+  color: var(--zh-code);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+[data-zh-code] {
+  color: var(--zh-code) !important;
+  font-size: 18px !important;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+[data-zh-ring] {
+  color: var(--zh-primary);
+}
+
+[data-zh-ring] circle {
+  stroke: currentColor;
+  fill: none;
+}
+
+[data-zh-urgent] {
+  color: var(--zh-urgent);
+}
+
+[data-zh-copied] {
+  color: var(--zh-faint) !important;
+  font-size: 11px !important;
+  font-weight: 500;
+}
+
+[data-zh-empty] {
+  margin: 48px 16px !important;
+  text-align: center;
+  color: var(--zh-faint) !important;
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+
+[data-zh-overlay] {
+  width: 280px;
+  overflow: hidden;
+  background: var(--zh-surface);
+  border: 1px solid var(--zh-line);
+  border-radius: 12px;
+  box-shadow: var(--zh-shadow);
+}
+
+[data-zh-overlay] button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-bottom: 1px solid var(--zh-line);
+  background: transparent;
+  color: var(--zh-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+[data-zh-overlay] button:last-child {
+  border-bottom: 0;
+}
+
+[data-zh-overlay] button:hover {
+  background: #fbf6f3;
+}
+
+[data-zh-dialog-preview] section {
+  background: var(--zh-surface);
+  border: 1px solid var(--zh-line);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgb(61 57 41 / 0.12);
+  color: var(--zh-ink);
+  padding: 16px;
+}
+
+[data-zh-kicker] {
+  margin: 0 0 12px;
+  color: var(--zh-faint);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button[bitbutton]:active {
+    transform: none;
+  }
+}

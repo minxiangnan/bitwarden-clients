@@ -25,7 +25,8 @@ import { AuthenticatorEntryView } from "../authenticator.models";
       <span class="tw-flex tw-items-center tw-gap-1.5">
         <span class="tw-block tw-text-right">
           <span
-            class="tw-font-mono tw-text-lg tw-font-medium tw-leading-5 tw-tabular-nums tw-tracking-[0.08em] tw-text-main"
+            data-zh-code
+            class="tw-font-mono tw-text-lg tw-font-medium tw-leading-5 tw-tabular-nums tw-tracking-[0.06em]"
             >{{ totp.formatted }}</span
           >
           @if (totp.showNext && totp.nextFormatted) {
@@ -37,23 +38,18 @@ import { AuthenticatorEntryView } from "../authenticator.models";
         </span>
         @if (totp.seconds > 0) {
           <span
-            class="tw-relative tw-flex tw-size-5 tw-shrink-0 tw-items-center tw-justify-center"
+            data-zh-ring
+            class="tw-relative tw-flex tw-size-4 tw-shrink-0 tw-items-center tw-justify-center"
+            [attr.data-zh-urgent]="totp.low ? '' : null"
             aria-hidden="true"
           >
-            <span
-              class="tw-absolute tw-text-[9px] tw-leading-none"
-              [class.tw-text-danger]="totp.low"
-              >{{ totp.seconds }}</span
-            >
-            <svg class="tw-size-5" transform="rotate(-90)" viewBox="0 0 28 28">
+            <span class="tw-absolute tw-text-[9px] tw-leading-none">{{ totp.seconds }}</span>
+            <svg class="tw-size-4" transform="rotate(-90)" viewBox="0 0 28 28">
               <circle
-                class="tw-fill-none"
-                [class.tw-stroke-danger-600]="totp.low"
-                [class.tw-stroke-primary-600]="!totp.low"
                 r="11"
                 cy="14"
                 cx="14"
-                stroke-width="2.5"
+                stroke-width="1.5"
                 stroke-dasharray="69"
                 [style.stroke-dashoffset.px]="totp.offset"
               ></circle>

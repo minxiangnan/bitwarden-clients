@@ -1,7 +1,14 @@
 <popup-page [loading]="loading()">
   <popup-header slot="header" [pageTitle]="'authenticator' | i18n">
     <ng-container slot="end">
-      <button type="button" bitButton buttonType="primary" [disabled]="readOnly()" (click)="add()">
+      <button
+        type="button"
+        bitButton
+        buttonType="primary"
+        size="small"
+        [disabled]="readOnly()"
+        (click)="add()"
+      >
         {{ "authenticatorAdd" | i18n }}
       </button>
       <app-pop-out />
@@ -28,6 +35,7 @@
   <div class="tw-mb-3 tw-flex tw-flex-col tw-gap-2">
     <input
       bitInput
+      data-zh-search
       type="search"
       class="tw-w-full"
       [placeholder]="'search' | i18n"
@@ -35,73 +43,31 @@
       [ngModel]="query()"
       (ngModelChange)="query.set($event)"
     />
-    <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-      <button
-        type="button"
-        bitButton
-        [buttonType]="favoritesOnly() ? 'primary' : 'secondary'"
-        size="small"
-        [attr.aria-pressed]="favoritesOnly()"
-        (click)="favoritesOnly.set(!favoritesOnly())"
-      >
-        {{ "authenticatorFavorites" | i18n }}
-      </button>
-      <button
-        type="button"
-        bitButton
-        [buttonType]="recentOnly() ? 'primary' : 'secondary'"
-        size="small"
-        [attr.aria-pressed]="recentOnly()"
-        (click)="ui.recentOnly.set(!ui.recentOnly())"
-      >
-        {{ "authenticatorRecent" | i18n }}
-      </button>
-      <button
-        type="button"
-        bitButton
-        buttonType="secondary"
-        size="small"
-        [disabled]="scanning() || readOnly()"
-        (click)="scanCurrentPage()"
-      >
-        {{ "authenticatorScanTab" | i18n }}
-      </button>
-      <button type="button" bitButton buttonType="secondary" size="small" (click)="openTools()">
-        {{ "authenticatorTools" | i18n }}
-      </button>
-    </div>
-    <div
-      class="tw-flex tw-flex-wrap tw-gap-2"
-      role="group"
-      [attr.aria-label]="'authenticatorArrange' | i18n"
-    >
-      <button
-        type="button"
-        bitButton
-        size="small"
-        [buttonType]="ui.sort() === 'manual' ? 'primary' : 'secondary'"
-        [attr.aria-pressed]="ui.sort() === 'manual'"
-        (click)="ui.setSort('manual')"
-      >
-        {{ "authenticatorSortCustom" | i18n }}
-      </button>
-      <button
-        type="button"
-        bitButton
-        size="small"
-        [buttonType]="ui.sort() === 'name' ? 'primary' : 'secondary'"
-        [attr.aria-pressed]="ui.sort() === 'name'"
-        (click)="ui.setSort('name')"
-      >
-        {{ "authenticatorSortNameAz" | i18n }}
-      </button>
+    <div data-zh-toolbar>
+      <div data-zh-segment role="group" [attr.aria-label]="'authenticatorArrange' | i18n">
+        <button
+          type="button"
+          [attr.data-active]="ui.sort() === 'manual' ? '' : null"
+          [attr.aria-pressed]="ui.sort() === 'manual'"
+          (click)="ui.setSort('manual')"
+        >
+          {{ "authenticatorSortCustom" | i18n }}
+        </button>
+        <button
+          type="button"
+          [attr.data-active]="ui.sort() === 'name' ? '' : null"
+          [attr.aria-pressed]="ui.sort() === 'name'"
+          (click)="ui.setSort('name')"
+        >
+          {{ "authenticatorSortNameAz" | i18n }}
+        </button>
+      </div>
       @if (canReorder()) {
         <button
           type="button"
-          bitButton
-          size="small"
+          data-zh-quiet
           data-testid="authenticator-sort-toggle"
-          [buttonType]="sortMode() ? 'primary' : 'secondary'"
+          [attr.data-active]="sortMode() ? '' : null"
           [attr.aria-pressed]="sortMode()"
           (click)="toggleSortMode()"
         >
@@ -109,23 +75,55 @@
         </button>
       }
     </div>
+    <div data-zh-links>
+      <button
+        type="button"
+        data-zh-quiet
+        [attr.data-active]="favoritesOnly() ? '' : null"
+        [attr.aria-pressed]="favoritesOnly()"
+        (click)="favoritesOnly.set(!favoritesOnly())"
+      >
+        {{ "authenticatorFavorites" | i18n }}
+      </button>
+      <button
+        type="button"
+        data-zh-quiet
+        [attr.data-active]="recentOnly() ? '' : null"
+        [attr.aria-pressed]="recentOnly()"
+        (click)="ui.recentOnly.set(!ui.recentOnly())"
+      >
+        {{ "authenticatorRecent" | i18n }}
+      </button>
+      <button
+        type="button"
+        data-zh-quiet
+        [disabled]="scanning() || readOnly()"
+        (click)="scanCurrentPage()"
+      >
+        {{ "authenticatorScanTab" | i18n }}
+      </button>
+      <button type="button" data-zh-quiet (click)="openTools()">
+        {{ "authenticatorTools" | i18n }}
+      </button>
+    </div>
     @if (scanError()) {
       <p class="tw-mb-0 tw-text-sm tw-text-danger" role="alert">{{ scanError() }}</p>
     }
   </div>
 
   @if (visible().length === 0 && (status() === "ready" || status() === "offline")) {
-    <p class="tw-text-sm tw-text-muted">
+    <p data-zh-empty>
       {{ (recentOnly() ? "authenticatorRecentEmpty" : "authenticatorEmpty") | i18n }}
     </p>
   }
 
   @for (group of groups(); track group.title) {
     @if (group.title) {
-      <h2 class="tw-mb-2 tw-mt-3 tw-text-sm tw-font-semibold tw-text-main">{{ group.title }}</h2>
+      <h2 data-zh-section>{{ group.title }}</h2>
     }
     <ul
       #orderList
+      data-zh-auth-list
       class="tw-m-0 tw-list-none tw-p-0"
       cdkDropList
       [cdkDropListDisabled]="!canDrag()"
@@ -134,7 +132,7 @@
       @for (entry of group.entries; track entry.id) {
         <li
           data-authenticator-row
-          class="tw-mb-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-secondary-100 tw-bg-background-alt tw-px-2 tw-py-1.5"
+          class="tw-bg-transparent"
           cdkDrag
           cdkDragLockAxis="y"
           [attr.data-entry-id]="entry.id"
@@ -171,20 +169,16 @@
               [attr.aria-disabled]="sortMode() ? true : null"
               (click)="copy(entry)"
             >
+              <span data-zh-mono aria-hidden="true">{{ monogram(entry) }}</span>
               <span class="tw-min-w-0 tw-flex-1">
                 <span
-                  class="tw-block tw-truncate tw-text-sm tw-font-semibold tw-leading-5 tw-text-main"
+                  class="tw-block tw-truncate tw-text-sm tw-font-medium tw-leading-5 tw-text-main"
                 >
-                  {{ entry.issuer ? entry.issuer + " · " + entry.name : entry.name }}
+                  {{ rowTitle(entry) }}
                 </span>
-                @if (entry.notes.trim()) {
+                @if (rowSubtitle(entry); as subtitle) {
                   <span class="tw-block tw-truncate tw-text-xs tw-leading-4 tw-text-muted">{{
-                    entry.notes
-                  }}</span>
-                }
-                @if (aliases()[entry.id]) {
-                  <span class="tw-block tw-truncate tw-text-xs tw-leading-4 tw-text-muted">{{
-                    aliases()[entry.id]
+                    subtitle
                   }}</span>
                 }
                 @if (entry.undecryptable) {
@@ -201,7 +195,8 @@
                   />
                   @if (copiedId() === entry.id) {
                     <span
-                      class="tw-text-[10px] tw-font-medium tw-leading-3 tw-text-primary-600"
+                      data-zh-copied
+                      class="tw-text-[11px] tw-font-medium tw-leading-3"
                       data-testid="authenticator-copied"
                     >
                       {{ "copiedCheck" | i18n }}
@@ -230,7 +225,7 @@
               [attr.aria-label]="'moreOptionsLabelNoPlaceholder' | i18n"
               [bitMenuTriggerFor]="rowMenu"
             >
-              <i class="bwi bwi-ellipsis-v" aria-hidden="true"></i>
+              <bit-icon name="bwi-ellipsis-v" aria-hidden="true"></bit-icon>
             </button>
             <bit-menu #rowMenu>
               @if (canReorder() && !entry.undecryptable) {
