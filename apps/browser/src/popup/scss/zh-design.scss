@@ -404,6 +404,16 @@ bit-bottom-navigation button {
   text-overflow: clip;
 }
 
+[data-zh-auth-title] {
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+
+[data-zh-auth-notes] {
+  font-size: 11px !important;
+  line-height: 16px !important;
+}
+
 [data-zh-mono] {
   display: inline-flex;
   align-items: center;
@@ -464,20 +474,22 @@ bit-bottom-navigation button {
 }
 
 [data-zh-countdown] {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
+  position: relative;
   width: 100%;
+  height: 12px;
 }
 
 [data-zh-countdown-track] {
-  flex: 1 1 auto;
-  min-width: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  width: 100%;
   height: 3px;
   border-radius: 999px;
   background: var(--zh-line);
   overflow: hidden;
+  transform: translateY(-50%);
 }
 
 [data-zh-countdown-fill] {
@@ -493,7 +505,13 @@ bit-bottom-navigation button {
 }
 
 [data-zh-countdown-seconds] {
-  flex: 0 0 auto;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   min-width: 2ch;
   text-align: right;
   font-size: 10px;
