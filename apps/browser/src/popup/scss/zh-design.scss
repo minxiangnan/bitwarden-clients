@@ -446,6 +446,8 @@ bit-bottom-navigation button {
   display: inline-grid;
   justify-items: end;
   vertical-align: top;
+  /* Room for the seconds, which sit just past the code so the bar can stay flush. */
+  padding-right: 18px;
 }
 
 [data-zh-code-sizer] {
@@ -506,14 +508,15 @@ bit-bottom-navigation button {
 
 [data-zh-countdown-seconds] {
   position: absolute;
-  right: 0;
+  left: calc(100% + 4px);
   top: 0;
-  bottom: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  height: 12px;
+  width: 2ch;
   min-width: 2ch;
   text-align: right;
+  justify-content: flex-end;
   font-size: 10px;
   font-weight: 500;
   line-height: 1;
