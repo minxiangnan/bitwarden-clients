@@ -75,8 +75,9 @@ describe("extension update selection", () => {
     expect(isNewerVersion("1.3.0", "1.2.10")).toBe(true);
     expect(isNewerVersion("1.3.1", "1.3.0")).toBe(true);
     expect(isNewerVersion("1.3.2", "1.3.1")).toBe(true);
-    expect(isNewerVersion("1.3.1", "1.3.2")).toBe(false);
-    expect(AUTHENTICATOR_RELEASE_VERSION).toBe("1.3.2");
+    expect(isNewerVersion("1.3.3", "1.3.2")).toBe(true);
+    expect(isNewerVersion("1.3.2", "1.3.3")).toBe(false);
+    expect(AUTHENTICATOR_RELEASE_VERSION).toBe("1.3.3");
     expect(isNewerVersion("1.1.8", "1.1.9")).toBe(false);
   });
 

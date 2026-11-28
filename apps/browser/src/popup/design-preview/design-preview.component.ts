@@ -33,7 +33,7 @@ const previewEntries: AuthenticatorEntryView[] = [
     issuer: "Google",
     secret: "GEZDGNBVGY3TQOJQ",
     algorithm: "SHA1",
-    digits: 6,
+    digits: 8,
     period: 30,
     notes: "",
     favorite: false,

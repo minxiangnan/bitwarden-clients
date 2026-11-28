@@ -64,23 +64,26 @@ export function codeFace(code: string, period: number, nextFormatted: string): C
   template: `
     @if (info(); as totp) {
       <span data-zh-code-block>
-        <span
-          data-zh-code
-          class="tw-font-mono tw-text-lg tw-font-medium tw-leading-5 tw-tabular-nums tw-tracking-[0.06em]"
-          >{{ totp.formatted }}</span
-        >
-        @if (totp.seconds > 0) {
-          <span data-zh-countdown [attr.data-zh-urgent]="totp.low ? '' : null" aria-hidden="true">
-            <span data-zh-countdown-track>
-              <span
-                data-zh-countdown-fill
-                [style.width.%]="totp.remaining * 100"
-                [attr.data-zh-reset]="totp.reset ? '' : null"
-              ></span>
+        <span data-zh-code-sizer aria-hidden="true">0000 0000</span>
+        <span data-zh-code-unit>
+          <span
+            data-zh-code
+            class="tw-font-mono tw-text-lg tw-font-medium tw-leading-5 tw-tabular-nums tw-tracking-[0.06em]"
+            >{{ totp.formatted }}</span
+          >
+          @if (totp.seconds > 0) {
+            <span data-zh-countdown [attr.data-zh-urgent]="totp.low ? '' : null" aria-hidden="true">
+              <span data-zh-countdown-track>
+                <span
+                  data-zh-countdown-fill
+                  [style.width.%]="totp.remaining * 100"
+                  [attr.data-zh-reset]="totp.reset ? '' : null"
+                ></span>
+              </span>
+              <span data-zh-countdown-seconds>{{ totp.seconds }}</span>
             </span>
-            <span data-zh-countdown-seconds>{{ totp.seconds }}</span>
-          </span>
-        }
+          }
+        </span>
         @if (totp.showNext && totp.nextFormatted) {
           <span data-zh-next class="tw-text-[10px] tw-leading-3 tw-text-muted">
             下一段
