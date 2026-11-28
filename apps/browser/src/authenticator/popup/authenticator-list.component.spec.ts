@@ -75,15 +75,6 @@ describe("AuthenticatorListComponent", () => {
     return { fixture, authenticator };
   }
 
-  it("ignores a second favorite click while the first is still saving", () => {
-    const { fixture, authenticator } = setup();
-
-    void fixture.componentInstance["toggleFavorite"](entry);
-    void fixture.componentInstance["toggleFavorite"](entry);
-
-    expect(authenticator.setFavorite).toHaveBeenCalledTimes(1);
-  });
-
   it("drags the custom-order list after a hold, and turns drag off while searching", () => {
     const { fixture } = setup();
     const component = fixture.componentInstance;
@@ -98,7 +89,7 @@ describe("AuthenticatorListComponent", () => {
     expect(component["canDrag"]()).toBe(false);
   });
 
-  it("does not drag while a search or the favorites filter is active", () => {
+  it("does not drag while a search or the recent filter is active", () => {
     const { fixture } = setup();
     const component = fixture.componentInstance;
 
@@ -109,7 +100,7 @@ describe("AuthenticatorListComponent", () => {
     expect(component["canDrag"]()).toBe(false);
 
     component["query"].set("");
-    component["favoritesOnly"].set(true);
+    component["ui"].recentOnly.set(true);
     fixture.detectChanges();
     expect(component["canDrag"]()).toBe(false);
   });
