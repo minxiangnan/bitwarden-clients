@@ -9388,6 +9388,9 @@
   "authenticatorCopied": {
     "message": "验证码已复制"
   },
+  "authenticatorCodeCopied": {
+    "message": "已复制验证码"
+  },
   "copiedCheck": {
     "message": "已复制 ✓"
   },

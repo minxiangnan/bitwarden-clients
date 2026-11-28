@@ -1,4 +1,9 @@
 <popup-page [loading]="loading()">
+  @for (tick of copyNotice() ? [copyNotice()] : []; track tick) {
+    <div data-zh-copy-toast role="status" aria-live="polite" data-testid="authenticator-copied">
+      {{ "authenticatorCodeCopied" | i18n }}
+    </div>
+  }
   <popup-header slot="header" [pageTitle]="'authenticator' | i18n">
     <ng-container slot="end">
       <button
@@ -146,15 +151,6 @@
                     [entry]="entry"
                     (codeChange)="rememberCode(entry.id, $event)"
                   />
-                  @if (copiedId() === entry.id) {
-                    <span
-                      data-zh-copied
-                      class="tw-text-[11px] tw-font-medium tw-leading-3"
-                      data-testid="authenticator-copied"
-                    >
-                      {{ "copiedCheck" | i18n }}
-                    </span>
-                  }
                 </span>
               }
             </button>

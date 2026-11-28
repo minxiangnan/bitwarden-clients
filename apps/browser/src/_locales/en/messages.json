@@ -9391,6 +9391,9 @@
   "authenticatorCopied": {
     "message": "Code copied"
   },
+  "authenticatorCodeCopied": {
+    "message": "Code copied"
+  },
   "authenticatorImport": {
     "message": "Import from vault"
   },
