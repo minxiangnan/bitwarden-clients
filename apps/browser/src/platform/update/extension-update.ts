@@ -3,7 +3,7 @@
  * 2026.11.N line so Chrome treats each build as newer; this string is what we
  * compare with GitHub tags `v-zh-authenticator-X.Y.Z`.
  */
-export const AUTHENTICATOR_RELEASE_VERSION = "1.2.10";
+export const AUTHENTICATOR_RELEASE_VERSION = "1.3.0";
 
 /**
  * GitHub releases API. Chrome MV3 host_permissions already includes every
@@ -25,11 +25,11 @@ export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Opening Settings reuses a check this recent instead of calling GitHub again. */
 export const SETTINGS_UPDATE_CACHE_MS = 5 * 60 * 1000;
 
-export const CREAM = "#FAF9F5";
-export const INK = "#3D3929";
-export const MUTED = "#5C584E";
-export const TERRACOTTA = "#C4532A";
-export const CREAM_LINE = "#E8E6DC";
+export const CREAM = "#FBF6EF";
+export const INK = "#3B2A22";
+export const MUTED = "#7A675B";
+export const TERRACOTTA = "#C2552D";
+export const CREAM_LINE = "#EADFD3";
 
 const TAG_PATTERN = /^v-zh-authenticator-(\d+\.\d+\.\d+)$/;
 const ANDROID_TAG_PREFIX = "v-zh-authenticator-android";

@@ -1,0 +1,285 @@
+@if (screen() === "authenticator") {
+  <app-authenticator-list />
+} @else {
+  <popup-page>
+    <popup-header slot="header" [pageTitle]="title()"></popup-header>
+
+    @switch (screen()) {
+      @case ("login") {
+        <form class="tw-flex tw-flex-col tw-gap-3">
+          <bit-form-field>
+            <bit-label>电子邮箱</bit-label>
+            <input bitInput type="email" value="minxiangnan@qq.com" />
+          </bit-form-field>
+          <bit-form-field>
+            <bit-label>主密码</bit-label>
+            <input bitInput type="password" value="secret" />
+          </bit-form-field>
+          <button bitButton type="button" buttonType="primary" class="tw-w-full">登录</button>
+        </form>
+      }
+      @case ("unlock") {
+        <form class="tw-flex tw-flex-col tw-gap-3">
+          <p class="tw-m-0 tw-text-sm tw-text-muted">minxiangnan@qq.com</p>
+          <bit-form-field>
+            <bit-label>主密码</bit-label>
+            <input bitInput type="password" />
+          </bit-form-field>
+          <button bitButton type="button" buttonType="primary" class="tw-w-full">解锁</button>
+        </form>
+      }
+      @case ("item") {
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>用户名</span>
+              <span slot="end" class="tw-text-muted">minxiangnan</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>密码</span>
+              <span slot="end" class="tw-text-muted">••••••••</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>验证码</span>
+              <span slot="end" data-zh-code class="tw-font-mono">123 456</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+      @case ("edit") {
+        <form class="tw-flex tw-flex-col tw-gap-3">
+          <bit-form-field>
+            <bit-label>名称</bit-label>
+            <input bitInput type="text" value="GitHub" />
+          </bit-form-field>
+          <bit-form-field>
+            <bit-label>用户名</bit-label>
+            <input bitInput type="text" value="minxiangnan" />
+          </bit-form-field>
+          <bit-form-field>
+            <bit-label>密码</bit-label>
+            <input bitInput type="password" value="secret" />
+          </bit-form-field>
+          <button bitButton type="button" buttonType="primary" class="tw-w-full">保存</button>
+        </form>
+      }
+      @case ("generator") {
+        <p data-zh-code class="tw-m-0 tw-font-mono tw-text-center">k3-mQ9-vL2p</p>
+        <div class="tw-mt-4 tw-flex tw-gap-2">
+          <button bitButton type="button" buttonType="primary" class="tw-flex-1">复制</button>
+          <button bitButton type="button" buttonType="secondary" class="tw-flex-1">重新生成</button>
+        </div>
+        <bit-item-group class="tw-mt-4">
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>长度</span>
+              <span slot="end" class="tw-text-muted">14</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>数字</span>
+              <span slot="end" class="tw-text-muted">开</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>符号</span>
+              <span slot="end" class="tw-text-muted">开</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+      @case ("settings") {
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <bit-icon slot="start" name="bwi-lock" aria-hidden="true"></bit-icon>
+              账户安全
+              <bit-icon slot="end" name="bwi-angle-right" aria-hidden="true"></bit-icon>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <bit-icon slot="start" name="bwi-check-circle" aria-hidden="true"></bit-icon>
+              自动填充
+              <bit-icon slot="end" name="bwi-angle-right" aria-hidden="true"></bit-icon>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <bit-icon slot="start" name="bwi-info-circle" aria-hidden="true"></bit-icon>
+              关于
+              <bit-icon slot="end" name="bwi-angle-right" aria-hidden="true"></bit-icon>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+      @case ("about") {
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>版本</span>
+              <span slot="end" class="tw-text-muted">2026.11.21</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>检查更新</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+      @case ("security") {
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>锁定</span>
+              <span slot="end" class="tw-text-muted">15 分钟</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>主密码</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>两步登录</span>
+              <span slot="end" class="tw-text-muted">开</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+      @case ("autofill") {
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>自动填充</span>
+              <span slot="end" class="tw-text-muted">开</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>默认 URI 匹配</span>
+              <span slot="end" class="tw-text-muted">基础域名</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+      @case ("uri") {
+        <p data-zh-kicker>URI 匹配</p>
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>github.com</span>
+              <span slot="end" class="tw-text-muted">基础域名</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span>login.example.com</span>
+              <span slot="end" class="tw-text-muted">主机</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+        <button bitButton type="button" buttonType="secondary">添加 URI</button>
+      }
+      @case ("dialog") {
+        <div data-zh-dialog-preview>
+          <section>
+            <h2 class="tw-m-0 tw-text-xl tw-font-semibold">发现新版本</h2>
+            <p class="tw-mb-4 tw-mt-2 tw-text-sm tw-text-muted">
+              可以下载新的验证器扩展。安装包会覆盖当前文件夹。
+            </p>
+            <div class="tw-flex tw-justify-end tw-gap-2">
+              <button bitButton type="button" buttonType="secondary">稍后</button>
+              <button bitButton type="button" buttonType="primary">下载</button>
+            </div>
+          </section>
+        </div>
+      }
+      @case ("toast") {
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>GitHub</button>
+          </bit-item>
+        </bit-item-group>
+        <div class="tw-mt-6 tw-flex tw-justify-center">
+          <div
+            data-testid="toast-compact"
+            class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-solid tw-border-primary-600 tw-bg-background tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-leading-4 tw-text-primary-600"
+          >
+            已复制
+          </div>
+        </div>
+      }
+      @case ("overlay") {
+        <p data-zh-kicker>页面内自动填充</p>
+        <div data-zh-overlay>
+          <button type="button"><span data-zh-mono>G</span>GitHub · minxiangnan</button>
+          <button type="button"><span data-zh-mono>A</span>Amazon · 购物</button>
+          <button type="button">+ 保存登录</button>
+        </div>
+      }
+      @case ("empty") {
+        <p data-zh-empty>这里还没有项目</p>
+      }
+      @default {
+        <input
+          bitInput
+          data-zh-search
+          type="search"
+          class="tw-mb-3 tw-w-full"
+          placeholder="搜索密码库"
+          aria-label="搜索密码库"
+        />
+        <bit-item-group>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span data-zh-mono slot="start">G</span>
+              GitHub
+              <span class="tw-text-xs tw-font-normal tw-text-muted">minxiangnan</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span data-zh-mono slot="start">A</span>
+              Amazon
+              <span class="tw-text-xs tw-font-normal tw-text-muted">购物</span>
+            </button>
+          </bit-item>
+          <bit-item>
+            <button type="button" bit-item-content>
+              <span data-zh-mono slot="start">S</span>
+              Slack
+              <span class="tw-text-xs tw-font-normal tw-text-muted">工作区</span>
+            </button>
+          </bit-item>
+        </bit-item-group>
+      }
+    }
+
+    <footer slot="footer" data-zh-tabbar>
+      <nav>
+        <ul class="tw-mb-0 tw-flex tw-p-1">
+          @for (tab of tabs; track tab.id) {
+            <li class="tw-flex-1 tw-list-none">
+              <button
+                type="button"
+                class="tw-w-full tw-rounded-md tw-bg-transparent tw-py-1 tw-text-xs"
+                [attr.aria-current]="tab.id === tabId() ? 'page' : null"
+              >
+                {{ tab.label }}
+              </button>
+            </li>
+          }
+        </ul>
+      </nav>
+    </footer>
+  </popup-page>
+}

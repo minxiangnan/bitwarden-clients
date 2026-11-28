@@ -612,6 +612,18 @@ body * {
   }
 }
 
+.inline-menu-list-container {
+  background: #fffdf9;
+  color: #3b2a22;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.theme_dark .inline-menu-list-container {
+  background: #32241c;
+  color: #f6ede4;
+}
+
 .no-animations {
   /* Exclude SVG animations; designed handling required */
   .inline-menu-list-button-container,

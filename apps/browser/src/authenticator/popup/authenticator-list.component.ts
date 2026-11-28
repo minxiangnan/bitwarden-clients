@@ -71,15 +71,15 @@ import { McpAccessService } from "./mcp-access.service";
     `
       [data-authenticator-row].cdk-drag-preview {
         scale: 1.02;
-        border-radius: 0.5rem;
-        border: 1px solid rgb(196 83 42);
-        background: #faf9f5;
-        box-shadow: 0 10px 22px rgb(196 83 42 / 0.22);
+        border-radius: 12px;
+        border: 1px solid #e4c4b4;
+        background: #fffdf9;
+        box-shadow: 0 10px 24px rgb(194 85 45 / 0.18);
         cursor: grabbing;
       }
       [data-authenticator-row].cdk-drag-placeholder {
         opacity: 0.4;
-        background: rgb(196 83 42 / 0.08);
+        background: rgb(194 85 45 / 0.08);
       }
       [data-authenticator-row].cdk-drag-animating,
       .cdk-drop-list-dragging [data-authenticator-row]:not(.cdk-drag-placeholder) {
@@ -202,6 +202,29 @@ export class AuthenticatorListComponent {
 
   protected rememberCode(id: string, code: string): void {
     this.codes.set(id, code);
+  }
+
+  protected rowTitle(entry: AuthenticatorEntryView): string {
+    const issuer = entry.issuer?.trim();
+    return issuer || entry.name?.trim() || "";
+  }
+
+  protected rowSubtitle(entry: AuthenticatorEntryView): string {
+    const notes = entry.notes?.trim();
+    if (notes) {
+      return notes;
+    }
+    const issuer = entry.issuer?.trim();
+    const name = entry.name?.trim();
+    if (issuer && name && name !== issuer) {
+      return name;
+    }
+    return this.aliases()[entry.id] ?? "";
+  }
+
+  protected monogram(entry: AuthenticatorEntryView): string {
+    const char = Array.from(this.rowTitle(entry))[0];
+    return char ? char.toLocaleUpperCase() : "?";
   }
 
   protected async copy(entry: AuthenticatorEntryView): Promise<void> {
