@@ -6,22 +6,25 @@ Popup and the inline autofill menu share these tokens. The Android client should
 
 | Token             | Hex       | Use                                         |
 | ----------------- | --------- | ------------------------------------------- |
-| `canvas`          | `#FAF9F5` | Page background                             |
-| `surface`         | `#FFFDF8` | Cards, grouped lists, fields, dialogs       |
-| `surface-muted`   | `#F0EEE6` | Segmented control track, pressed wells      |
-| `primary`         | `#C4532A` | Terracotta. Buttons, active tab, focus      |
-| `primary-pressed` | `#A33D22` | Hover and pressed primary                   |
-| `primary-soft`    | `#F6E7DF` | Monogram, selected quiet chip               |
-| `code`            | `#7C2F1A` | Authenticator digits, terracotta-brown      |
+| `canvas`          | `#FBF6EF` | Page background                             |
+| `surface`         | `#FFFDF9` | Cards, grouped lists, fields, dialogs       |
+| `surface-muted`   | `#F3EBE1` | Segmented control track, pressed wells      |
+| `primary`         | `#C2552D` | Terracotta fill. Buttons, active tab, focus |
+| `primary-pressed` | `#A44C2B` | Hover and pressed primary. Fill mixed with ink |
+| `primary-soft`    | `#F3DFD4` | Monogram, selected quiet chip               |
+| `code`            | `#BA4E29` | Primary text, icons, and authenticator digits |
 | `urgent`          | `#C2412D` | Countdown ring in the last 5 seconds        |
-| `ink`             | `#3D3929` | Body text                                   |
-| `ink-deep`        | `#2A261C` | Titles. Darkest color in the system         |
-| `muted`           | `#5C584E` | Secondary text                              |
-| `faint`           | `#8A8478` | Placeholders, section labels, quiet actions |
-| `line`            | `#E8E6DC` | Hairline dividers and borders               |
-| `on-primary`      | `#FFFDF8` | Text on terracotta                          |
+| `ink`             | `#3B2A22` | Body text                                   |
+| `ink-deep`        | `#2B1E19` | Titles. Darkest color in the system         |
+| `muted`           | `#7A675B` | Secondary text                              |
+| `faint`           | `#AC9D91` | Placeholders, section labels, quiet actions |
+| `line`            | `#EADFD3` | Hairline dividers                           |
+| `input`           | `#9E8676` | Field and search borders                    |
+| `on-primary`      | `#FFFDF9` | Text on terracotta                          |
 
-Dark surfaces, when the theme is dark, stay warm: canvas `#2A261C`, surface `#3D3929`, line `#4A4538`, text `#F5F4EE`. Do not use `#000` or cool gray.
+These light values match the Android client. Pressed is 78% fill mixed with ink. Soft is 86% canvas mixed with fill. Faint is 55% muted mixed with the line.
+
+Dark theme: canvas `#241812`, surface `#32241C`, text `#F6EDE4`, muted `#C4A894`, primary `#E08A6C`. Derived: line `#5B493E`, pressed `#BE765C`, soft `#583A2E`, urgent `#D47D6D`, input `#6E5848`. Do not use `#000` or cool gray.
 
 ## Type
 
@@ -43,7 +46,7 @@ Spacing: 4, 8, 12, 16, 24. Row height for authenticator entries is 56. Settings 
 
 Radius: 8 for quiet buttons, 12 for fields, buttons, and grouped lists, 16 for the authenticator surface and dialogs. Search is a pill.
 
-Elevation is a warm shadow, never a black one: `0 1px 2px rgb(61 57 41 / 0.05), 0 8px 24px rgb(61 57 41 / 0.06)`. Dragged rows lift with `0 10px 24px rgb(196 83 42 / 0.18)`.
+Elevation is a warm shadow, never a black one: `0 1px 2px rgb(59 42 34 / 0.05), 0 8px 24px rgb(59 42 34 / 0.06)`. Dragged rows lift with `0 10px 24px rgb(194 85 45 / 0.18)`.
 
 ## Icons, motion, states
 
@@ -53,7 +56,7 @@ Motion: 180ms, `cubic-bezier(0.2, 0, 0, 1)`. Reorder slides stay 200ms ease. `pr
 
 | State    | Treatment                                    |
 | -------- | -------------------------------------------- |
-| Hover    | Surface `#FBF6F3` or primary `#A33D22`       |
+| Hover    | Surface `#F8EEE6` or primary `#A44C2B`       |
 | Pressed  | Scale 0.98 on buttons                        |
 | Focus    | 2px terracotta ring, 3px soft halo on fields |
 | Disabled | 45% opacity, no shadow                       |

@@ -72,14 +72,14 @@ import { McpAccessService } from "./mcp-access.service";
       [data-authenticator-row].cdk-drag-preview {
         scale: 1.02;
         border-radius: 12px;
-        border: 1px solid #e3a88e;
-        background: #fffdf8;
-        box-shadow: 0 10px 24px rgb(196 83 42 / 0.18);
+        border: 1px solid #e4c4b4;
+        background: #fffdf9;
+        box-shadow: 0 10px 24px rgb(194 85 45 / 0.18);
         cursor: grabbing;
       }
       [data-authenticator-row].cdk-drag-placeholder {
         opacity: 0.4;
-        background: rgb(196 83 42 / 0.08);
+        background: rgb(194 85 45 / 0.08);
       }
       [data-authenticator-row].cdk-drag-animating,
       .cdk-drop-list-dragging [data-authenticator-row]:not(.cdk-drag-placeholder) {

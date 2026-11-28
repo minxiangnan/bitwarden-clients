@@ -5,10 +5,10 @@ export type NeverSaveConfirmCopy = {
   cancelLabel: string;
 };
 
-const CREAM = "#FAF9F5";
-const INK = "#3D3929";
-const MUTED = "#5C584E";
-const TERRACOTTA = "#C4532A";
+const CREAM = "#FBF6EF";
+const INK = "#3B2A22";
+const MUTED = "#7A675B";
+const TERRACOTTA = "#C2552D";
 const SCRIM = "rgba(61, 57, 41, 0.28)";
 
 /**

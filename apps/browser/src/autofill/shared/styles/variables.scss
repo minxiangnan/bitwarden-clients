@@ -4,33 +4,33 @@ $font-family-sans-serif: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
 $font-family-source-code-pro: "Source Code Pro", monospace;
 $font-size-base: 14px;
 
-$text-color-light: #3d3929;
-$muted-text-color-light: #5c584e;
-$background-color-light: #faf9f5;
-$background-offset-color-light: #f6e7df;
-$brand-primary-light: #c4532a;
-$password-special-color-light: #7c2f1a;
-$password-number-color-light: #c4532a;
+$text-color-light: #3b2a22;
+$muted-text-color-light: #7a675b;
+$background-color-light: #fbf6ef;
+$background-offset-color-light: #f3dfd4;
+$brand-primary-light: #c2552d;
+$password-special-color-light: #ba4e29;
+$password-number-color-light: #ba4e29;
 $success-color-light: #017e45;
-$error-color-light: #a33d22;
+$error-color-light: #c2412d;
 
-$text-color-dark: #f5f4ee;
-$muted-text-color-dark: #c4c1b8;
-$background-color-dark: #2a261c;
-$background-offset-color-dark: #3d3929;
-$border-color-dark: #4a4538;
-$brand-primary-dark: #d97757;
-$password-special-color-dark: #e3a88e;
-$password-number-color-dark: #d97757;
+$text-color-dark: #f6ede4;
+$muted-text-color-dark: #c4a894;
+$background-color-dark: #241812;
+$background-offset-color-dark: #32241c;
+$border-color-dark: #5b493e;
+$brand-primary-dark: #e08a6c;
+$password-special-color-dark: #e08a6c;
+$password-number-color-dark: #e08a6c;
 $success-color-dark: #8db89b;
-$error-color-dark: #d97757;
+$error-color-dark: #d47d6d;
 
 $muted-blue: #8a877c;
 $muted-grey: #b0aea5;
-$border-color: #e8e6dc;
+$border-color: #eadfd3;
 
 $border-radius: 12px;
-$focus-outline-color: #c4532a;
+$focus-outline-color: #c2552d;
 
 $themes: (
   light: (
@@ -41,8 +41,8 @@ $themes: (
     primaryColor: $brand-primary-light,
     buttonPrimaryColor: $brand-primary-light,
     textContrast: $background-color-light,
-    inputBorderColor: #e8e6dc,
-    inputBackgroundColor: #fffdf8,
+    inputBorderColor: #9e8676,
+    inputBackgroundColor: #fffdf9,
     borderColor: $border-color,
     focusOutlineColor: $focus-outline-color,
     successColor: $success-color-light,
@@ -59,9 +59,9 @@ $themes: (
     buttonPrimaryColor: $brand-primary-dark,
     primaryColor: $brand-primary-dark,
     textContrast: $background-color-dark,
-    inputBorderColor: #4a4538,
+    inputBorderColor: #6e5848,
     inputBackgroundColor: $background-color-dark,
-    borderColor: #4a4538,
+    borderColor: #5b493e,
     focusOutlineColor: lighten($focus-outline-color, 25%),
     successColor: $success-color-dark,
     errorColor: $error-color-dark,
